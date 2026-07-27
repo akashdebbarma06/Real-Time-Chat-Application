@@ -67,8 +67,16 @@ export function MessageBubble({
     setIsEditing(false);
   }
 
+  const [showMobileActions, setShowMobileActions] = useState(false);
+
   return (
-    <div className={cn("group relative flex items-end gap-3 my-3 sm:my-3.5 transition-all animate-message-appear", own ? "justify-end" : "justify-start")}>
+    <div
+      onClick={() => setShowMobileActions((prev) => !prev)}
+      className={cn(
+        "group relative flex items-end gap-3 my-3 sm:my-3.5 transition-all animate-message-appear cursor-pointer sm:cursor-default",
+        own ? "justify-end" : "justify-start"
+      )}
+    >
       {!own && (
         <Avatar className="size-9 shrink-0 border border-slate-700 shadow-md">
           <AvatarImage src={message.sender.avatar_url || undefined} alt={message.sender.display_name} />
@@ -164,10 +172,11 @@ export function MessageBubble({
           )}
         </div>
 
-        {/* Hover Action Menu Bar (Reactions, Reply, Edit, Delete) */}
+        {/* Hover & Touch Action Menu Bar (Reactions, Reply, Edit, Delete) */}
         <div
           className={cn(
-            "absolute -top-4 z-10 hidden group-hover:flex items-center gap-1 rounded-full border border-slate-800 bg-slate-950/95 backdrop-blur-md p-1 shadow-xl",
+            "absolute -top-4 z-10 items-center gap-1 rounded-full border border-slate-800 bg-slate-950/95 backdrop-blur-md p-1 shadow-xl transition-all",
+            showMobileActions ? "flex" : "hidden group-hover:flex",
             own ? "right-3" : "left-3"
           )}
         >
