@@ -49,10 +49,6 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <div className="w-full flex justify-center my-auto">{children}</div>
 
         <footer className="mt-8 flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-          <a href="/downloads/ChatSphere.apk" download="ChatSphere.apk" className="font-semibold text-primary hover:underline flex items-center gap-1">
-            <span>Download</span>
-            <Download className="size-3" />
-          </a>
           <a href="/about" className="hover:underline">About</a>
           <a href="/contact" className="hover:underline">Contact</a>
           <a href="/privacy" className="hover:underline">Privacy Policy</a>
