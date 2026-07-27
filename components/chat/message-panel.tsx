@@ -21,6 +21,7 @@ import { notifyIncomingMessage, requestNotificationPermission } from "@/lib/noti
 import { ConversationAvatar } from "@/components/chat/conversation-avatar";
 import { MessageBubble } from "@/components/chat/message-bubble";
 import { MessageComposer } from "@/components/chat/message-composer";
+import { UserProfileSheet } from "@/components/chat/user-profile-sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -83,6 +84,9 @@ export function MessagePanel({
   const [sending, setSending] = useState(false);
   const [replyingToMessage, setReplyingToMessage] = useState<ChatMessage | null>(null);
   const [typingUsers, setTypingUsers] = useState<Map<string, string>>(new Map());
+
+  // User Profile Sheet State
+  const [userProfileSheetOpen, setUserProfileSheetOpen] = useState(false);
 
   // In-Chat Search State
   const [isSearching, setIsSearching] = useState(false);
@@ -336,40 +340,46 @@ export function MessagePanel({
             </Link>
           </Button>
 
-          <div className="relative shrink-0">
-            {conversation ? (
-              <ConversationAvatar conversation={conversation} userId={profile.id} className="size-10" />
-            ) : (
-              <div className="grid size-10 place-items-center rounded-full bg-muted">
-                <MessageCircleMore className="size-5" />
-              </div>
-            )}
-            {/* Online/Offline Visual Status Indicator Dot */}
-            {conversation?.type === "direct" && (
-              <span
-                className={cn(
-                  "absolute bottom-0 right-0 size-3 rounded-full border-2 border-background shadow-sm",
-                  isPeerOnline ? "bg-emerald-500" : "bg-slate-400"
-                )}
-              />
-            )}
-          </div>
+          {/* Click Avatar or Name to Open User Profile Side Sheet */}
+          <button
+            onClick={() => setUserProfileSheetOpen(true)}
+            className="flex items-center gap-3 min-w-0 text-left hover:opacity-80 transition"
+          >
+            <div className="relative shrink-0">
+              {conversation ? (
+                <ConversationAvatar conversation={conversation} userId={profile.id} className="size-10" />
+              ) : (
+                <div className="grid size-10 place-items-center rounded-full bg-muted">
+                  <MessageCircleMore className="size-5" />
+                </div>
+              )}
+              {/* Online/Offline Visual Status Indicator Dot */}
+              {conversation?.type === "direct" && (
+                <span
+                  className={cn(
+                    "absolute bottom-0 right-0 size-3 rounded-full border-2 border-background shadow-sm",
+                    isPeerOnline ? "bg-emerald-500" : "bg-slate-400"
+                  )}
+                />
+              )}
+            </div>
 
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <h1 className="truncate text-base font-semibold">{title}</h1>
-              {isMuted && <BellOff className="size-3.5 text-muted-foreground shrink-0" />}
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <h1 className="truncate text-base font-semibold">{title}</h1>
+                {isMuted && <BellOff className="size-3.5 text-muted-foreground shrink-0" />}
+              </div>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span
+                  className={cn(
+                    "size-2 rounded-full shrink-0",
+                    isPeerOnline ? "bg-emerald-500 animate-pulse" : "bg-slate-400"
+                  )}
+                />
+                <span className="truncate">{typingLabel || statusText}</span>
+              </div>
             </div>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <span
-                className={cn(
-                  "size-2 rounded-full shrink-0",
-                  isPeerOnline ? "bg-emerald-500 animate-pulse" : "bg-slate-400"
-                )}
-              />
-              <span className="truncate">{typingLabel || statusText}</span>
-            </div>
-          </div>
+          </button>
         </div>
 
         {/* Header Action Buttons */}
@@ -402,11 +412,11 @@ export function MessagePanel({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" side="bottom" className="w-56 bg-slate-900 border-slate-800 text-slate-100 p-1 rounded-2xl shadow-xl">
               <DropdownMenuItem
-                onClick={() => toast.info(`Viewing info for ${title}`)}
+                onClick={() => setUserProfileSheetOpen(true)}
                 className="flex items-center gap-2 text-xs rounded-xl cursor-pointer"
               >
                 <User className="size-4 text-cyan-400" />
-                <span>Contact Info</span>
+                <span>View Contact Profile</span>
               </DropdownMenuItem>
 
               <DropdownMenuItem
@@ -548,17 +558,17 @@ export function MessagePanel({
               )}
             </div>
           ) : (
-            <div className="text-center">
-              <div className="mx-auto grid size-16 place-items-center rounded-2xl border bg-card">
-                <MessageCircleMore className="size-7 text-primary" />
+            <div className="text-center py-12 animate-in fade-in zoom-in duration-300">
+              <div className="mx-auto grid size-20 place-items-center rounded-3xl border border-slate-800 bg-slate-900/90 text-cyan-400 shadow-xl shadow-cyan-500/10 backdrop-blur-md">
+                <MessageCircleMore className="size-9" />
               </div>
-              <h2 className="mt-5 text-lg font-semibold">
+              <h2 className="mt-5 text-xl font-bold text-slate-100">
                 {inChatQuery ? "No matching messages" : "Start the conversation"}
               </h2>
-              <p className="mt-2 text-sm text-muted-foreground">
+              <p className="mt-2 text-sm text-slate-400 max-w-sm mx-auto leading-relaxed">
                 {inChatQuery
-                  ? `No messages match "${inChatQuery}"`
-                  : `Send a message or share a file with ${title}.`}
+                  ? `No messages match "${inChatQuery}". Try searching for another keyword.`
+                  : `Say hello or share a file to kick off your chat with ${title}! 👋`}
               </p>
             </div>
           )}
@@ -574,6 +584,16 @@ export function MessagePanel({
         onSendText={sendText}
         onSendFile={sendFile}
         onTyping={broadcastTyping}
+      />
+
+      {/* User Profile Side Sheet */}
+      <UserProfileSheet
+        open={userProfileSheetOpen}
+        onOpenChange={setUserProfileSheetOpen}
+        peerProfile={peers[0] || null}
+        isOnline={isPeerOnline}
+        isMuted={isMuted}
+        onToggleMute={() => setIsMuted(!isMuted)}
       />
     </section>
   );

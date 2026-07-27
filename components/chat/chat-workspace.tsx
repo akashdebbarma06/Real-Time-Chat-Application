@@ -81,7 +81,7 @@ export function ChatWorkspace({ profile, selectedConversationId }: ChatWorkspace
       </div>
       {selectedConversationId ? (
         <MessagePanel key={selectedConversationId} profile={profile} conversation={selectedConversation} conversationId={selectedConversationId} onlineUserIds={onlineUserIds} onConversationActivity={handleConversationActivity} />
-      ) : <EmptyChat />}
+      ) : <EmptyChat currentUserId={profile.id} />}
     </main>
   );
 }

@@ -68,7 +68,7 @@ export function MessageBubble({
   }
 
   return (
-    <div className={cn("group relative flex items-end gap-3 my-3 sm:my-3.5 transition-all", own ? "justify-end" : "justify-start")}>
+    <div className={cn("group relative flex items-end gap-3 my-3 sm:my-3.5 transition-all animate-message-appear", own ? "justify-end" : "justify-start")}>
       {!own && (
         <Avatar className="size-9 shrink-0 border border-slate-700 shadow-md">
           <AvatarImage src={message.sender.avatar_url || undefined} alt={message.sender.display_name} />
