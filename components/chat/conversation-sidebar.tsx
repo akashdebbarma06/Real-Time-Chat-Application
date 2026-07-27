@@ -13,18 +13,21 @@ import {
   Moon,
   Pin,
   PinOff,
+  QrCode,
   Radio,
   Search,
   Settings,
   Sun,
   UserPlus,
   Users,
+  UsersRound,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { ContactsView } from "@/components/chat/contacts-view";
 import { ConversationAvatar } from "@/components/chat/conversation-avatar";
 import { NewChatDialog } from "@/components/chat/new-chat-dialog";
 import { SettingsView } from "@/components/chat/settings-view";
+import { ComingSoonDialog } from "@/components/ui/coming-soon-dialog";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
@@ -67,6 +70,10 @@ export function ConversationSidebar({
   // Pinned & Archived Conversation ID Sets
   const [pinnedIds, setPinnedIds] = useState<Set<string>>(new Set());
   const [archivedIds, setArchivedIds] = useState<Set<string>>(new Set());
+
+  // Coming Soon Dialog state
+  const [comingSoonOpen, setComingSoonOpen] = useState(false);
+  const [comingSoonFeature, setComingSoonFeature] = useState("Feature");
 
   const filteredConversations = useMemo(() => {
     return conversations.filter((conversation) => {
@@ -133,6 +140,19 @@ export function ConversationSidebar({
                 onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
               />
             </div>
+
+            <DropdownMenuSeparator className="bg-slate-800 my-2" />
+
+            <DropdownMenuItem
+              onClick={() => {
+                setComingSoonFeature("My QR Code & Contact Share");
+                setComingSoonOpen(true);
+              }}
+              className="flex items-center gap-2 text-xs rounded-xl cursor-pointer p-2.5 hover:bg-slate-800"
+            >
+              <QrCode className="size-4 text-cyan-400" />
+              <span>My QR Code</span>
+            </DropdownMenuItem>
 
             <DropdownMenuSeparator className="bg-slate-800 my-2" />
 
@@ -337,7 +357,7 @@ export function ConversationSidebar({
 
       {/* Floating Bottom Navigation Bar (Footer) */}
       <div className="p-3 pt-1 shrink-0">
-        <nav className="rounded-3xl border border-cyan-500/20 bg-slate-900/90 backdrop-blur-xl grid grid-cols-3 gap-1 p-1.5 shadow-2xl">
+        <nav className="rounded-3xl border border-cyan-500/20 bg-slate-900/90 backdrop-blur-xl grid grid-cols-4 gap-1 p-1.5 shadow-2xl">
           <button
             onClick={() => setActiveTab("chats")}
             className={`flex flex-col items-center justify-center gap-1 rounded-2xl py-2 transition-all ${
@@ -363,6 +383,17 @@ export function ConversationSidebar({
           </button>
 
           <button
+            onClick={() => {
+              setComingSoonFeature("Aether Communities & Public Channels");
+              setComingSoonOpen(true);
+            }}
+            className="flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-all"
+          >
+            <UsersRound className="size-5" />
+            <span className="text-[10px]">Communities</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab("settings")}
             className={`flex flex-col items-center justify-center gap-1 rounded-2xl py-2 transition-all ${
               activeTab === "settings"
@@ -375,6 +406,12 @@ export function ConversationSidebar({
           </button>
         </nav>
       </div>
+
+      <ComingSoonDialog
+        open={comingSoonOpen}
+        onOpenChange={setComingSoonOpen}
+        featureName={comingSoonFeature}
+      />
     </aside>
   );
 }

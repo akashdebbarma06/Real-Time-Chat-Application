@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { playNotificationSound, requestNotificationPermission } from "@/lib/notifications";
 import { toast } from "sonner";
+import { ComingSoonDialog } from "@/components/ui/coming-soon-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -48,6 +49,10 @@ type VisibilityOption = "everyone" | "nobody" | "everyone_except";
 
 export function SettingsView({ profile }: SettingsViewProps) {
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
+
+  // Coming Soon State
+  const [comingSoonOpen, setComingSoonOpen] = useState(false);
+  const [comingSoonFeature, setComingSoonFeature] = useState("Feature");
 
   // Privacy state
   const [lastSeenVisibility, setLastSeenVisibility] = useState<VisibilityOption>("everyone");
@@ -156,13 +161,8 @@ export function SettingsView({ profile }: SettingsViewProps) {
                 <button
                   key={item.id}
                   onClick={() => {
-                    const shareUrl = "https://chatsphere-tan.vercel.app";
-                    if (navigator.share) {
-                      void navigator.share({ title: "ChatSphere", text: "Chat with me on ChatSphere!", url: shareUrl });
-                    } else {
-                      void navigator.clipboard.writeText(shareUrl);
-                      toast.success("Link copied to clipboard!");
-                    }
+                    setComingSoonFeature("Invite Friends & QR Code Sharing");
+                    setComingSoonOpen(true);
                   }}
                   className="flex w-full items-center justify-between rounded-2xl border border-slate-800/80 bg-slate-900/60 p-3.5 text-left transition-all hover:bg-slate-800/80 hover:border-cyan-500/50"
                 >
@@ -496,6 +496,12 @@ export function SettingsView({ profile }: SettingsViewProps) {
           <span>Logout</span>
         </Button>
       </div>
+
+      <ComingSoonDialog
+        open={comingSoonOpen}
+        onOpenChange={setComingSoonOpen}
+        featureName={comingSoonFeature}
+      />
     </div>
   );
 }

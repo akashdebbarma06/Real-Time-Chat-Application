@@ -22,8 +22,7 @@ import {
 import { toast } from "sonner";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { notifyIncomingMessage, requestNotificationPermission } from "@/lib/notifications";
-import { AIAssistantDialog } from "@/components/chat/ai-assistant-dialog";
-import { CallModal } from "@/components/chat/call-modal";
+import { ComingSoonDialog } from "@/components/ui/coming-soon-dialog";
 import { ConversationAvatar } from "@/components/chat/conversation-avatar";
 import { MessageBubble } from "@/components/chat/message-bubble";
 import { MessageComposer } from "@/components/chat/message-composer";
@@ -94,10 +93,9 @@ export function MessagePanel({
   // User Profile Sheet State
   const [userProfileSheetOpen, setUserProfileSheetOpen] = useState(false);
 
-  // Call & AI Dialog State
-  const [callModalOpen, setCallModalOpen] = useState(false);
-  const [callMode, setCallMode] = useState<"video" | "audio">("video");
-  const [aiDialogOpen, setAiDialogOpen] = useState(false);
+  // Coming Soon Dialog State
+  const [comingSoonOpen, setComingSoonOpen] = useState(false);
+  const [comingSoonFeature, setComingSoonFeature] = useState("Feature");
 
   // In-Chat Search State
   const [isSearching, setIsSearching] = useState(false);
@@ -399,10 +397,13 @@ export function MessagePanel({
           <Button
             variant="ghost"
             size="icon-sm"
-            onClick={() => setAiDialogOpen(true)}
+            onClick={() => {
+              setComingSoonFeature("Aether AI Assistant");
+              setComingSoonOpen(true);
+            }}
             aria-label="AI Assistant"
             className="rounded-full text-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-300"
-            title="ChatSphere AI Assistant"
+            title="Aether AI Assistant"
           >
             <Sparkles className="size-4" />
           </Button>
@@ -412,12 +413,12 @@ export function MessagePanel({
             variant="ghost"
             size="icon-sm"
             onClick={() => {
-              setCallMode("audio");
-              setCallModalOpen(true);
+              setComingSoonFeature("Voice Calls");
+              setComingSoonOpen(true);
             }}
             aria-label="Audio Call"
             className="rounded-full text-slate-300 hover:bg-slate-800"
-            title="Start Audio Call"
+            title="Start Voice Call"
           >
             <Phone className="size-4" />
           </Button>
@@ -427,8 +428,8 @@ export function MessagePanel({
             variant="ghost"
             size="icon-sm"
             onClick={() => {
-              setCallMode("video");
-              setCallModalOpen(true);
+              setComingSoonFeature("Video Calls & Screen Sharing");
+              setComingSoonOpen(true);
             }}
             aria-label="Video Call"
             className="rounded-full text-slate-300 hover:bg-slate-800"
@@ -650,19 +651,11 @@ export function MessagePanel({
         onToggleMute={() => setIsMuted(!isMuted)}
       />
 
-      {/* AI Assistant Dialog */}
-      <AIAssistantDialog
-        open={aiDialogOpen}
-        onOpenChange={setAiDialogOpen}
-      />
-
-      {/* Audio / Video Call & Screen Sharing Modal */}
-      <CallModal
-        open={callModalOpen}
-        onOpenChange={setCallModalOpen}
-        title={title}
-        peerAvatarUrl={conversation?.avatar_url || peers[0]?.avatar_url}
-        mode={callMode}
+      {/* Graceful Coming Soon Dialog */}
+      <ComingSoonDialog
+        open={comingSoonOpen}
+        onOpenChange={setComingSoonOpen}
+        featureName={comingSoonFeature}
       />
     </section>
   );

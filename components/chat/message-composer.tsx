@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "sonner";
+import { ComingSoonDialog } from "@/components/ui/coming-soon-dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -105,15 +106,10 @@ export function MessageComposer({
     if (imageInputRef.current) imageInputRef.current.value = "";
   }
 
+  const [comingSoonOpen, setComingSoonOpen] = useState(false);
+
   function toggleVoiceRecording() {
-    if (isRecordingVoice) {
-      setIsRecordingVoice(false);
-      toast.success("Voice note recorded & added to message!");
-      setContent((prev) => (prev ? `${prev} [🎙️ Voice Note (0:05)]` : "🎙️ Voice Note (0:05)"));
-    } else {
-      setIsRecordingVoice(true);
-      toast.info("Recording voice note... tap microphone again to finish");
-    }
+    setComingSoonOpen(true);
   }
 
   return (
@@ -285,6 +281,12 @@ export function MessageComposer({
           </div>
         </div>
       </div>
+
+      <ComingSoonDialog
+        open={comingSoonOpen}
+        onOpenChange={setComingSoonOpen}
+        featureName="Voice Messages & Audio Recording"
+      />
     </div>
   );
 }
