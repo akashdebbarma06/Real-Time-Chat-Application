@@ -45,7 +45,7 @@ export function UserProfileSheet({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md bg-slate-900 border-slate-800 text-slate-100 p-0 overflow-hidden rounded-3xl shadow-2xl">
+      <DialogContent className="w-full h-full max-h-none sm:h-auto sm:max-w-md bg-slate-900 border-slate-800 text-slate-100 p-0 overflow-hidden rounded-none sm:rounded-3xl shadow-2xl flex flex-col">
         <DialogHeader className="p-4 border-b border-slate-800 flex flex-row items-center justify-between">
           <DialogTitle className="text-base font-bold">User Info</DialogTitle>
         </DialogHeader>

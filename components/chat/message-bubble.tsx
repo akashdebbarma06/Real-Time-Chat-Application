@@ -87,8 +87,8 @@ export function MessageBubble({
           className={cn(
             "relative rounded-3xl px-5 py-3.5 sm:px-6 sm:py-4 transition-all backdrop-blur-md",
             own
-              ? "rounded-br-[6px] bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-xl shadow-cyan-500/10 border border-cyan-400/20"
-              : "rounded-bl-[6px] border border-slate-800/80 bg-slate-900/90 text-slate-100 shadow-lg shadow-black/30"
+              ? "rounded-br-[6px] bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 shadow-xl shadow-cyan-500/15 border border-cyan-400/30 font-medium"
+              : "rounded-bl-[6px] border border-[#273147] bg-[#1B2234] text-slate-100 shadow-lg shadow-black/30"
           )}
         >
           {/* Content / Edit mode */}
@@ -124,7 +124,7 @@ export function MessageBubble({
           <div
             className={cn(
               "mt-2 flex items-center justify-end gap-1 text-[10px] sm:text-xs",
-              own ? "text-cyan-100/85 font-medium" : "text-slate-400 font-medium"
+              own ? "text-slate-950/75 font-semibold" : "text-slate-400 font-medium"
             )}
           >
             <time>{formatMessageTime(message.created_at)}</time>
