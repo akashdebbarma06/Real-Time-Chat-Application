@@ -1,9 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, MessageCircleMore } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Loader2, Lock, MessageCircleMore, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
 
 interface AuthFormProps {
@@ -11,7 +21,16 @@ interface AuthFormProps {
 }
 
 export function AuthForm({ mode }: AuthFormProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState<"google" | "github" | false>(false);
+
+  // Admin Login States
+  const [adminOpen, setAdminOpen] = useState(false);
+  const [adminEmail, setAdminEmail] = useState("");
+  const [adminPassword, setAdminPassword] = useState("");
+  const [adminLoading, setAdminLoading] = useState(false);
+
   const isLogin = mode === "login";
 
   async function handleSocialAuth(provider: "google" | "github") {
@@ -30,16 +49,103 @@ export function AuthForm({ mode }: AuthFormProps) {
     }
   }
 
+  async function handleAdminSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setAdminLoading(true);
+    const supabase = createClient();
+
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: adminEmail.trim(),
+        password: adminPassword,
+      });
+
+      if (error) throw error;
+
+      toast.success("Signed in as Administrator");
+      setAdminOpen(false);
+      router.replace(searchParams.get("next") || "/chat");
+      router.refresh();
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : typeof error === "object" && error !== null && "message" in error
+            ? String((error as { message: unknown }).message)
+            : "Admin login failed";
+      toast.error(message || "Admin authentication failed");
+    } finally {
+      setAdminLoading(false);
+    }
+  }
+
   return (
     <div className="w-full max-w-md">
-      <div className="mb-8 flex items-center gap-3 lg:hidden">
-        <span className="grid size-10 place-items-center rounded-2xl bg-primary text-primary-foreground">
-          <MessageCircleMore className="size-5" />
-        </span>
-        <span className="text-xl font-semibold">ChatSphere</span>
+      <div className="mb-8 flex items-center justify-between lg:hidden">
+        <div className="flex items-center gap-3">
+          <span className="grid size-10 place-items-center rounded-2xl bg-primary text-primary-foreground">
+            <MessageCircleMore className="size-5" />
+          </span>
+          <span className="text-xl font-semibold">ChatSphere</span>
+        </div>
       </div>
-      <div className="rounded-3xl border bg-card p-6 shadow-2xl shadow-black/5 sm:p-8">
-        <div className="mb-8 text-center sm:text-left">
+
+      <div className="relative rounded-3xl border bg-card p-6 shadow-2xl shadow-black/5 sm:p-8">
+        {/* Top Right Admin Login Button */}
+        <div className="absolute right-6 top-6 sm:right-8 sm:top-8">
+          <Dialog open={adminOpen} onOpenChange={setAdminOpen}>
+            <DialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 gap-1.5 px-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted"
+              >
+                <Lock className="size-3.5" />
+                <span>Admin Login</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <div className="mb-2 inline-flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <ShieldCheck className="size-5" />
+                </div>
+                <DialogTitle>Administrator Login</DialogTitle>
+                <DialogDescription>
+                  Sign in with your admin credentials to manage ChatSphere.
+                </DialogDescription>
+              </DialogHeader>
+
+              <form onSubmit={handleAdminSubmit} className="space-y-4 pt-2">
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium">Admin Email</label>
+                  <Input
+                    required
+                    type="email"
+                    placeholder="admin@chatsphere.app"
+                    value={adminEmail}
+                    onChange={(e) => setAdminEmail(e.target.value)}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium">Password</label>
+                  <Input
+                    required
+                    type="password"
+                    placeholder="••••••••"
+                    value={adminPassword}
+                    onChange={(e) => setAdminPassword(e.target.value)}
+                  />
+                </div>
+                <Button type="submit" className="w-full mt-2" disabled={adminLoading}>
+                  {adminLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
+                  Sign In as Admin
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        <div className="mb-8 text-center sm:text-left pr-24 sm:pr-28">
           <p className="text-sm font-medium text-primary">{isLogin ? "Welcome back" : "Create your space"}</p>
           <h2 className="mt-2 text-3xl font-semibold tracking-tight">
             {isLogin ? "Sign in to ChatSphere" : "Join ChatSphere"}
