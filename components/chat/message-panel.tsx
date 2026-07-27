@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { createClient } from "@/lib/supabase/client";
-import { getConversationPeers, getConversationTitle, sanitizeFilename } from "@/lib/utils";
+import { cn, getConversationPeers, getConversationTitle, sanitizeFilename } from "@/lib/utils";
 import type { ChatMessage, ConversationSummary, Profile } from "@/types/chat";
 
 interface MessagePanelProps {
@@ -167,16 +167,19 @@ export function MessagePanel({ profile, conversation, conversationId, onlineUser
       </header>
 
       <ScrollArea className="min-h-0 flex-1">
-        <div className="mx-auto flex min-h-full max-w-4xl flex-col justify-end px-3 py-5 sm:px-6">
+        <div className={cn(
+          "mx-auto max-w-6xl px-3 sm:px-5",
+          messages.length > 0 ? "flex flex-col py-4" : "flex min-h-full flex-col items-center justify-center py-5"
+        )}>
           {loading ? (
-            <div className="space-y-5">{Array.from({ length: 7 }).map((_, index) => <div key={index} className={index % 3 === 0 ? "flex justify-end" : "flex justify-start"}><Skeleton className="h-14 w-[55%] rounded-2xl" /></div>)}</div>
+            <div className="space-y-4 py-4">{Array.from({ length: 7 }).map((_, index) => <div key={index} className={index % 3 === 0 ? "flex justify-end" : "flex justify-start"}><Skeleton className="h-14 w-[55%] rounded-2xl" /></div>)}</div>
           ) : messages.length ? (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {messages.map((message) => <MessageBubble key={message.id} message={message} currentUserId={profile.id} showSenderName={conversation?.type === "group"} showReceipt={message.id === lastOwnMessageId} />)}
               {typingLabel && <div className="flex items-center gap-2 px-10 text-xs text-muted-foreground"><Loader2 className="size-3 animate-spin" />{typingLabel}</div>}
             </div>
           ) : (
-            <div className="py-20 text-center"><div className="mx-auto grid size-16 place-items-center rounded-2xl border bg-card"><MessageCircleMore className="size-7 text-primary" /></div><h2 className="mt-5 text-lg font-semibold">Start the conversation</h2><p className="mt-2 text-sm text-muted-foreground">Send a message or share a file with {title}.</p></div>
+            <div className="text-center"><div className="mx-auto grid size-16 place-items-center rounded-2xl border bg-card"><MessageCircleMore className="size-7 text-primary" /></div><h2 className="mt-5 text-lg font-semibold">Start the conversation</h2><p className="mt-2 text-sm text-muted-foreground">Send a message or share a file with {title}.</p></div>
           )}
           <div ref={bottomRef} />
         </div>

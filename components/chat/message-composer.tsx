@@ -44,7 +44,7 @@ export function MessageComposer({ disabled, sending, onSendText, onSendFile, onT
 
   return (
     <div className="border-t bg-background/90 p-3 backdrop-blur-xl sm:p-4">
-      <div className={cn("mx-auto flex max-w-4xl items-end gap-2 rounded-2xl border bg-card p-2 shadow-sm focus-within:ring-2 focus-within:ring-ring", disabled && "opacity-60")}>
+      <div className={cn("mx-auto flex max-w-6xl items-end gap-2 rounded-2xl border bg-card p-2 shadow-sm focus-within:ring-2 focus-within:ring-ring", disabled && "opacity-60")}>
         <input ref={fileInput} type="file" className="hidden" onChange={(event) => void handleFile(event.target.files?.[0])} />
         <Button type="button" variant="ghost" size="icon" disabled={disabled || sending} onClick={() => fileInput.current?.click()} aria-label="Attach a file"><Paperclip /></Button>
         <Textarea
@@ -63,7 +63,7 @@ export function MessageComposer({ disabled, sending, onSendText, onSendFile, onT
         />
         <Button type="button" size="icon" disabled={disabled || sending || !content.trim()} onClick={() => void submit()} aria-label="Send message">{sending ? <Loader2 className="animate-spin" /> : <SendHorizontal />}</Button>
       </div>
-      <p className="mx-auto mt-2 max-w-4xl px-2 text-[10px] text-muted-foreground">Enter to send · Shift + Enter for a new line · Attachments up to 6 MB</p>
+      <p className="mx-auto mt-2 max-w-6xl px-2 text-[10px] text-muted-foreground">Enter to send · Shift + Enter for a new line · Attachments up to 6 MB</p>
     </div>
   );
 }
