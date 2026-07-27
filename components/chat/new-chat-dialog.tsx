@@ -16,9 +16,10 @@ import type { Profile } from "@/types/chat";
 interface NewChatDialogProps {
   currentUserId: string;
   onCreated: () => void;
+  triggerVariant?: "icon" | "full";
 }
 
-export function NewChatDialog({ currentUserId, onCreated }: NewChatDialogProps) {
+export function NewChatDialog({ currentUserId, onCreated, triggerVariant = "icon" }: NewChatDialogProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"direct" | "group">("direct");
@@ -78,7 +79,21 @@ export function NewChatDialog({ currentUserId, onCreated }: NewChatDialogProps) 
 
   return (
     <Dialog open={open} onOpenChange={reset}>
-      <DialogTrigger asChild><Button size="icon-sm" aria-label="Start a conversation"><UserPlus /></Button></DialogTrigger>
+      <DialogTrigger asChild>
+        {triggerVariant === "full" ? (
+          <Button
+            size="lg"
+            className="w-full flex items-center justify-center gap-2 rounded-2xl bg-primary text-primary-foreground font-semibold shadow-md shadow-primary/20 hover:bg-primary/90 hover:scale-[1.01] transition-all"
+          >
+            <UserPlus className="size-4" />
+            <span>New Chat</span>
+          </Button>
+        ) : (
+          <Button size="icon-sm" aria-label="Start a conversation">
+            <UserPlus />
+          </Button>
+        )}
+      </DialogTrigger>
       <DialogContent className="max-w-xl">
         <DialogHeader><DialogTitle>Start a conversation</DialogTitle><DialogDescription>Message someone directly or bring a group together.</DialogDescription></DialogHeader>
         <div className="grid grid-cols-2 rounded-xl bg-muted p-1">
