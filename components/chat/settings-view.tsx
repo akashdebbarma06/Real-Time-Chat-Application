@@ -19,13 +19,13 @@ import {
   Smartphone,
   Sun,
   User,
+  UserCheck,
   UserX,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { useTheme } from "next-themes";
@@ -49,31 +49,6 @@ export function SettingsView({ profile }: SettingsViewProps) {
   const [autoDownloadMedia, setAutoDownloadMedia] = useState(true);
   const [selectedLanguage, setSelectedLanguage] = useState("English");
 
-  // Profile Edit State
-  const [displayName, setDisplayName] = useState(profile.display_name);
-  const [bio, setBio] = useState(profile.bio || "");
-  const [savingProfile, setSavingProfile] = useState(false);
-
-  async function handleSaveProfile() {
-    setSavingProfile(true);
-    const supabase = createClient();
-    const { error } = await supabase
-      .from("profiles")
-      .update({
-        display_name: displayName.trim(),
-        bio: bio.trim(),
-      })
-      .eq("id", profile.id);
-
-    setSavingProfile(false);
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success("Profile updated successfully");
-      setSelectedSection(null);
-    }
-  }
-
   async function logout() {
     try {
       const supabase = createClient();
@@ -86,7 +61,7 @@ export function SettingsView({ profile }: SettingsViewProps) {
   }
 
   const settingsMenu = [
-    { id: "profile", icon: User, title: "Profile", desc: "Avatar, display name & bio" },
+    { id: "profile", icon: User, title: "Profile", desc: "Avatar, display name, bio & social links", href: "/profile" },
     { id: "account", icon: Shield, title: "Account", desc: "Email, security & credentials" },
     { id: "privacy", icon: Lock, title: "Privacy & Security", desc: "Last seen, read receipts & status" },
     { id: "notifications", icon: Bell, title: "Notifications", desc: "Alerts, sound & badges" },
@@ -102,18 +77,26 @@ export function SettingsView({ profile }: SettingsViewProps) {
 
   return (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
-      {/* Settings Header */}
+      {/* Settings Header Card with Edit Profile Action */}
       <div className="border-b border-sidebar-border p-4">
-        <div className="flex items-center gap-3">
-          <Avatar className="size-12 border shadow-sm">
-            <AvatarImage src={profile.avatar_url || undefined} alt={profile.display_name} />
-            <AvatarFallback>{getInitials(profile.display_name)}</AvatarFallback>
-          </Avatar>
-          <div className="min-w-0 flex-1">
-            <h3 className="truncate text-base font-semibold text-foreground">{profile.display_name}</h3>
-            <p className="truncate text-xs text-muted-foreground">@{profile.username}</p>
+        <Link
+          href="/profile"
+          className="flex items-center justify-between gap-3 rounded-2xl border border-sidebar-border bg-muted/40 p-3 transition-all hover:bg-muted/80"
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <Avatar className="size-12 border shadow-sm">
+              <AvatarImage src={profile.avatar_url || undefined} alt={profile.display_name} />
+              <AvatarFallback>{getInitials(profile.display_name)}</AvatarFallback>
+            </Avatar>
+            <div className="min-w-0 flex-1">
+              <h3 className="truncate text-base font-semibold text-foreground">{profile.display_name}</h3>
+              <p className="truncate text-xs text-muted-foreground">@{profile.username}</p>
+            </div>
           </div>
-        </div>
+          <Button size="sm" variant="secondary" className="rounded-full text-xs shrink-0">
+            Edit Profile
+          </Button>
+        </Link>
       </div>
 
       {/* Settings Options List */}
@@ -170,27 +153,6 @@ export function SettingsView({ profile }: SettingsViewProps) {
                       <span>{item.title}</span>
                     </DialogTitle>
                   </DialogHeader>
-
-                  {/* Profile Edit */}
-                  {item.id === "profile" && (
-                    <div className="space-y-4 pt-2">
-                      <div className="grid gap-2">
-                        <label className="text-xs font-semibold uppercase text-muted-foreground">Display Name</label>
-                        <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
-                      </div>
-                      <div className="grid gap-2">
-                        <label className="text-xs font-semibold uppercase text-muted-foreground">Bio / Status</label>
-                        <Input
-                          placeholder="Hey there! I'm using ChatSphere."
-                          value={bio}
-                          onChange={(e) => setBio(e.target.value)}
-                        />
-                      </div>
-                      <Button className="w-full" disabled={savingProfile} onClick={() => void handleSaveProfile()}>
-                        Save Changes
-                      </Button>
-                    </div>
-                  )}
 
                   {/* Account */}
                   {item.id === "account" && (
