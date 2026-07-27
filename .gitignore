@@ -1,0 +1,16 @@
+node_modules
+.next
+out
+.env
+.env.local
+*.log
+.DS_Store
+.vercel
+
+*.tsbuildinfo
+
+# Capacitor / Android
+android
+ios
+
+.vercel
