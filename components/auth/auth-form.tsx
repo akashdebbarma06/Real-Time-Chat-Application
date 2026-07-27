@@ -36,7 +36,12 @@ export function AuthForm({ mode }: AuthFormProps) {
   async function handleSocialAuth(provider: "google" | "github") {
     setLoading(provider);
     const supabase = createClient();
-    const origin = window.location.origin;
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://chatsphere-tan.vercel.app";
+    const origin =
+      typeof window !== "undefined" && window.location.origin && !window.location.origin.includes("localhost")
+        ? window.location.origin
+        : siteUrl;
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
