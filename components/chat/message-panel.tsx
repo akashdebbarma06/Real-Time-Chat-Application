@@ -2,15 +2,35 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, MessageCircleMore, MoreHorizontal, UsersRound } from "lucide-react";
+import {
+  ArrowLeft,
+  Bell,
+  BellOff,
+  Download,
+  MessageCircleMore,
+  MoreVertical,
+  Search,
+  Trash2,
+  User,
+  UsersRound,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { ConversationAvatar } from "@/components/chat/conversation-avatar";
 import { MessageBubble } from "@/components/chat/message-bubble";
 import { MessageComposer } from "@/components/chat/message-composer";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { createClient } from "@/lib/supabase/client";
 import { cn, getConversationPeers, getConversationTitle, sanitizeFilename } from "@/lib/utils";
 import type { ChatMessage, ConversationSummary, Profile } from "@/types/chat";
@@ -44,6 +64,14 @@ export function MessagePanel({
   const [sending, setSending] = useState(false);
   const [replyingToMessage, setReplyingToMessage] = useState<ChatMessage | null>(null);
   const [typingUsers, setTypingUsers] = useState<Map<string, string>>(new Map());
+
+  // In-Chat Search State
+  const [isSearching, setIsSearching] = useState(false);
+  const [inChatQuery, setInChatQuery] = useState("");
+
+  // Notification Mute State
+  const [isMuted, setIsMuted] = useState(false);
+
   const channelRef = useRef<RealtimeChannel | null>(null);
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -129,14 +157,15 @@ export function MessagePanel({
   const title = conversation ? getConversationTitle(conversation, profile.id) : "Conversation";
   const peers = conversation ? getConversationPeers(conversation, profile.id) : [];
   const onlinePeers = peers.filter((peer) => onlineUserIds.has(peer.id));
-  const status =
-    conversation?.type === "group"
-      ? `${conversation.members.length} members${onlinePeers.length ? ` · ${onlinePeers.length} online` : ""}`
-      : onlinePeers.length
-        ? "Online"
-        : peers[0]
-          ? `Last seen ${new Date(peers[0].last_seen_at).toLocaleString()}`
-          : "Offline";
+  const isPeerOnline = conversation?.type === "direct" && onlinePeers.length > 0;
+
+  const statusText = conversation?.type === "group"
+    ? `${conversation.members.length} members${onlinePeers.length ? ` · ${onlinePeers.length} online` : ""}`
+    : isPeerOnline
+      ? "Online"
+      : peers[0]
+        ? `Last seen ${new Date(peers[0].last_seen_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+        : "Offline";
 
   const lastOwnMessageId = [...messages].reverse().find((message) => message.sender_id === profile.id)?.id;
 
@@ -146,6 +175,18 @@ export function MessagePanel({
     if (names.length === 1) return `${names[0]} is typing…`;
     return `${names.slice(0, 2).join(" and ")} are typing…`;
   }, [typingUsers]);
+
+  // In-Chat Search Filtered Messages
+  const displayMessages = useMemo(() => {
+    if (!inChatQuery.trim()) return messages;
+    const q = inChatQuery.toLowerCase();
+    return messages.filter(
+      (m) =>
+        m.content?.toLowerCase().includes(q) ||
+        m.attachment_name?.toLowerCase().includes(q) ||
+        m.sender.display_name.toLowerCase().includes(q)
+    );
+  }, [inChatQuery, messages]);
 
   function broadcastTyping(isTyping: boolean) {
     if (typingTimer.current) clearTimeout(typingTimer.current);
@@ -234,40 +275,190 @@ export function MessagePanel({
     }
   }
 
+  function exportChatHistory() {
+    if (!messages.length) return toast.error("No messages to export");
+    const transcript = messages
+      .map(
+        (m) =>
+          `[${new Date(m.created_at).toLocaleString()}] ${m.sender.display_name}: ${m.content || m.attachment_name || ""}`
+      )
+      .join("\n");
+
+    const blob = new Blob([transcript], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `chatsphere-${title.toLowerCase().replace(/\s+/g, "-")}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Chat history exported!");
+  }
+
   return (
     <section className="flex h-svh min-h-0 flex-col bg-background">
-      <header className="flex h-16 shrink-0 items-center gap-3 border-b bg-background/90 px-3 backdrop-blur-xl sm:px-5">
-        <Button asChild variant="ghost" size="icon-sm" className="md:hidden">
-          <Link href="/chat" aria-label="Back to conversations">
-            <ArrowLeft />
-          </Link>
-        </Button>
-        {conversation ? (
-          <ConversationAvatar conversation={conversation} userId={profile.id} className="size-9" />
-        ) : (
-          <div className="grid size-9 place-items-center rounded-full bg-muted">
-            <MessageCircleMore className="size-4" />
-          </div>
-        )}
-        <div className="min-w-0 flex-1">
-          <h1 className="truncate text-sm font-semibold sm:text-base">{title}</h1>
-          <p className="truncate text-xs text-muted-foreground">{typingLabel || status}</p>
-        </div>
-        {conversation?.type === "group" && (
-          <Button variant="ghost" size="icon-sm" aria-label="Group members">
-            <UsersRound />
+      {/* Improved Chat Header */}
+      <header className="flex h-16 shrink-0 items-center justify-between border-b bg-background/90 px-3 backdrop-blur-xl sm:px-5">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <Button asChild variant="ghost" size="icon-sm" className="md:hidden">
+            <Link href="/chat" aria-label="Back to conversations">
+              <ArrowLeft />
+            </Link>
           </Button>
-        )}
-        <Button variant="ghost" size="icon-sm" aria-label="Conversation options">
-          <MoreHorizontal />
-        </Button>
+
+          <div className="relative shrink-0">
+            {conversation ? (
+              <ConversationAvatar conversation={conversation} userId={profile.id} className="size-10" />
+            ) : (
+              <div className="grid size-10 place-items-center rounded-full bg-muted">
+                <MessageCircleMore className="size-5" />
+              </div>
+            )}
+            {/* Online/Offline Visual Status Indicator Dot */}
+            {conversation?.type === "direct" && (
+              <span
+                className={cn(
+                  "absolute bottom-0 right-0 size-3 rounded-full border-2 border-background shadow-sm",
+                  isPeerOnline ? "bg-emerald-500" : "bg-slate-400"
+                )}
+              />
+            )}
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <h1 className="truncate text-base font-semibold">{title}</h1>
+              {isMuted && <BellOff className="size-3.5 text-muted-foreground shrink-0" />}
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span
+                className={cn(
+                  "size-2 rounded-full shrink-0",
+                  isPeerOnline ? "bg-emerald-500 animate-pulse" : "bg-slate-400"
+                )}
+              />
+              <span className="truncate">{typingLabel || statusText}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Header Action Buttons */}
+        <div className="flex items-center gap-1">
+          {/* Toggle In-Chat Search Button */}
+          <Button
+            variant={isSearching ? "secondary" : "ghost"}
+            size="icon-sm"
+            onClick={() => {
+              setIsSearching(!isSearching);
+              if (isSearching) setInChatQuery("");
+            }}
+            aria-label="Search within chat"
+            className="rounded-full"
+          >
+            <Search className="size-4" />
+          </Button>
+
+          {conversation?.type === "group" && (
+            <Button variant="ghost" size="icon-sm" aria-label="Group members" className="rounded-full">
+              <UsersRound className="size-4" />
+            </Button>
+          )}
+
+          {/* 3-Dots Overflow Menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon-sm" aria-label="Conversation options" className="rounded-full">
+                <MoreVertical className="size-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" side="bottom" className="w-56 bg-slate-900 border-slate-800 text-slate-100 p-1 rounded-2xl shadow-xl">
+              <DropdownMenuItem
+                onClick={() => toast.info(`Viewing info for ${title}`)}
+                className="flex items-center gap-2 text-xs rounded-xl cursor-pointer"
+              >
+                <User className="size-4 text-cyan-400" />
+                <span>Contact Info</span>
+              </DropdownMenuItem>
+
+              <DropdownMenuItem
+                onClick={() => setIsSearching(true)}
+                className="flex items-center gap-2 text-xs rounded-xl cursor-pointer"
+              >
+                <Search className="size-4 text-cyan-400" />
+                <span>Search in Chat</span>
+              </DropdownMenuItem>
+
+              <DropdownMenuItem
+                onClick={() => {
+                  setIsMuted(!isMuted);
+                  toast.success(isMuted ? "Notifications unmuted" : "Notifications muted");
+                }}
+                className="flex items-center gap-2 text-xs rounded-xl cursor-pointer"
+              >
+                {isMuted ? <Bell className="size-4 text-emerald-400" /> : <BellOff className="size-4 text-amber-400" />}
+                <span>{isMuted ? "Unmute Notifications" : "Mute Notifications"}</span>
+              </DropdownMenuItem>
+
+              <DropdownMenuItem
+                onClick={exportChatHistory}
+                className="flex items-center gap-2 text-xs rounded-xl cursor-pointer"
+              >
+                <Download className="size-4 text-cyan-400" />
+                <span>Export Chat Transcript</span>
+              </DropdownMenuItem>
+
+              <DropdownMenuSeparator className="bg-slate-800 my-1" />
+
+              <DropdownMenuItem
+                onClick={() => {
+                  setMessages([]);
+                  toast.success("Chat history cleared");
+                }}
+                className="flex items-center gap-2 text-xs text-rose-400 hover:text-rose-300 rounded-xl cursor-pointer"
+              >
+                <Trash2 className="size-4" />
+                <span>Clear Chat History</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </header>
 
+      {/* Expandable In-Chat Search Bar */}
+      {isSearching && (
+        <div className="flex items-center gap-2 border-b bg-slate-900/90 px-4 py-2 text-xs">
+          <Search className="size-4 text-cyan-400 shrink-0" />
+          <Input
+            value={inChatQuery}
+            onChange={(e) => setInChatQuery(e.target.value)}
+            placeholder="Search messages in this chat..."
+            className="h-8 border-slate-800 bg-slate-950 text-slate-100 text-xs rounded-xl focus-visible:ring-cyan-500/50"
+            autoFocus
+          />
+          {inChatQuery && (
+            <span className="text-[11px] text-slate-400 shrink-0">
+              {displayMessages.length} match{displayMessages.length !== 1 ? "es" : ""}
+            </span>
+          )}
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            onClick={() => {
+              setIsSearching(false);
+              setInChatQuery("");
+            }}
+            className="size-7 rounded-full text-slate-400 hover:text-white"
+          >
+            <X className="size-4" />
+          </Button>
+        </div>
+      )}
+
+      {/* Messages Scroll Area */}
       <ScrollArea className="min-h-0 flex-1">
         <div
           className={cn(
             "mx-auto max-w-6xl px-3 sm:px-5",
-            messages.length > 0 ? "flex flex-col py-4" : "flex min-h-full flex-col items-center justify-center py-5"
+            displayMessages.length > 0 ? "flex flex-col py-4" : "flex min-h-full flex-col items-center justify-center py-5"
           )}
         >
           {loading ? (
@@ -278,9 +469,9 @@ export function MessagePanel({
                 </div>
               ))}
             </div>
-          ) : messages.length ? (
+          ) : displayMessages.length ? (
             <div className="space-y-4">
-              {messages.map((message) => (
+              {displayMessages.map((message) => (
                 <MessageBubble
                   key={message.id}
                   message={message}
@@ -310,8 +501,14 @@ export function MessagePanel({
               <div className="mx-auto grid size-16 place-items-center rounded-2xl border bg-card">
                 <MessageCircleMore className="size-7 text-primary" />
               </div>
-              <h2 className="mt-5 text-lg font-semibold">Start the conversation</h2>
-              <p className="mt-2 text-sm text-muted-foreground">Send a message or share a file with {title}.</p>
+              <h2 className="mt-5 text-lg font-semibold">
+                {inChatQuery ? "No matching messages" : "Start the conversation"}
+              </h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {inChatQuery
+                  ? `No messages match "${inChatQuery}"`
+                  : `Send a message or share a file with ${title}.`}
+              </p>
             </div>
           )}
           <div ref={bottomRef} />
