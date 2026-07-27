@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MessageCircleMore } from "lucide-react";
+import { Download, MessageCircleMore } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
@@ -14,19 +14,25 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
             </span>
             <span>ChatSphere</span>
           </Link>
-          <nav className="flex items-center gap-2 sm:gap-4">
+          <nav className="flex items-center gap-2 sm:gap-3">
             <Button asChild variant="ghost" size="sm">
               <Link href="/about">About</Link>
             </Button>
             <Button asChild variant="ghost" size="sm">
               <Link href="/contact">Contact</Link>
             </Button>
-            <Button asChild variant="outline" size="sm">
-              <a href="/downloads/ChatSphere.apk" download="ChatSphere.apk">
-                Download APK
-              </a>
-            </Button>
-            <Button asChild size="sm">
+
+            {/* Highlighted Capsule Download Box with Download Icon */}
+            <a
+              href="/downloads/ChatSphere.apk"
+              download="ChatSphere.apk"
+              className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-md shadow-primary/25 transition-all hover:bg-primary/90 hover:scale-105"
+            >
+              <span>Download</span>
+              <Download className="size-3.5" />
+            </a>
+
+            <Button asChild size="sm" variant="secondary" className="rounded-full">
               <Link href="/login">Launch App</Link>
             </Button>
           </nav>
@@ -45,8 +51,13 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
               <span>© {new Date().getFullYear()} ChatSphere. All rights reserved.</span>
             </div>
             <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
-              <a href="/downloads/ChatSphere.apk" download="ChatSphere.apk" className="hover:text-foreground font-medium text-primary transition-colors">
-                Download APK
+              <a
+                href="/downloads/ChatSphere.apk"
+                download="ChatSphere.apk"
+                className="hover:text-foreground font-semibold text-primary transition-colors flex items-center gap-1"
+              >
+                <span>Download</span>
+                <Download className="size-3.5" />
               </a>
               <Link href="/about" className="hover:text-foreground transition-colors">
                 About
