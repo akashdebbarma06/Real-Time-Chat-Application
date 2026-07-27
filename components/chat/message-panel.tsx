@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Loader2, MessageCircleMore, MoreHorizontal, UsersRound } from "lucide-react";
+import { ArrowLeft, MessageCircleMore, MoreHorizontal, UsersRound } from "lucide-react";
 import { toast } from "sonner";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { ConversationAvatar } from "@/components/chat/conversation-avatar";
@@ -29,12 +29,20 @@ interface TypingPayload {
   is_typing: boolean;
 }
 
-const MESSAGE_SELECT = "id, conversation_id, sender_id, content, message_type, attachment_path, attachment_name, attachment_size, created_at, edited_at, deleted_at, sender:profiles!messages_sender_id_fkey(id, username, display_name, avatar_url, bio, last_seen_at), read_receipts:message_reads!message_reads_message_id_fkey(user_id, read_at)";
+const MESSAGE_SELECT =
+  "id, conversation_id, sender_id, content, message_type, attachment_path, attachment_name, attachment_size, created_at, edited_at, deleted_at, sender:profiles!messages_sender_id_fkey(id, username, display_name, avatar_url, bio, last_seen_at), read_receipts:message_reads!message_reads_message_id_fkey(user_id, read_at)";
 
-export function MessagePanel({ profile, conversation, conversationId, onlineUserIds, onConversationActivity }: MessagePanelProps) {
+export function MessagePanel({
+  profile,
+  conversation,
+  conversationId,
+  onlineUserIds,
+  onConversationActivity,
+}: MessagePanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [replyingToMessage, setReplyingToMessage] = useState<ChatMessage | null>(null);
   const [typingUsers, setTypingUsers] = useState<Map<string, string>>(new Map());
   const channelRef = useRef<RealtimeChannel | null>(null);
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -42,7 +50,14 @@ export function MessagePanel({ profile, conversation, conversationId, onlineUser
   const lastMarkedRef = useRef<string | null>(null);
 
   const loadMessages = useCallback(async () => {
-    const { data, error } = await createClient().from("messages").select(MESSAGE_SELECT).eq("conversation_id", conversationId).is("deleted_at", null).order("created_at", { ascending: false }).limit(100);
+    const { data, error } = await createClient()
+      .from("messages")
+      .select(MESSAGE_SELECT)
+      .eq("conversation_id", conversationId)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false })
+      .limit(100);
+
     if (error) toast.error(error.message);
     else setMessages(((data || []) as unknown as ChatMessage[]).reverse());
     setLoading(false);
@@ -74,9 +89,18 @@ export function MessagePanel({ profile, conversation, conversationId, onlineUser
             return next;
           });
         })
-        .on("broadcast", { event: "INSERT" }, () => { void loadMessages(); onConversationActivity(); })
-        .on("broadcast", { event: "UPDATE" }, () => { void loadMessages(); onConversationActivity(); })
-        .on("broadcast", { event: "DELETE" }, () => { void loadMessages(); onConversationActivity(); })
+        .on("broadcast", { event: "INSERT" }, () => {
+          void loadMessages();
+          onConversationActivity();
+        })
+        .on("broadcast", { event: "UPDATE" }, () => {
+          void loadMessages();
+          onConversationActivity();
+        })
+        .on("broadcast", { event: "DELETE" }, () => {
+          void loadMessages();
+          onConversationActivity();
+        })
         .on("broadcast", { event: "READ_RECEIPT" }, () => void loadMessages())
         .subscribe((status, error) => {
           if (status === "CHANNEL_ERROR") toast.error(error?.message || "Realtime connection failed");
@@ -97,15 +121,23 @@ export function MessagePanel({ profile, conversation, conversationId, onlineUser
     const latest = [...messages].reverse().find((message) => message.sender_id !== profile.id);
     if (!latest || latest.id === lastMarkedRef.current || document.visibilityState !== "visible") return;
     lastMarkedRef.current = latest.id;
-    void createClient().rpc("mark_conversation_read", { p_conversation_id: conversationId, p_message_id: latest.id }).then(() => onConversationActivity());
+    void createClient()
+      .rpc("mark_conversation_read", { p_conversation_id: conversationId, p_message_id: latest.id })
+      .then(() => onConversationActivity());
   }, [conversationId, loading, messages, onConversationActivity, profile.id]);
 
   const title = conversation ? getConversationTitle(conversation, profile.id) : "Conversation";
   const peers = conversation ? getConversationPeers(conversation, profile.id) : [];
   const onlinePeers = peers.filter((peer) => onlineUserIds.has(peer.id));
-  const status = conversation?.type === "group"
-    ? `${conversation.members.length} members${onlinePeers.length ? ` · ${onlinePeers.length} online` : ""}`
-    : onlinePeers.length ? "Online" : peers[0] ? `Last seen ${new Date(peers[0].last_seen_at).toLocaleString()}` : "Offline";
+  const status =
+    conversation?.type === "group"
+      ? `${conversation.members.length} members${onlinePeers.length ? ` · ${onlinePeers.length} online` : ""}`
+      : onlinePeers.length
+        ? "Online"
+        : peers[0]
+          ? `Last seen ${new Date(peers[0].last_seen_at).toLocaleString()}`
+          : "Offline";
+
   const lastOwnMessageId = [...messages].reverse().find((message) => message.sender_id === profile.id)?.id;
 
   const typingLabel = useMemo(() => {
@@ -117,26 +149,47 @@ export function MessagePanel({ profile, conversation, conversationId, onlineUser
 
   function broadcastTyping(isTyping: boolean) {
     if (typingTimer.current) clearTimeout(typingTimer.current);
-    void channelRef.current?.send({ type: "broadcast", event: "typing", payload: { user_id: profile.id, display_name: profile.display_name, is_typing: isTyping } satisfies TypingPayload });
+    void channelRef.current?.send({
+      type: "broadcast",
+      event: "typing",
+      payload: { user_id: profile.id, display_name: profile.display_name, is_typing: isTyping } satisfies TypingPayload,
+    });
     if (isTyping) {
       typingTimer.current = setTimeout(() => {
-        void channelRef.current?.send({ type: "broadcast", event: "typing", payload: { user_id: profile.id, display_name: profile.display_name, is_typing: false } satisfies TypingPayload });
+        void channelRef.current?.send({
+          type: "broadcast",
+          event: "typing",
+          payload: { user_id: profile.id, display_name: profile.display_name, is_typing: false } satisfies TypingPayload,
+        });
       }, 1400);
     }
   }
 
   async function sendText(content: string) {
     setSending(true);
-    const { error } = await createClient().from("messages").insert({ conversation_id: conversationId, sender_id: profile.id, content, message_type: "text" });
+    let finalContent = content;
+    if (replyingToMessage) {
+      finalContent = `> Replying to ${replyingToMessage.sender.display_name}: ${replyingToMessage.content || "Attachment"}\n${content}`;
+      setReplyingToMessage(null);
+    }
+
+    const { error } = await createClient()
+      .from("messages")
+      .insert({ conversation_id: conversationId, sender_id: profile.id, content: finalContent, message_type: "text" });
+
     setSending(false);
     if (error) toast.error(error.message);
+    else void loadMessages();
   }
 
   async function sendFile(file: File, caption: string) {
     setSending(true);
     const supabase = createClient();
     const path = `${conversationId}/${profile.id}/${crypto.randomUUID()}-${sanitizeFilename(file.name)}`;
-    const { error: uploadError } = await supabase.storage.from("chat-files").upload(path, file, { cacheControl: "3600", contentType: file.type || "application/octet-stream", upsert: false });
+    const { error: uploadError } = await supabase.storage
+      .from("chat-files")
+      .upload(path, file, { cacheControl: "3600", contentType: file.type || "application/octet-stream", upsert: false });
+
     if (uploadError) {
       setSending(false);
       toast.error(uploadError.message);
@@ -152,40 +205,128 @@ export function MessagePanel({ profile, conversation, conversationId, onlineUser
       attachment_name: file.name,
       attachment_size: file.size,
     });
+
     setSending(false);
     if (error) toast.error(error.message);
+    else void loadMessages();
+  }
+
+  async function handleEditMessage(messageId: string, newContent: string) {
+    const { error } = await createClient()
+      .from("messages")
+      .update({ content: newContent, edited_at: new Date().toISOString() })
+      .eq("id", messageId);
+
+    if (error) toast.error(error.message);
+    else void loadMessages();
+  }
+
+  async function handleDeleteMessage(messageId: string) {
+    const { error } = await createClient()
+      .from("messages")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", messageId);
+
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Message deleted");
+      void loadMessages();
+    }
   }
 
   return (
     <section className="flex h-svh min-h-0 flex-col bg-background">
       <header className="flex h-16 shrink-0 items-center gap-3 border-b bg-background/90 px-3 backdrop-blur-xl sm:px-5">
-        <Button asChild variant="ghost" size="icon-sm" className="md:hidden"><Link href="/chat" aria-label="Back to conversations"><ArrowLeft /></Link></Button>
-        {conversation ? <ConversationAvatar conversation={conversation} userId={profile.id} className="size-9" /> : <div className="grid size-9 place-items-center rounded-full bg-muted"><MessageCircleMore className="size-4" /></div>}
-        <div className="min-w-0 flex-1"><h1 className="truncate text-sm font-semibold sm:text-base">{title}</h1><p className="truncate text-xs text-muted-foreground">{typingLabel || status}</p></div>
-        {conversation?.type === "group" && <Button variant="ghost" size="icon-sm" aria-label="Group members"><UsersRound /></Button>}
-        <Button variant="ghost" size="icon-sm" aria-label="Conversation options"><MoreHorizontal /></Button>
+        <Button asChild variant="ghost" size="icon-sm" className="md:hidden">
+          <Link href="/chat" aria-label="Back to conversations">
+            <ArrowLeft />
+          </Link>
+        </Button>
+        {conversation ? (
+          <ConversationAvatar conversation={conversation} userId={profile.id} className="size-9" />
+        ) : (
+          <div className="grid size-9 place-items-center rounded-full bg-muted">
+            <MessageCircleMore className="size-4" />
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-sm font-semibold sm:text-base">{title}</h1>
+          <p className="truncate text-xs text-muted-foreground">{typingLabel || status}</p>
+        </div>
+        {conversation?.type === "group" && (
+          <Button variant="ghost" size="icon-sm" aria-label="Group members">
+            <UsersRound />
+          </Button>
+        )}
+        <Button variant="ghost" size="icon-sm" aria-label="Conversation options">
+          <MoreHorizontal />
+        </Button>
       </header>
 
       <ScrollArea className="min-h-0 flex-1">
-        <div className={cn(
-          "mx-auto max-w-6xl px-3 sm:px-5",
-          messages.length > 0 ? "flex flex-col py-4" : "flex min-h-full flex-col items-center justify-center py-5"
-        )}>
+        <div
+          className={cn(
+            "mx-auto max-w-6xl px-3 sm:px-5",
+            messages.length > 0 ? "flex flex-col py-4" : "flex min-h-full flex-col items-center justify-center py-5"
+          )}
+        >
           {loading ? (
-            <div className="space-y-4 py-4">{Array.from({ length: 7 }).map((_, index) => <div key={index} className={index % 3 === 0 ? "flex justify-end" : "flex justify-start"}><Skeleton className="h-14 w-[55%] rounded-2xl" /></div>)}</div>
+            <div className="space-y-4 py-4">
+              {Array.from({ length: 7 }).map((_, index) => (
+                <div key={index} className={index % 3 === 0 ? "flex justify-end" : "flex justify-start"}>
+                  <Skeleton className="h-14 w-[55%] rounded-2xl" />
+                </div>
+              ))}
+            </div>
           ) : messages.length ? (
             <div className="space-y-4">
-              {messages.map((message) => <MessageBubble key={message.id} message={message} currentUserId={profile.id} showSenderName={conversation?.type === "group"} showReceipt={message.id === lastOwnMessageId} />)}
-              {typingLabel && <div className="flex items-center gap-2 px-10 text-xs text-muted-foreground"><Loader2 className="size-3 animate-spin" />{typingLabel}</div>}
+              {messages.map((message) => (
+                <MessageBubble
+                  key={message.id}
+                  message={message}
+                  currentUserId={profile.id}
+                  showSenderName={conversation?.type === "group"}
+                  showReceipt={message.id === lastOwnMessageId}
+                  onReply={(msg) => setReplyingToMessage(msg)}
+                  onEdit={handleEditMessage}
+                  onDelete={handleDeleteMessage}
+                />
+              ))}
+
+              {/* Animated 3-dot Typing Indicator */}
+              {typingLabel && (
+                <div className="flex items-center gap-2 px-4 py-2">
+                  <div className="flex items-center gap-1 rounded-full bg-slate-900 border border-slate-800 px-3 py-2 shadow-sm">
+                    <span className="size-2 rounded-full bg-cyan-400 animate-bounce" />
+                    <span className="size-2 rounded-full bg-cyan-400 animate-bounce [animation-delay:0.2s]" />
+                    <span className="size-2 rounded-full bg-cyan-400 animate-bounce [animation-delay:0.4s]" />
+                  </div>
+                  <span className="text-xs text-muted-foreground">{typingLabel}</span>
+                </div>
+              )}
             </div>
           ) : (
-            <div className="text-center"><div className="mx-auto grid size-16 place-items-center rounded-2xl border bg-card"><MessageCircleMore className="size-7 text-primary" /></div><h2 className="mt-5 text-lg font-semibold">Start the conversation</h2><p className="mt-2 text-sm text-muted-foreground">Send a message or share a file with {title}.</p></div>
+            <div className="text-center">
+              <div className="mx-auto grid size-16 place-items-center rounded-2xl border bg-card">
+                <MessageCircleMore className="size-7 text-primary" />
+              </div>
+              <h2 className="mt-5 text-lg font-semibold">Start the conversation</h2>
+              <p className="mt-2 text-sm text-muted-foreground">Send a message or share a file with {title}.</p>
+            </div>
           )}
           <div ref={bottomRef} />
         </div>
       </ScrollArea>
 
-      <MessageComposer sending={sending} disabled={!conversation} onSendText={sendText} onSendFile={sendFile} onTyping={broadcastTyping} />
+      <MessageComposer
+        sending={sending}
+        disabled={!conversation}
+        replyToMessage={replyingToMessage}
+        onCancelReply={() => setReplyingToMessage(null)}
+        onSendText={sendText}
+        onSendFile={sendFile}
+        onTyping={broadcastTyping}
+      />
     </section>
   );
 }
