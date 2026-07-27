@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2, MessageCircleMore } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Loader2, MessageCircleMore, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,11 @@ export function AuthForm({ mode }: AuthFormProps) {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  // OTP Verification States
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+
   const isLogin = mode === "login";
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -46,13 +51,15 @@ export function AuthForm({ mode }: AuthFormProps) {
           },
         });
         if (error) throw error;
+
         if (data.session) {
           toast.success("Your ChatSphere account is ready");
           router.replace("/chat");
           router.refresh();
         } else {
-          toast.success("Check your email to confirm your account");
-          router.replace("/login");
+          // Verification Code / Confirmation required
+          setIsVerifying(true);
+          toast.success(`Verification code sent to ${email}`);
         }
       }
     } catch (error) {
@@ -65,6 +72,54 @@ export function AuthForm({ mode }: AuthFormProps) {
       toast.error(message || "Authentication failed");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleVerifyOtp(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!otpCode.trim()) return toast.error("Please enter the verification code");
+
+    setLoading(true);
+    const supabase = createClient();
+
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email,
+        token: otpCode.trim(),
+        type: "signup",
+      });
+
+      if (error) throw error;
+
+      if (data.session) {
+        toast.success("Email verified! Welcome to ChatSphere");
+        router.replace("/chat");
+        router.refresh();
+      } else {
+        toast.success("Email verified successfully! Please log in.");
+        setIsVerifying(false);
+        router.replace("/login");
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Invalid verification code");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleResendCode() {
+    setLoading(true);
+    const supabase = createClient();
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+    });
+    setLoading(false);
+
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Verification code resent to your email");
     }
   }
 
@@ -84,6 +139,77 @@ export function AuthForm({ mode }: AuthFormProps) {
     }
   }
 
+  // --------------------------------------------------------------------------
+  // OTP Verification View
+  // --------------------------------------------------------------------------
+  if (isVerifying) {
+    return (
+      <div className="w-full max-w-md">
+        <div className="mb-8 flex items-center gap-3 lg:hidden">
+          <span className="grid size-10 place-items-center rounded-2xl bg-primary text-primary-foreground">
+            <MessageCircleMore className="size-5" />
+          </span>
+          <span className="text-xl font-semibold">ChatSphere</span>
+        </div>
+        <div className="rounded-3xl border bg-card p-6 shadow-2xl shadow-black/5 sm:p-8">
+          <div className="mb-6 text-center">
+            <div className="mx-auto mb-4 grid size-12 place-items-center rounded-2xl bg-primary/10 text-primary">
+              <Mail className="size-6" />
+            </div>
+            <h2 className="text-2xl font-semibold tracking-tight">Verify your email</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              We sent a 6-digit verification code to <span className="font-medium text-foreground">{email}</span>.
+            </p>
+          </div>
+
+          <form className="space-y-4" onSubmit={handleVerifyOtp}>
+            <div className="grid gap-2">
+              <label className="text-xs font-medium text-muted-foreground uppercase text-center">
+                6-Digit Verification Code
+              </label>
+              <Input
+                required
+                type="text"
+                maxLength={6}
+                autoFocus
+                className="text-center text-2xl tracking-[0.5em] font-mono h-14"
+                placeholder="123456"
+                value={otpCode}
+                onChange={(event) => setOtpCode(event.target.value)}
+              />
+            </div>
+
+            <Button className="w-full" size="lg" disabled={loading}>
+              {loading ? <Loader2 className="animate-spin" /> : <CheckCircle2 className="size-4" />}
+              Verify & Complete Signup
+            </Button>
+          </form>
+
+          <div className="mt-6 flex items-center justify-between text-xs text-muted-foreground">
+            <button
+              type="button"
+              onClick={() => setIsVerifying(false)}
+              className="flex items-center gap-1 hover:text-foreground"
+            >
+              <ArrowLeft className="size-3" /> Change details
+            </button>
+            <button
+              type="button"
+              disabled={loading}
+              onClick={handleResendCode}
+              className="font-medium text-primary hover:underline"
+            >
+              Resend Code
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --------------------------------------------------------------------------
+  // Standard Login / Signup View
+  // --------------------------------------------------------------------------
   return (
     <div className="w-full max-w-md">
       <div className="mb-8 flex items-center gap-3 lg:hidden">
