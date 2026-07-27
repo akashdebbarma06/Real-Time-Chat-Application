@@ -49,8 +49,10 @@ export function MessagePanel({ profile, conversation, conversationId, onlineUser
   }, [conversationId]);
 
   useEffect(() => {
-    setLoading(true);
-    void loadMessages();
+    queueMicrotask(() => {
+      setLoading(true);
+      void loadMessages();
+    });
     const supabase = createClient();
     const channel = supabase.channel(`conversation:${conversationId}`, {
       config: { private: true, broadcast: { self: false, ack: true } },

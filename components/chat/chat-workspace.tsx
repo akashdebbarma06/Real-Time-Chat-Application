@@ -39,7 +39,9 @@ export function ChatWorkspace({ profile, selectedConversationId }: ChatWorkspace
   }, []);
 
   useEffect(() => {
-    void loadConversations(true);
+    queueMicrotask(() => {
+      void loadConversations(true);
+    });
     const supabase = createClient();
     const channel = supabase
       .channel(`user-conversations:${profile.id}`, { config: { private: true } })
