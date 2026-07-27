@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import type { RealtimeChannel } from "@supabase/supabase-js";
+import { notifyIncomingMessage, requestNotificationPermission } from "@/lib/notifications";
 import { ConversationAvatar } from "@/components/chat/conversation-avatar";
 import { MessageBubble } from "@/components/chat/message-bubble";
 import { MessageComposer } from "@/components/chat/message-composer";
@@ -103,6 +104,7 @@ export function MessagePanel({
     channelRef.current = channel;
 
     async function connect() {
+      void requestNotificationPermission();
       const { data } = await supabase.auth.getSession();
       if (data.session?.access_token) await supabase.realtime.setAuth(data.session.access_token);
 
@@ -117,9 +119,19 @@ export function MessagePanel({
             return next;
           });
         })
-        .on("broadcast", { event: "INSERT" }, () => {
+        .on("broadcast", { event: "INSERT" }, (payload) => {
           void loadMessages();
           onConversationActivity();
+
+          // Notification sound & push alert
+          const newMsg = payload?.payload as { sender_id?: string; content?: string; sender_name?: string } | undefined;
+          if (newMsg?.sender_id !== profile.id) {
+            notifyIncomingMessage({
+              senderName: newMsg?.sender_name || "Contact",
+              content: newMsg?.content || "Sent a message",
+              muted: isMuted,
+            });
+          }
         })
         .on("broadcast", { event: "UPDATE" }, () => {
           void loadMessages();

@@ -27,6 +27,7 @@ import {
   Vibrate,
   Volume2,
 } from "lucide-react";
+import { playNotificationSound, requestNotificationPermission } from "@/lib/notifications";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -339,7 +340,19 @@ export function SettingsView({ profile }: SettingsViewProps) {
                             <p className="text-xs text-slate-400">Enable or disable all alerts</p>
                           </div>
                         </div>
-                        <Switch checked={notificationsEnabled} onCheckedChange={setNotificationsEnabled} />
+                        <Switch
+                          checked={notificationsEnabled}
+                          onCheckedChange={(checked) => {
+                            setNotificationsEnabled(checked);
+                            if (checked) {
+                              void requestNotificationPermission();
+                              playNotificationSound();
+                              toast.success("Notifications enabled!");
+                            } else {
+                              toast.info("Notifications disabled");
+                            }
+                          }}
+                        />
                       </div>
 
                       {/* 2. Notification Tone */}
@@ -354,6 +367,7 @@ export function SettingsView({ profile }: SettingsViewProps) {
                               key={tone}
                               onClick={() => {
                                 setNotificationTone(tone);
+                                if (tone !== "Silent") playNotificationSound();
                                 toast.success(`Tone set to ${tone}`);
                               }}
                               className={`rounded-lg py-2 text-[11px] font-semibold transition-all ${
