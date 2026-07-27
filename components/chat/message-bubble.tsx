@@ -14,11 +14,6 @@ import { AttachmentPreview } from "@/components/chat/attachment-preview";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { cn, formatMessageTime, getInitials } from "@/lib/utils";
 import type { ChatMessage } from "@/types/chat";
 
@@ -49,8 +44,11 @@ export function MessageBubble({
   const [reactions, setReactions] = useState<{ [emoji: string]: string[] }>({});
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content || "");
+  const [showMobileActions, setShowMobileActions] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
-  function toggleReaction(emoji: string) {
+  function toggleReaction(emoji: string, e?: React.MouseEvent) {
+    if (e) e.stopPropagation();
     setReactions((prev) => {
       const current = prev[emoji] || [];
       const hasReacted = current.includes(currentUserId);
@@ -59,21 +57,21 @@ export function MessageBubble({
         : [...current, currentUserId];
       return { ...prev, [emoji]: next };
     });
+    setShowEmojiPicker(false);
   }
 
-  function handleSaveEdit() {
+  function handleSaveEdit(e?: React.MouseEvent) {
+    if (e) e.stopPropagation();
     if (!editContent.trim() || !onEdit) return;
     onEdit(message.id, editContent.trim());
     setIsEditing(false);
   }
 
-  const [showMobileActions, setShowMobileActions] = useState(false);
-
   return (
     <div
       onClick={() => setShowMobileActions((prev) => !prev)}
       className={cn(
-        "group relative flex items-end gap-3 my-3 sm:my-3.5 transition-all animate-message-appear cursor-pointer sm:cursor-default",
+        "group relative flex items-end gap-3 my-3 sm:my-3.5 transition-all animate-message-appear select-none",
         own ? "justify-end" : "justify-start"
       )}
     >
@@ -101,7 +99,7 @@ export function MessageBubble({
         >
           {/* Content / Edit mode */}
           {isEditing ? (
-            <div className="space-y-2.5 min-w-60">
+            <div className="space-y-2.5 min-w-60" onClick={(e) => e.stopPropagation()}>
               <Input
                 value={editContent}
                 onChange={(e) => setEditContent(e.target.value)}
@@ -109,7 +107,7 @@ export function MessageBubble({
                 autoFocus
               />
               <div className="flex justify-end gap-1.5">
-                <Button size="icon-sm" variant="ghost" onClick={() => setIsEditing(false)}>
+                <Button size="icon-sm" variant="ghost" onClick={(e) => { e.stopPropagation(); setIsEditing(false); }}>
                   <X className="size-3.5" />
                 </Button>
                 <Button size="icon-sm" className="bg-cyan-500 text-slate-950 font-bold" onClick={handleSaveEdit}>
@@ -148,18 +146,18 @@ export function MessageBubble({
 
           {/* Reaction Pills below message */}
           {Object.entries(reactions).some(([_, users]) => users.length > 0) && (
-            <div className="mt-2.5 flex flex-wrap gap-1.5">
+            <div className="mt-2.5 flex flex-wrap gap-1.5" onClick={(e) => e.stopPropagation()}>
               {Object.entries(reactions).map(([emoji, users]) => {
                 if (!users.length) return null;
                 const active = users.includes(currentUserId);
                 return (
                   <button
                     key={emoji}
-                    onClick={() => toggleReaction(emoji)}
+                    onClick={(e) => toggleReaction(emoji, e)}
                     className={cn(
-                      "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold border transition-all shadow-sm",
+                      "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold border transition-all shadow-sm active:scale-95",
                       active
-                        ? "bg-cyan-500/20 border-cyan-400 text-cyan-300"
+                        ? "bg-cyan-500/25 border-cyan-400 text-cyan-300"
                         : "bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700"
                     )}
                   >
@@ -174,63 +172,87 @@ export function MessageBubble({
 
         {/* Hover & Touch Action Menu Bar (Reactions, Reply, Edit, Delete) */}
         <div
+          onClick={(e) => e.stopPropagation()}
           className={cn(
-            "absolute -top-4 z-10 items-center gap-1 rounded-full border border-slate-800 bg-slate-950/95 backdrop-blur-md p-1 shadow-xl transition-all",
+            "absolute -top-5 z-20 items-center gap-1 rounded-full border border-slate-800 bg-slate-950/95 backdrop-blur-md p-1 shadow-2xl transition-all",
             showMobileActions ? "flex" : "hidden group-hover:flex",
             own ? "right-3" : "left-3"
           )}
         >
-          {/* Reaction Picker Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="grid size-7 place-items-center rounded-full text-slate-400 hover:bg-slate-800 hover:text-cyan-400 transition">
-                <Smile className="size-3.5" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="center" side="top" className="flex gap-1.5 p-1.5 bg-slate-900 border-slate-800 rounded-full w-auto min-w-0 shadow-2xl">
+          {/* Quick Reaction Bar (WhatsApp / iMessage Style) */}
+          {showEmojiPicker ? (
+            <div className="flex items-center gap-1.5 px-1 animate-in fade-in zoom-in duration-150">
               {EMOJI_REACTIONS.map((emoji) => (
                 <button
                   key={emoji}
-                  onClick={() => toggleReaction(emoji)}
-                  className="grid size-8 place-items-center rounded-full text-lg hover:bg-slate-800 hover:scale-125 transition-transform"
+                  onClick={(e) => toggleReaction(emoji, e)}
+                  className="grid size-8 place-items-center rounded-full text-lg hover:bg-slate-800 active:scale-125 transition-transform"
                 >
                   {emoji}
                 </button>
               ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowEmojiPicker(false); }}
+                className="grid size-7 place-items-center rounded-full text-slate-400 hover:bg-slate-800"
+              >
+                <X className="size-3.5" />
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* Smile Icon to Open Quick Emoji Bar */}
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowEmojiPicker(true); }}
+                title="Add Reaction"
+                className="grid size-7 place-items-center rounded-full text-slate-400 hover:bg-slate-800 hover:text-cyan-400 transition active:scale-95"
+              >
+                <Smile className="size-3.5" />
+              </button>
 
-          {/* Reply */}
-          {onReply && (
-            <button
-              onClick={() => onReply(message)}
-              title="Reply"
-              className="grid size-7 place-items-center rounded-full text-slate-400 hover:bg-slate-800 hover:text-cyan-400 transition"
-            >
-              <CornerUpLeft className="size-3.5" />
-            </button>
-          )}
+              {/* Direct Quick Emojis (Top 3) */}
+              {EMOJI_REACTIONS.slice(0, 3).map((emoji) => (
+                <button
+                  key={emoji}
+                  onClick={(e) => toggleReaction(emoji, e)}
+                  className="grid size-7 place-items-center rounded-full text-sm hover:bg-slate-800 hover:scale-125 transition-transform active:scale-125"
+                >
+                  {emoji}
+                </button>
+              ))}
 
-          {/* Edit (Own messages only) */}
-          {own && onEdit && (
-            <button
-              onClick={() => setIsEditing(true)}
-              title="Edit message"
-              className="grid size-7 place-items-center rounded-full text-slate-400 hover:bg-slate-800 hover:text-cyan-400 transition"
-            >
-              <Pencil className="size-3.5" />
-            </button>
-          )}
+              {/* Reply */}
+              {onReply && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onReply(message); }}
+                  title="Reply"
+                  className="grid size-7 place-items-center rounded-full text-slate-400 hover:bg-slate-800 hover:text-cyan-400 transition active:scale-95"
+                >
+                  <CornerUpLeft className="size-3.5" />
+                </button>
+              )}
 
-          {/* Delete (Own messages only) */}
-          {own && onDelete && (
-            <button
-              onClick={() => onDelete(message.id)}
-              title="Delete message"
-              className="grid size-7 place-items-center rounded-full text-slate-400 hover:bg-slate-800 hover:text-rose-400 transition"
-            >
-              <Trash2 className="size-3.5" />
-            </button>
+              {/* Edit (Own messages only) */}
+              {own && onEdit && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
+                  title="Edit message"
+                  className="grid size-7 place-items-center rounded-full text-slate-400 hover:bg-slate-800 hover:text-cyan-400 transition active:scale-95"
+                >
+                  <Pencil className="size-3.5" />
+                </button>
+              )}
+
+              {/* Delete (Own messages only) */}
+              {own && onDelete && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onDelete(message.id); }}
+                  title="Delete message"
+                  className="grid size-7 place-items-center rounded-full text-slate-400 hover:bg-slate-800 hover:text-rose-400 transition active:scale-95"
+                >
+                  <Trash2 className="size-3.5" />
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
