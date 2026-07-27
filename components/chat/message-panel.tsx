@@ -535,13 +535,15 @@ export function MessagePanel({
 
               {/* Animated 3-dot Typing Indicator */}
               {typingLabel && (
-                <div className="flex items-center gap-2 px-4 py-2">
-                  <div className="flex items-center gap-1 rounded-full bg-slate-900 border border-slate-800 px-3 py-2 shadow-sm">
-                    <span className="size-2 rounded-full bg-cyan-400 animate-bounce" />
-                    <span className="size-2 rounded-full bg-cyan-400 animate-bounce [animation-delay:0.2s]" />
-                    <span className="size-2 rounded-full bg-cyan-400 animate-bounce [animation-delay:0.4s]" />
+                <div className="flex items-end gap-2.5 my-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <div className="flex items-center gap-3 rounded-3xl rounded-bl-[6px] border border-slate-800/80 bg-slate-900/90 px-4.5 py-3 shadow-lg shadow-black/20 backdrop-blur-md">
+                    <span className="text-xs font-medium text-slate-300">{typingLabel}</span>
+                    <div className="flex items-center gap-1.5 px-0.5">
+                      <span className="size-2 rounded-full bg-cyan-400 animate-bounce" />
+                      <span className="size-2 rounded-full bg-cyan-400 animate-bounce [animation-delay:0.2s]" />
+                      <span className="size-2 rounded-full bg-cyan-400 animate-bounce [animation-delay:0.4s]" />
+                    </div>
                   </div>
-                  <span className="text-xs text-muted-foreground">{typingLabel}</span>
                 </div>
               )}
             </div>
