@@ -17,7 +17,17 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </div>
         <p className="text-sm text-white/45 dark:text-muted-foreground">Built with Next.js and Supabase.</p>
       </section>
-      <section className="flex min-h-svh items-center justify-center p-6 sm:p-10">{children}</section>
+      <section className="flex min-h-svh flex-col items-center justify-between p-6 sm:p-10">
+        <div className="w-full" />
+        <div className="w-full flex justify-center">{children}</div>
+        <footer className="mt-8 flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+          <a href="/about" className="hover:underline">About</a>
+          <a href="/contact" className="hover:underline">Contact</a>
+          <a href="/privacy" className="hover:underline">Privacy Policy</a>
+          <a href="/terms" className="hover:underline">Terms of Service</a>
+          <a href="/cookies" className="hover:underline">Cookie Policy</a>
+        </footer>
+      </section>
     </main>
   );
 }
