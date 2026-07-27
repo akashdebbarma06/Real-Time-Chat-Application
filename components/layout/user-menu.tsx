@@ -14,10 +14,14 @@ export function UserMenu({ profile }: { profile: Profile }) {
   const router = useRouter();
 
   async function logout() {
-    const { error } = await createClient().auth.signOut();
-    if (error) return toast.error(error.message);
-    router.replace("/login");
-    router.refresh();
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      await fetch("/auth/signout", { method: "POST" });
+    } catch {
+      // Ignore network errors on signout
+    }
+    window.location.href = "/login";
   }
 
   return (
