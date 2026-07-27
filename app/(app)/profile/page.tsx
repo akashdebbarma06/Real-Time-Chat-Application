@@ -32,15 +32,10 @@ export default async function ProfilePage() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-12">
-        <div className="mb-8">
-          <p className="text-xs font-semibold uppercase tracking-wider text-primary">Account & Profile Settings</p>
-          <h1 className="mt-1.5 text-3xl font-bold tracking-tight">Your Profile</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Manage your personal identity, display name, username, bio status, and social presence across ChatSphere.
-          </p>
+      <div className="mx-auto max-w-lg px-4 py-8 sm:px-6 sm:py-12">
+        <div className="rounded-3xl border bg-card p-6 shadow-2xl shadow-black/5 sm:p-8">
+          <ProfileForm profile={profile} userEmail={email} />
         </div>
-        <ProfileForm profile={profile} userEmail={email} />
       </div>
     </main>
   );

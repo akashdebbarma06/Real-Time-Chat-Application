@@ -4,19 +4,15 @@ import { useRef, useState } from "react";
 import Image from "next/image";
 import {
   Camera,
-  Check,
-  Globe,
-  Github,
+  Link2,
   Loader2,
-  Mail,
+  Phone,
+  Plus,
   Save,
-  Twitter,
-  User,
-  Shield,
-  Linkedin,
+  Trash2,
+  Upload,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,38 +22,47 @@ import type { Profile } from "@/types/chat";
 
 const MAX_AVATAR_SIZE = 6 * 1024 * 1024;
 
-export function ProfileForm({ profile, userEmail }: { profile: Profile; userEmail?: string }) {
-  // Parse initial display name into prefix, first name, last name
-  const nameParts = (profile.display_name || "").split(" ");
-  const initialPrefix = nameParts.length > 2 && ["Mr.", "Mrs.", "Ms.", "Dr.", "Prof."].includes(nameParts[0]) ? nameParts[0] : "";
-  const remainingNames = initialPrefix ? nameParts.slice(1) : nameParts;
-  const initialFirst = remainingNames[0] || "";
-  const initialLast = remainingNames.slice(1).join(" ") || "";
+function countWords(text: string): number {
+  return text.trim() === "" ? 0 : text.trim().split(/\s+/).length;
+}
 
-  const [prefix, setPrefix] = useState(initialPrefix);
-  const [firstName, setFirstName] = useState(initialFirst);
-  const [lastName, setLastName] = useState(initialLast);
+export function ProfileForm({ profile, userEmail }: { profile: Profile; userEmail?: string }) {
   const [username, setUsername] = useState(profile.username);
   const [bio, setBio] = useState(profile.bio || "");
+  const [phone, setPhone] = useState("");
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url);
-  const [status, setStatus] = useState<"online" | "away" | "busy" | "offline">("online");
-  const [email] = useState(userEmail || "user@chatsphere.app");
-
-  // Optional Social Links
-  const [website, setWebsite] = useState("");
-  const [twitter, setTwitter] = useState("");
-  const [github, setGithub] = useState("");
-
+  const [links, setLinks] = useState<string[]>([""]);
   const [saving, setSaving] = useState(false);
-  const [isEditing, setIsEditing] = useState(true);
   const fileInput = useRef<HTMLInputElement>(null);
 
-  const fullDisplayName = [prefix, firstName, lastName].filter(Boolean).join(" ").trim() || profile.display_name;
+  const displayName = profile.display_name;
+  const bioWordCount = countWords(bio);
+
+  function addLink() {
+    if (links.length >= 5) return toast.error("Maximum 5 links allowed");
+    setLinks([...links, ""]);
+  }
+
+  function updateLink(index: number, value: string) {
+    const updated = [...links];
+    updated[index] = value;
+    setLinks(updated);
+  }
+
+  function removeLink(index: number) {
+    setLinks(links.filter((_, i) => i !== index));
+  }
+
+  function handleBioChange(value: string) {
+    if (countWords(value) <= 100) {
+      setBio(value);
+    }
+  }
 
   async function uploadAvatar(file?: File) {
     if (!file) return;
     if (!file.type.startsWith("image/")) return toast.error("Choose an image file");
-    if (file.size > MAX_AVATAR_SIZE) return toast.error("Avatar images must be 6 MB or smaller");
+    if (file.size > MAX_AVATAR_SIZE) return toast.error("Avatar must be 6 MB or smaller");
 
     setSaving(true);
     const supabase = createClient();
@@ -73,17 +78,18 @@ export function ProfileForm({ profile, userEmail }: { profile: Profile; userEmai
     const { data } = supabase.storage.from("avatars").getPublicUrl(path);
     setAvatarUrl(data.publicUrl);
     setSaving(false);
-    toast.success("Avatar uploaded—click Save to update your profile");
+    toast.success("Avatar uploaded — click Save to apply");
   }
 
   async function save(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (bioWordCount > 100) return toast.error("Bio must be 100 words or fewer");
     setSaving(true);
 
     const { error } = await createClient()
       .from("profiles")
       .update({
-        display_name: fullDisplayName,
+        display_name: displayName,
         username: username.trim(),
         bio: bio.trim(),
         avatar_url: avatarUrl,
@@ -97,214 +103,151 @@ export function ProfileForm({ profile, userEmail }: { profile: Profile; userEmai
   }
 
   return (
-    <form onSubmit={save} className="rounded-3xl border bg-card p-6 shadow-2xl shadow-black/5 sm:p-8 space-y-8">
-      {/* Header Profile Summary & Avatar Upload */}
-      <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-5">
-          <button
-            type="button"
-            onClick={() => fileInput.current?.click()}
-            className="group relative grid size-24 shrink-0 place-items-center overflow-hidden rounded-3xl bg-gradient-to-br from-primary/25 to-primary/5 text-2xl font-semibold text-primary ring-1 ring-border shadow-md"
-          >
-            {avatarUrl ? (
-              <Image src={avatarUrl} alt={fullDisplayName} fill unoptimized className="object-cover" sizes="96px" />
-            ) : (
-              getInitials(fullDisplayName)
-            )}
-            <span className="absolute inset-0 grid place-items-center bg-black/60 text-white opacity-0 transition group-hover:opacity-100">
-              <Camera className="size-6" />
-            </span>
-          </button>
-
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight">{fullDisplayName}</h2>
-            <p className="text-sm font-medium text-muted-foreground">@{username}</p>
-            <div className="mt-2 flex items-center gap-2">
-              <span
-                className={`size-2.5 rounded-full ${
-                  status === "online"
-                    ? "bg-emerald-500"
-                    : status === "away"
-                      ? "bg-amber-500"
-                      : status === "busy"
-                        ? "bg-rose-500"
-                        : "bg-slate-400"
-                }`}
-              />
-              <span className="text-xs capitalize font-semibold text-muted-foreground">{status}</span>
+    <form onSubmit={save} className="space-y-8">
+      {/* 1. Circle Avatar with Camera Edit & Import */}
+      <div className="flex flex-col items-center gap-4">
+        <button
+          type="button"
+          onClick={() => fileInput.current?.click()}
+          className="group relative size-32 rounded-full overflow-hidden ring-4 ring-primary/20 shadow-xl"
+        >
+          {avatarUrl ? (
+            <Image src={avatarUrl} alt={displayName} fill unoptimized className="object-cover" sizes="128px" />
+          ) : (
+            <div className="grid size-full place-items-center bg-gradient-to-br from-primary/25 to-primary/5 text-3xl font-bold text-primary">
+              {getInitials(displayName)}
             </div>
+          )}
+          <div className="absolute inset-0 grid place-items-center bg-black/50 text-white opacity-0 transition-opacity group-hover:opacity-100">
+            <Camera className="size-7" />
           </div>
+        </button>
+
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="rounded-full text-xs gap-1.5"
+            onClick={() => fileInput.current?.click()}
+          >
+            <Upload className="size-3.5" />
+            Import File
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="rounded-full text-xs gap-1.5"
+            onClick={() => fileInput.current?.click()}
+          >
+            <Camera className="size-3.5" />
+            Camera
+          </Button>
         </div>
 
-        <div className="flex items-center gap-3">
-          <Button type="button" variant="outline" size="sm" onClick={() => fileInput.current?.click()}>
-            <Camera className="size-4 mr-1.5" />
-            Change Avatar
-          </Button>
-          <input
-            ref={fileInput}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(event) => void uploadAvatar(event.target.files?.[0])}
-          />
-        </div>
+        <input
+          ref={fileInput}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(event) => void uploadAvatar(event.target.files?.[0])}
+        />
+
+        <h2 className="text-xl font-bold tracking-tight text-center">{displayName}</h2>
       </div>
 
       <div className="h-px bg-border" />
 
-      {/* Structured Profile Fields */}
-      <div className="space-y-6">
-        <h3 className="text-sm font-semibold text-primary uppercase tracking-wider">Personal Details</h3>
-
-        <div className="grid gap-4 sm:grid-cols-3">
-          {/* Prefix */}
-          <div className="grid gap-2">
-            <label className="text-xs font-semibold text-muted-foreground uppercase">Prefix / Salutation</label>
-            <Input
-              placeholder="e.g. Mr., Ms., Dr."
-              value={prefix}
-              onChange={(e) => setPrefix(e.target.value)}
-            />
-          </div>
-
-          {/* First Name */}
-          <div className="grid gap-2 sm:col-span-1">
-            <label className="text-xs font-semibold text-muted-foreground uppercase">First Name</label>
-            <Input
-              required
-              placeholder="First name"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-            />
-          </div>
-
-          {/* Last Name */}
-          <div className="grid gap-2 sm:col-span-1">
-            <label className="text-xs font-semibold text-muted-foreground uppercase">Last Name</label>
-            <Input
-              placeholder="Last name"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-            />
-          </div>
+      {/* 2. Bio (100 word limit) */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-semibold text-muted-foreground uppercase">Bio</label>
+          <span className={`text-xs ${bioWordCount > 90 ? "text-rose-500 font-semibold" : "text-muted-foreground"}`}>
+            {bioWordCount}/100 words
+          </span>
         </div>
+        <Textarea
+          rows={3}
+          placeholder="Write a short bio about yourself..."
+          value={bio}
+          onChange={(e) => handleBioChange(e.target.value)}
+          className="rounded-xl"
+        />
+      </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          {/* Username */}
-          <div className="grid gap-2">
-            <label className="text-xs font-semibold text-muted-foreground uppercase">Username</label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted-foreground">
-                @
-              </span>
-              <Input
-                required
-                minLength={3}
-                maxLength={30}
-                pattern="[A-Za-z0-9_]+"
-                className="pl-7 font-mono text-sm"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {/* Email (Read-only) */}
-          <div className="grid gap-2">
-            <label className="text-xs font-semibold text-muted-foreground uppercase flex items-center justify-between">
-              <span>Email Address</span>
-              <span className="text-[10px] text-emerald-500 font-medium">Verified</span>
-            </label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input readOnly disabled className="pl-9 bg-muted/50 text-muted-foreground" value={email} />
-            </div>
-          </div>
-        </div>
-
-        {/* Status Selector */}
-        <div className="grid gap-2">
-          <label className="text-xs font-semibold text-muted-foreground uppercase">Online Status</label>
-          <div className="grid grid-cols-4 gap-2">
-            {[
-              { id: "online", label: "Online", color: "bg-emerald-500" },
-              { id: "away", label: "Away", color: "bg-amber-500" },
-              { id: "busy", label: "Busy", color: "bg-rose-500" },
-              { id: "offline", label: "Invisible", color: "bg-slate-400" },
-            ].map((s) => (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => setStatus(s.id as typeof status)}
-                className={`flex items-center justify-center gap-2 rounded-xl border p-2.5 text-xs font-semibold transition-all ${
-                  status === s.id
-                    ? "border-primary bg-primary/10 text-primary shadow-sm"
-                    : "border-border bg-card hover:bg-accent text-muted-foreground"
-                }`}
-              >
-                <span className={`size-2 rounded-full ${s.color}`} />
-                <span>{s.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Bio */}
-        <div className="grid gap-2">
-          <label className="text-xs font-semibold text-muted-foreground uppercase flex justify-between">
-            <span>Bio / Status Message</span>
-            <span className="text-xs font-normal text-muted-foreground">{bio.length}/300</span>
-          </label>
-          <Textarea
-            rows={3}
-            maxLength={300}
-            placeholder="Write a short bio or status message..."
-            value={bio}
-            onChange={(e) => setBio(e.target.value)}
+      {/* 3. Username */}
+      <div className="space-y-2">
+        <label className="text-xs font-semibold text-muted-foreground uppercase">Username</label>
+        <div className="relative">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-muted-foreground">@</span>
+          <Input
+            required
+            minLength={3}
+            maxLength={30}
+            pattern="[A-Za-z0-9_]+"
+            className="pl-7 font-mono text-sm rounded-xl"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
           />
-        </div>
-
-        {/* Optional Social Links */}
-        <div className="space-y-4 pt-2">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase">Social Links (Optional)</h3>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="relative">
-              <Globe className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Website URL"
-                className="pl-9 text-xs"
-                value={website}
-                onChange={(e) => setWebsite(e.target.value)}
-              />
-            </div>
-            <div className="relative">
-              <Twitter className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Twitter / X handle"
-                className="pl-9 text-xs"
-                value={twitter}
-                onChange={(e) => setTwitter(e.target.value)}
-              />
-            </div>
-            <div className="relative">
-              <Github className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="GitHub username"
-                className="pl-9 text-xs"
-                value={github}
-                onChange={(e) => setGithub(e.target.value)}
-              />
-            </div>
-          </div>
         </div>
       </div>
 
-      {/* Form Buttons */}
-      <div className="flex items-center justify-end gap-3 border-t pt-6">
+      {/* 4. Phone */}
+      <div className="space-y-2">
+        <label className="text-xs font-semibold text-muted-foreground uppercase">Phone Number</label>
+        <div className="relative">
+          <Phone className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            type="tel"
+            placeholder="+91 XXXXX XXXXX"
+            className="pl-9 rounded-xl"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {/* 5. Links (optional, max 5) */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-semibold text-muted-foreground uppercase">Links (Optional)</label>
+          <span className="text-xs text-muted-foreground">{links.length}/5</span>
+        </div>
+        {links.map((link, index) => (
+          <div key={index} className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Link2 className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                type="url"
+                placeholder="https://example.com"
+                className="pl-9 rounded-xl text-sm"
+                value={link}
+                onChange={(e) => updateLink(index, e.target.value)}
+              />
+            </div>
+            {links.length > 1 && (
+              <Button type="button" variant="ghost" size="icon-sm" onClick={() => removeLink(index)} className="text-rose-500 hover:text-rose-400 shrink-0">
+                <Trash2 className="size-4" />
+              </Button>
+            )}
+          </div>
+        ))}
+        {links.length < 5 && (
+          <Button type="button" variant="outline" size="sm" className="rounded-full text-xs gap-1.5" onClick={addLink}>
+            <Plus className="size-3.5" />
+            Add Link
+          </Button>
+        )}
+      </div>
+
+      <div className="h-px bg-border" />
+
+      {/* 6. Save Changes */}
+      <div className="flex justify-end">
         <Button type="submit" size="lg" disabled={saving} className="rounded-full gap-2 font-semibold">
           {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
-          <span>Save Changes</span>
+          Save Changes
         </Button>
       </div>
     </form>

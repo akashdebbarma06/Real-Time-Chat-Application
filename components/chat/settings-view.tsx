@@ -6,23 +6,32 @@ import {
   Bell,
   Check,
   ChevronRight,
+  Copy,
   Globe,
   HelpCircle,
-  Laptop,
+  Key,
   Lock,
   LogOut,
-  Moon,
-  Palette,
+  Mail,
+  MessageSquare,
+  Phone,
+  Plus,
+  Share2,
   Shield,
-  ShieldAlert,
-  Smartphone,
-  Sun,
+  ShieldCheck,
+  Trash2,
   User,
+  UserMinus,
+  UserPlus,
+  UserX,
+  Vibrate,
+  Volume2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { useTheme } from "next-themes";
@@ -34,16 +43,26 @@ interface SettingsViewProps {
   profile: Profile;
 }
 
+type VisibilityOption = "everyone" | "nobody" | "everyone_except";
+
 export function SettingsView({ profile }: SettingsViewProps) {
-  const { theme, setTheme } = useTheme();
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
 
-  // Settings State Flags
-  const [readReceipts, setReadReceipts] = useState(true);
-  const [onlinePresence, setOnlinePresence] = useState(true);
+  // Privacy state
+  const [lastSeenVisibility, setLastSeenVisibility] = useState<VisibilityOption>("everyone");
+  const [profilePicVisibility, setProfilePicVisibility] = useState<VisibilityOption>("everyone");
+  const [bioVisibility, setBioVisibility] = useState<VisibilityOption>("everyone");
+
+  // Notification state
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [notificationSound, setNotificationSound] = useState(true);
+  const [notificationTone, setNotificationTone] = useState("Default");
+  const [vibrateEnabled, setVibrateEnabled] = useState(true);
+
+  // Language state
   const [selectedLanguage, setSelectedLanguage] = useState("English");
+
+  // Two-step verification
+  const [twoStepEnabled, setTwoStepEnabled] = useState(false);
 
   async function logout() {
     try {
@@ -56,16 +75,52 @@ export function SettingsView({ profile }: SettingsViewProps) {
     window.location.href = "/login";
   }
 
-  // Numbered Settings Menu matching prototype
   const settingsMenu = [
-    { id: "profile", icon: User, title: "1. Profile", desc: "Avatar, display name, bio & social links", href: "/profile" },
-    { id: "account", icon: Shield, title: "2. Account", desc: "Email, security & credentials" },
-    { id: "privacy", icon: Lock, title: "3. Privacy & Security", desc: "Last seen, read receipts & status" },
-    { id: "notifications", icon: Bell, title: "4. Notifications", desc: "Alerts, sound & badges" },
-    { id: "language", icon: Globe, title: "5. Language", desc: selectedLanguage },
-    { id: "privacy_policy", icon: ShieldAlert, title: "6. Privacy Policy", desc: "Data protection policy", href: "/privacy" },
-    { id: "help", icon: HelpCircle, title: "7. Contacts & Help Center", desc: "Support, FAQs & contact team" },
+    { id: "profile", icon: User, title: "Profile", desc: "Avatar, bio, username & links", href: "/profile" },
+    { id: "account", icon: Shield, title: "Account", desc: "Email, passkey, password & security" },
+    { id: "privacy", icon: Lock, title: "Privacy & Security", desc: "Visibility controls & blocked contacts" },
+    { id: "notifications", icon: Bell, title: "Notifications", desc: "Alerts, tone & vibration" },
+    { id: "language", icon: Globe, title: "Language", desc: selectedLanguage },
+    { id: "help", icon: HelpCircle, title: "Help & Feedback", desc: "Help centre, contact us & policies" },
+    { id: "invite", icon: Share2, title: "Invite a Friend", desc: "Share ChatSphere with friends" },
   ];
+
+  function VisibilitySelector({
+    label,
+    value,
+    onChange,
+  }: {
+    label: string;
+    value: VisibilityOption;
+    onChange: (v: VisibilityOption) => void;
+  }) {
+    const options: { id: VisibilityOption; label: string }[] = [
+      { id: "everyone", label: "Everyone" },
+      { id: "nobody", label: "Nobody" },
+      { id: "everyone_except", label: "Everyone Except..." },
+    ];
+    return (
+      <div className="space-y-2 rounded-xl border border-slate-800 bg-slate-950 p-3">
+        <p className="text-sm font-medium text-slate-200">{label}</p>
+        <div className="grid grid-cols-3 gap-1.5">
+          {options.map((opt) => (
+            <button
+              key={opt.id}
+              type="button"
+              onClick={() => onChange(opt.id)}
+              className={`rounded-lg py-2 text-[11px] font-semibold transition-all ${
+                value === opt.id
+                  ? "bg-cyan-500 text-slate-950 shadow-sm"
+                  : "bg-slate-800/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full flex-col bg-slate-950 text-slate-100">
@@ -81,9 +136,9 @@ export function SettingsView({ profile }: SettingsViewProps) {
           className="flex items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-900/60 p-3 transition-all hover:bg-slate-800/80"
         >
           <div className="flex items-center gap-3 min-w-0">
-            <Avatar className="size-12 border border-slate-700 shadow-sm">
+            <Avatar className="size-12 rounded-full border border-slate-700 shadow-sm">
               <AvatarImage src={profile.avatar_url || undefined} alt={profile.display_name} />
-              <AvatarFallback>{getInitials(profile.display_name)}</AvatarFallback>
+              <AvatarFallback className="rounded-full">{getInitials(profile.display_name)}</AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
               <h3 className="truncate text-base font-semibold text-slate-100">{profile.display_name}</h3>
@@ -96,11 +151,13 @@ export function SettingsView({ profile }: SettingsViewProps) {
         </Link>
       </div>
 
-      {/* Numbered Settings Options List */}
+      {/* Settings Menu List */}
       <ScrollArea className="flex-1 px-3">
         <div className="space-y-2 py-2">
           {settingsMenu.map((item) => {
             const Icon = item.icon;
+
+            // Profile links directly to /profile page
             if (item.href) {
               return (
                 <Link
@@ -119,6 +176,36 @@ export function SettingsView({ profile }: SettingsViewProps) {
                   </div>
                   <ChevronRight className="size-4 text-slate-500 shrink-0" />
                 </Link>
+              );
+            }
+
+            // Invite a Friend — special handler
+            if (item.id === "invite") {
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    const shareUrl = "https://chatsphere-tan.vercel.app";
+                    if (navigator.share) {
+                      void navigator.share({ title: "ChatSphere", text: "Chat with me on ChatSphere!", url: shareUrl });
+                    } else {
+                      void navigator.clipboard.writeText(shareUrl);
+                      toast.success("Link copied to clipboard!");
+                    }
+                  }}
+                  className="flex w-full items-center justify-between rounded-2xl border border-slate-800/80 bg-slate-900/60 p-3.5 text-left transition-all hover:bg-slate-800/80 hover:border-cyan-500/50"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="grid size-10 place-items-center rounded-xl bg-cyan-500/10 text-cyan-400 shrink-0">
+                      <Icon className="size-5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-slate-100">{item.title}</p>
+                      <p className="truncate text-xs text-slate-400">{item.desc}</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="size-4 text-slate-500 shrink-0" />
+                </button>
               );
             }
 
@@ -151,66 +238,198 @@ export function SettingsView({ profile }: SettingsViewProps) {
                     </DialogTitle>
                   </DialogHeader>
 
-                  {/* Account */}
+                  {/* ═══════ ACCOUNT ═══════ */}
                   {item.id === "account" && (
                     <div className="space-y-3 pt-2">
-                      <div className="rounded-xl border border-slate-800 p-3 bg-slate-950">
-                        <p className="text-xs text-slate-400">Username</p>
-                        <p className="text-sm font-medium mt-0.5 text-slate-200">@{profile.username}</p>
+                      {/* 1. Add new account */}
+                      <button
+                        onClick={() => toast.info("Add new account coming soon")}
+                        className="flex w-full items-center gap-3 rounded-xl border border-slate-800 bg-slate-950 p-3 hover:bg-slate-800 transition"
+                      >
+                        <UserPlus className="size-5 text-cyan-400" />
+                        <div className="text-left">
+                          <p className="text-sm font-medium">Add New Account</p>
+                          <p className="text-xs text-slate-400">Switch between multiple accounts</p>
+                        </div>
+                      </button>
+
+                      {/* 2. Email */}
+                      <div className="rounded-xl border border-slate-800 bg-slate-950 p-3">
+                        <div className="flex items-center gap-3">
+                          <Mail className="size-5 text-cyan-400 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs text-slate-400">Email Address</p>
+                            <p className="text-sm font-medium truncate mt-0.5">
+                              {profile.username}@chatsphere.app
+                            </p>
+                          </div>
+                        </div>
                       </div>
-                      <div className="rounded-xl border border-slate-800 p-3 bg-slate-950">
-                        <p className="text-xs text-slate-400">Account Status</p>
-                        <p className="text-sm font-medium text-emerald-400 mt-0.5">Active & Verified</p>
+
+                      {/* 3. Passkey */}
+                      <button
+                        onClick={() => toast.info("Passkey setup coming soon")}
+                        className="flex w-full items-center gap-3 rounded-xl border border-slate-800 bg-slate-950 p-3 hover:bg-slate-800 transition"
+                      >
+                        <Key className="size-5 text-cyan-400" />
+                        <div className="text-left">
+                          <p className="text-sm font-medium">Passkey</p>
+                          <p className="text-xs text-slate-400">Set up passwordless login</p>
+                        </div>
+                      </button>
+
+                      {/* 4. Two-step verification */}
+                      <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950 p-3">
+                        <div className="flex items-center gap-3">
+                          <ShieldCheck className="size-5 text-cyan-400" />
+                          <div>
+                            <p className="text-sm font-medium">Two-Step Verification</p>
+                            <p className="text-xs text-slate-400">Extra layer of account security</p>
+                          </div>
+                        </div>
+                        <Switch checked={twoStepEnabled} onCheckedChange={setTwoStepEnabled} />
                       </div>
+
+                      {/* 5. Change password & email */}
+                      <button
+                        onClick={() => toast.info("Change credentials coming soon")}
+                        className="flex w-full items-center gap-3 rounded-xl border border-slate-800 bg-slate-950 p-3 hover:bg-slate-800 transition"
+                      >
+                        <Lock className="size-5 text-cyan-400" />
+                        <div className="text-left">
+                          <p className="text-sm font-medium">Change Password & Email</p>
+                          <p className="text-xs text-slate-400">Update login credentials</p>
+                        </div>
+                      </button>
+
+                      {/* 6. Delete or deactivate account */}
+                      <button
+                        onClick={() => toast.error("Please contact support to delete your account")}
+                        className="flex w-full items-center gap-3 rounded-xl border border-rose-900/50 bg-rose-950/30 p-3 hover:bg-rose-950/50 transition"
+                      >
+                        <Trash2 className="size-5 text-rose-400" />
+                        <div className="text-left">
+                          <p className="text-sm font-medium text-rose-400">Delete or Deactivate Account</p>
+                          <p className="text-xs text-slate-400">Permanently remove or pause your account</p>
+                        </div>
+                      </button>
                     </div>
                   )}
 
-                  {/* Privacy */}
+                  {/* ═══════ PRIVACY & SECURITY ═══════ */}
                   {item.id === "privacy" && (
                     <div className="space-y-4 pt-2">
-                      <div className="flex items-center justify-between rounded-xl border border-slate-800 p-3 bg-slate-950">
-                        <div>
-                          <p className="text-sm font-medium">Read Receipts</p>
-                          <p className="text-xs text-slate-400">Show when you have read messages</p>
-                        </div>
-                        <Switch checked={readReceipts} onCheckedChange={setReadReceipts} />
-                      </div>
+                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Who Can See</p>
 
-                      <div className="flex items-center justify-between rounded-xl border border-slate-800 p-3 bg-slate-950">
-                        <div>
-                          <p className="text-sm font-medium">Online Status</p>
-                          <p className="text-xs text-slate-400">Show green online dot to friends</p>
+                      {/* 1. Last Seen & Online */}
+                      <VisibilitySelector
+                        label="Last Seen & Online"
+                        value={lastSeenVisibility}
+                        onChange={setLastSeenVisibility}
+                      />
+
+                      {/* 2. Profile Picture */}
+                      <VisibilitySelector
+                        label="Profile Picture"
+                        value={profilePicVisibility}
+                        onChange={setProfilePicVisibility}
+                      />
+
+                      {/* 3. Bio */}
+                      <VisibilitySelector
+                        label="Bio"
+                        value={bioVisibility}
+                        onChange={setBioVisibility}
+                      />
+
+                      {/* 4. Blocked Contacts */}
+                      <button
+                        onClick={() => toast.info("No blocked contacts")}
+                        className="flex w-full items-center gap-3 rounded-xl border border-slate-800 bg-slate-950 p-3 hover:bg-slate-800 transition"
+                      >
+                        <UserX className="size-5 text-rose-400" />
+                        <div className="text-left flex-1">
+                          <p className="text-sm font-medium">Blocked Contacts</p>
+                          <p className="text-xs text-slate-400">Manage your blocked list</p>
                         </div>
-                        <Switch checked={onlinePresence} onCheckedChange={setOnlinePresence} />
-                      </div>
+                        <ChevronRight className="size-4 text-slate-500" />
+                      </button>
                     </div>
                   )}
 
-                  {/* Notifications */}
+                  {/* ═══════ NOTIFICATIONS ═══════ */}
                   {item.id === "notifications" && (
                     <div className="space-y-4 pt-2">
-                      <div className="flex items-center justify-between rounded-xl border border-slate-800 p-3 bg-slate-950">
-                        <div>
-                          <p className="text-sm font-medium">Message Notifications</p>
-                          <p className="text-xs text-slate-400">Receive push & in-app alerts</p>
+                      {/* 1. On/Off Toggle */}
+                      <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950 p-3">
+                        <div className="flex items-center gap-3">
+                          <Bell className="size-5 text-cyan-400" />
+                          <div>
+                            <p className="text-sm font-medium">Notifications</p>
+                            <p className="text-xs text-slate-400">Enable or disable all alerts</p>
+                          </div>
                         </div>
                         <Switch checked={notificationsEnabled} onCheckedChange={setNotificationsEnabled} />
                       </div>
 
-                      <div className="flex items-center justify-between rounded-xl border border-slate-800 p-3 bg-slate-950">
-                        <div>
-                          <p className="text-sm font-medium">Notification Sounds</p>
-                          <p className="text-xs text-slate-400">Play sound when messages arrive</p>
+                      {/* 2. Notification Tone */}
+                      <div className="rounded-xl border border-slate-800 bg-slate-950 p-3 space-y-2">
+                        <div className="flex items-center gap-3">
+                          <Volume2 className="size-5 text-cyan-400" />
+                          <p className="text-sm font-medium">Notification Tone</p>
                         </div>
-                        <Switch checked={notificationSound} onCheckedChange={setNotificationSound} />
+                        <div className="grid grid-cols-3 gap-1.5">
+                          {["Default", "Chime", "Bell", "Pop", "Ping", "Silent"].map((tone) => (
+                            <button
+                              key={tone}
+                              onClick={() => {
+                                setNotificationTone(tone);
+                                toast.success(`Tone set to ${tone}`);
+                              }}
+                              className={`rounded-lg py-2 text-[11px] font-semibold transition-all ${
+                                notificationTone === tone
+                                  ? "bg-cyan-500 text-slate-950 shadow-sm"
+                                  : "bg-slate-800/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+                              }`}
+                            >
+                              {tone}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* 3. Vibrate */}
+                      <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950 p-3">
+                        <div className="flex items-center gap-3">
+                          <Phone className="size-5 text-cyan-400" />
+                          <div>
+                            <p className="text-sm font-medium">Vibrate</p>
+                            <p className="text-xs text-slate-400">Vibrate on new messages</p>
+                          </div>
+                        </div>
+                        <Switch checked={vibrateEnabled} onCheckedChange={setVibrateEnabled} />
                       </div>
                     </div>
                   )}
 
-                  {/* Language */}
+                  {/* ═══════ LANGUAGE ═══════ */}
                   {item.id === "language" && (
                     <div className="space-y-2 pt-2">
-                      {["English", "Spanish", "French", "German", "Hindi"].map((lang) => (
+                      {[
+                        "English",
+                        "Hindi",
+                        "Spanish",
+                        "French",
+                        "German",
+                        "Portuguese",
+                        "Arabic",
+                        "Chinese",
+                        "Japanese",
+                        "Korean",
+                        "Bengali",
+                        "Tamil",
+                        "Telugu",
+                      ].map((lang) => (
                         <button
                           key={lang}
                           onClick={() => {
@@ -218,7 +437,11 @@ export function SettingsView({ profile }: SettingsViewProps) {
                             toast.success(`Language set to ${lang}`);
                             setSelectedSection(null);
                           }}
-                          className="flex w-full items-center justify-between rounded-xl border border-slate-800 p-3 text-left hover:bg-slate-800"
+                          className={`flex w-full items-center justify-between rounded-xl border p-3 text-left transition ${
+                            selectedLanguage === lang
+                              ? "border-cyan-500/50 bg-cyan-500/10"
+                              : "border-slate-800 hover:bg-slate-800"
+                          }`}
                         >
                           <span className="text-sm font-medium">{lang}</span>
                           {selectedLanguage === lang && <Check className="size-4 text-cyan-400" />}
@@ -227,15 +450,47 @@ export function SettingsView({ profile }: SettingsViewProps) {
                     </div>
                   )}
 
-                  {/* Help Center */}
+                  {/* ═══════ HELP & FEEDBACK ═══════ */}
                   {item.id === "help" && (
                     <div className="space-y-3 pt-2">
-                      <p className="text-sm text-slate-400">
-                        Need assistance or have feedback? Get in touch with our support team.
-                      </p>
-                      <Button asChild className="w-full bg-cyan-500 text-slate-950 font-bold hover:bg-cyan-400">
-                        <Link href="/contact">Contact Support</Link>
-                      </Button>
+                      {/* Help Centre */}
+                      <button
+                        onClick={() => toast.info("Help Centre coming soon")}
+                        className="flex w-full items-center gap-3 rounded-xl border border-slate-800 bg-slate-950 p-3 hover:bg-slate-800 transition"
+                      >
+                        <HelpCircle className="size-5 text-cyan-400" />
+                        <div className="text-left flex-1">
+                          <p className="text-sm font-medium">Help Centre</p>
+                          <p className="text-xs text-slate-400">Browse FAQs & support articles</p>
+                        </div>
+                        <ChevronRight className="size-4 text-slate-500" />
+                      </button>
+
+                      {/* Contact Us */}
+                      <Link
+                        href="/contact"
+                        className="flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-950 p-3 hover:bg-slate-800 transition"
+                      >
+                        <MessageSquare className="size-5 text-cyan-400" />
+                        <div className="text-left flex-1">
+                          <p className="text-sm font-medium">Contact Us</p>
+                          <p className="text-xs text-slate-400">Reach our support team directly</p>
+                        </div>
+                        <ChevronRight className="size-4 text-slate-500" />
+                      </Link>
+
+                      {/* Privacy Policy */}
+                      <Link
+                        href="/privacy"
+                        className="flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-950 p-3 hover:bg-slate-800 transition"
+                      >
+                        <Shield className="size-5 text-cyan-400" />
+                        <div className="text-left flex-1">
+                          <p className="text-sm font-medium">Privacy Policy</p>
+                          <p className="text-xs text-slate-400">Data protection & usage terms</p>
+                        </div>
+                        <ChevronRight className="size-4 text-slate-500" />
+                      </Link>
                     </div>
                   )}
                 </DialogContent>
