@@ -21,7 +21,12 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
             <Button asChild variant="ghost" size="sm">
               <Link href="/contact">Contact</Link>
             </Button>
-            <Button asChild size="sm" className="ml-2">
+            <Button asChild variant="outline" size="sm">
+              <a href="/downloads/ChatSphere.apk" download="ChatSphere.apk">
+                Download APK
+              </a>
+            </Button>
+            <Button asChild size="sm">
               <Link href="/login">Launch App</Link>
             </Button>
           </nav>
@@ -40,6 +45,9 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
               <span>© {new Date().getFullYear()} ChatSphere. All rights reserved.</span>
             </div>
             <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
+              <a href="/downloads/ChatSphere.apk" download="ChatSphere.apk" className="hover:text-foreground font-medium text-primary transition-colors">
+                Download APK
+              </a>
               <Link href="/about" className="hover:text-foreground transition-colors">
                 About
               </Link>
