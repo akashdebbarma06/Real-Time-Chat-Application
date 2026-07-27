@@ -76,7 +76,6 @@ export function SettingsView({ profile }: SettingsViewProps) {
   }
 
   const settingsMenu = [
-    { id: "profile", icon: User, title: "Profile", desc: "Avatar, bio, username & links", href: "/profile" },
     { id: "account", icon: Shield, title: "Account", desc: "Email, passkey, password & security" },
     { id: "privacy", icon: Lock, title: "Privacy & Security", desc: "Visibility controls & blocked contacts" },
     { id: "notifications", icon: Bell, title: "Notifications", desc: "Alerts, tone & vibration" },
@@ -129,55 +128,26 @@ export function SettingsView({ profile }: SettingsViewProps) {
         <h2 className="text-xl font-bold tracking-tight text-slate-100">Settings</h2>
       </div>
 
-      {/* User Card */}
-      <div className="p-3">
-        <Link
-          href="/profile"
-          className="flex items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-900/60 p-3 transition-all hover:bg-slate-800/80"
-        >
-          <div className="flex items-center gap-3 min-w-0">
-            <Avatar className="size-12 rounded-full border border-slate-700 shadow-sm">
-              <AvatarImage src={profile.avatar_url || undefined} alt={profile.display_name} />
-              <AvatarFallback className="rounded-full">{getInitials(profile.display_name)}</AvatarFallback>
-            </Avatar>
-            <div className="min-w-0 flex-1">
-              <h3 className="truncate text-base font-semibold text-slate-100">{profile.display_name}</h3>
-              <p className="truncate text-xs text-slate-400">@{profile.username}</p>
-            </div>
-          </div>
-          <Button size="sm" variant="secondary" className="rounded-full text-xs shrink-0 bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30">
-            Edit
-          </Button>
-        </Link>
-      </div>
+      {/* Circular Avatar Profile Header */}
+      <Link href="/profile" className="flex flex-col items-center gap-2 py-5 border-b border-slate-800 transition hover:bg-slate-900/40">
+        <Avatar className="size-20 rounded-full border-2 border-cyan-500/40 shadow-lg shadow-cyan-500/10">
+          <AvatarImage src={profile.avatar_url || undefined} alt={profile.display_name} />
+          <AvatarFallback className="rounded-full text-xl font-bold bg-gradient-to-br from-cyan-500/20 to-blue-600/20 text-cyan-400">
+            {getInitials(profile.display_name)}
+          </AvatarFallback>
+        </Avatar>
+        <div className="text-center">
+          <h3 className="text-base font-semibold text-slate-100">{profile.display_name}</h3>
+          <p className="text-xs text-slate-400">@{profile.username}</p>
+        </div>
+        <span className="text-xs font-semibold text-cyan-400 hover:text-cyan-300 transition">Edit</span>
+      </Link>
 
       {/* Settings Menu List */}
       <ScrollArea className="flex-1 px-3">
         <div className="space-y-2 py-2">
           {settingsMenu.map((item) => {
             const Icon = item.icon;
-
-            // Profile links directly to /profile page
-            if (item.href) {
-              return (
-                <Link
-                  key={item.id}
-                  href={item.href}
-                  className="flex items-center justify-between rounded-2xl border border-slate-800/80 bg-slate-900/60 p-3.5 transition-all hover:bg-slate-800/80 hover:border-cyan-500/50"
-                >
-                  <div className="flex items-center gap-3.5 min-w-0">
-                    <div className="grid size-10 place-items-center rounded-xl bg-cyan-500/10 text-cyan-400 shrink-0">
-                      <Icon className="size-5" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-slate-100">{item.title}</p>
-                      <p className="truncate text-xs text-slate-400">{item.desc}</p>
-                    </div>
-                  </div>
-                  <ChevronRight className="size-4 text-slate-500 shrink-0" />
-                </Link>
-              );
-            }
 
             // Invite a Friend — special handler
             if (item.id === "invite") {
