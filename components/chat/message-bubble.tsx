@@ -68,42 +68,43 @@ export function MessageBubble({
   }
 
   return (
-    <div className={cn("group relative flex items-end gap-2 my-1.5 transition-all", own ? "justify-end" : "justify-start")}>
+    <div className={cn("group relative flex items-end gap-3 my-3 sm:my-3.5 transition-all", own ? "justify-end" : "justify-start")}>
       {!own && (
-        <Avatar className="size-8 shrink-0">
+        <Avatar className="size-9 shrink-0 border border-slate-700 shadow-md">
           <AvatarImage src={message.sender.avatar_url || undefined} alt={message.sender.display_name} />
           <AvatarFallback>{getInitials(message.sender.display_name)}</AvatarFallback>
         </Avatar>
       )}
 
-      <div className={cn("relative max-w-[88%] sm:max-w-[80%]", own && "items-end")}>
+      {/* Tuned max-width to ~70% */}
+      <div className={cn("relative max-w-[76%] sm:max-w-[68%]", own && "items-end")}>
         {showSenderName && !own && (
-          <p className="mb-1 px-1 text-xs font-semibold text-cyan-400">{message.sender.display_name}</p>
+          <p className="mb-1.5 px-2 text-xs font-semibold text-cyan-400">{message.sender.display_name}</p>
         )}
 
-        {/* Bubble Box */}
+        {/* Elevated Bubble Box with Increased Radius & Padding */}
         <div
           className={cn(
-            "relative rounded-2xl px-4 py-3 shadow-md transition-all",
+            "relative rounded-3xl px-5 py-3.5 sm:px-6 sm:py-4 transition-all backdrop-blur-md",
             own
-              ? "rounded-br-sm bg-gradient-to-r from-cyan-600 to-blue-600 text-white"
-              : "rounded-bl-sm border border-slate-800 bg-slate-900 text-slate-100"
+              ? "rounded-br-[6px] bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-xl shadow-cyan-500/10 border border-cyan-400/20"
+              : "rounded-bl-[6px] border border-slate-800/80 bg-slate-900/90 text-slate-100 shadow-lg shadow-black/30"
           )}
         >
           {/* Content / Edit mode */}
           {isEditing ? (
-            <div className="space-y-2 min-w-56">
+            <div className="space-y-2.5 min-w-60">
               <Input
                 value={editContent}
                 onChange={(e) => setEditContent(e.target.value)}
-                className="text-xs bg-slate-950 border-slate-700 text-white"
+                className="text-xs bg-slate-950 border-slate-700 text-white rounded-xl"
                 autoFocus
               />
               <div className="flex justify-end gap-1.5">
                 <Button size="icon-sm" variant="ghost" onClick={() => setIsEditing(false)}>
                   <X className="size-3.5" />
                 </Button>
-                <Button size="icon-sm" className="bg-cyan-500 text-slate-950" onClick={handleSaveEdit}>
+                <Button size="icon-sm" className="bg-cyan-500 text-slate-950 font-bold" onClick={handleSaveEdit}>
                   <Check className="size-3.5" />
                 </Button>
               </div>
@@ -111,7 +112,9 @@ export function MessageBubble({
           ) : (
             <>
               {message.content && (
-                <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{message.content}</p>
+                <p className="whitespace-pre-wrap break-words text-sm leading-relaxed sm:text-base sm:leading-relaxed font-normal">
+                  {message.content}
+                </p>
               )}
               {message.attachment_path && <AttachmentPreview message={message} />}
             </>
@@ -120,24 +123,24 @@ export function MessageBubble({
           {/* Time & Read Receipts */}
           <div
             className={cn(
-              "mt-1.5 flex items-center justify-end gap-1 text-[10px]",
-              own ? "text-cyan-100/80" : "text-slate-400"
+              "mt-2 flex items-center justify-end gap-1 text-[10px] sm:text-xs",
+              own ? "text-cyan-100/85 font-medium" : "text-slate-400 font-medium"
             )}
           >
             <time>{formatMessageTime(message.created_at)}</time>
             {message.edited_at && <span>· edited</span>}
             {own && showReceipt && (
               readBySomeoneElse ? (
-                <CheckCheck className="size-3.5 text-cyan-300" aria-label="Read" />
+                <CheckCheck className="size-3.5 sm:size-4 text-cyan-300" aria-label="Read" />
               ) : (
-                <Check className="size-3.5 text-cyan-200/70" aria-label="Sent" />
+                <Check className="size-3.5 sm:size-4 text-cyan-200/70" aria-label="Sent" />
               )
             )}
           </div>
 
           {/* Reaction Pills below message */}
           {Object.entries(reactions).some(([_, users]) => users.length > 0) && (
-            <div className="mt-2 flex flex-wrap gap-1">
+            <div className="mt-2.5 flex flex-wrap gap-1.5">
               {Object.entries(reactions).map(([emoji, users]) => {
                 if (!users.length) return null;
                 const active = users.includes(currentUserId);
@@ -146,9 +149,9 @@ export function MessageBubble({
                     key={emoji}
                     onClick={() => toggleReaction(emoji)}
                     className={cn(
-                      "flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold border transition-all",
+                      "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold border transition-all shadow-sm",
                       active
-                        ? "bg-cyan-500/20 border-cyan-500 text-cyan-300 shadow-sm"
+                        ? "bg-cyan-500/20 border-cyan-400 text-cyan-300"
                         : "bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700"
                     )}
                   >
@@ -164,8 +167,8 @@ export function MessageBubble({
         {/* Hover Action Menu Bar (Reactions, Reply, Edit, Delete) */}
         <div
           className={cn(
-            "absolute -top-3.5 z-10 hidden group-hover:flex items-center gap-0.5 rounded-full border border-slate-800 bg-slate-950/90 backdrop-blur-md p-1 shadow-lg",
-            own ? "right-2" : "left-2"
+            "absolute -top-4 z-10 hidden group-hover:flex items-center gap-1 rounded-full border border-slate-800 bg-slate-950/95 backdrop-blur-md p-1 shadow-xl",
+            own ? "right-3" : "left-3"
           )}
         >
           {/* Reaction Picker Dropdown */}
@@ -175,7 +178,7 @@ export function MessageBubble({
                 <Smile className="size-3.5" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="center" side="top" className="flex gap-1.5 p-1.5 bg-slate-900 border-slate-800 rounded-full w-auto min-w-0">
+            <DropdownMenuContent align="center" side="top" className="flex gap-1.5 p-1.5 bg-slate-900 border-slate-800 rounded-full w-auto min-w-0 shadow-2xl">
               {EMOJI_REACTIONS.map((emoji) => (
                 <button
                   key={emoji}

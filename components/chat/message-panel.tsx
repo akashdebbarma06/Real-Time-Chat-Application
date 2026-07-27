@@ -482,7 +482,7 @@ export function MessagePanel({
               ))}
             </div>
           ) : displayMessages.length ? (
-            <div className="space-y-4">
+            <div className="space-y-5 sm:space-y-6">
               {displayMessages.map((message) => (
                 <MessageBubble
                   key={message.id}
