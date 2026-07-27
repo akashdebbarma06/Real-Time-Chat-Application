@@ -21,6 +21,7 @@ export interface LastMessage {
   message_type: MessageType;
   sender_id: string;
   created_at: string;
+  read_receipts?: ReadReceipt[];
 }
 
 export interface ConversationSummary {

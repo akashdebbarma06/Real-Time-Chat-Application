@@ -5,6 +5,9 @@ import Link from "next/link";
 import {
   Archive,
   ArchiveRestore,
+  BellOff,
+  Check,
+  CheckCheck,
   MessageCircleMore,
   MoreVertical,
   Moon,
@@ -202,6 +205,9 @@ export function ConversationSidebar({
                   const peers = getConversationPeers(conversation, profile.id);
                   const isOnline = conversation.type === "direct" && peers.some((peer) => onlineUserIds.has(peer.id));
                   const lastMessage = conversation.last_message;
+                  const ownLastMessage = lastMessage?.sender_id === profile.id;
+                  const readBySomeoneElse = lastMessage?.read_receipts?.some((r: { user_id: string }) => r.user_id !== profile.id);
+
                   const preview = lastMessage
                     ? lastMessage.message_type === "image"
                       ? "📷 Image"
@@ -209,6 +215,7 @@ export function ConversationSidebar({
                         ? "📎 File"
                         : lastMessage.content
                     : "No messages yet";
+
                   const active = selectedConversationId === conversation.id;
                   const isPinned = pinnedIds.has(conversation.id);
                   const isArchived = archivedIds.has(conversation.id);
@@ -222,6 +229,7 @@ export function ConversationSidebar({
                         active && "border-cyan-500/60 bg-slate-800/90 shadow-md ring-1 ring-cyan-500/30"
                       )}
                     >
+                      {/* Avatar + Online Indicator */}
                       <div className="relative shrink-0">
                         <ConversationAvatar conversation={conversation} userId={profile.id} />
                         {isOnline && (
@@ -229,22 +237,44 @@ export function ConversationSidebar({
                         )}
                       </div>
 
+                      {/* Content */}
                       <div className="min-w-0 flex-1">
+                        {/* Row 1: Title + Mute + Pin + Time */}
                         <div className="flex items-center justify-between gap-2">
-                          <p className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-100">{title}</p>
-                          <time className="shrink-0 text-[11px] text-slate-400">
+                          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold text-slate-100">{title}</p>
+                            {isPinned && <Pin className="size-3 text-cyan-400 shrink-0 rotate-45" />}
+                          </div>
+                          <time className="shrink-0 text-[11px] text-slate-400 font-medium">
                             {formatConversationTime(lastMessage?.created_at || conversation.updated_at)}
                           </time>
                         </div>
+
+                        {/* Row 2: Message preview / Typing... + Read Checkmarks + Unread Count */}
                         <div className="mt-1 flex items-center justify-between gap-2">
-                          <p
-                            className={cn(
-                              "min-w-0 flex-1 truncate text-xs text-slate-400",
-                              conversation.unread_count > 0 && "font-semibold text-cyan-400"
+                          <div className="flex items-center gap-1 min-w-0 flex-1">
+                            {/* Read Status Checkmarks for Own Sent Messages */}
+                            {ownLastMessage && (
+                              <span className="shrink-0">
+                                {readBySomeoneElse ? (
+                                  <CheckCheck className="size-3.5 text-cyan-400" aria-label="Read" />
+                                ) : (
+                                  <Check className="size-3.5 text-slate-400" aria-label="Sent" />
+                                )}
+                              </span>
                             )}
-                          >
-                            {preview}
-                          </p>
+
+                            <p
+                              className={cn(
+                                "min-w-0 flex-1 truncate text-xs text-slate-400",
+                                conversation.unread_count > 0 && "font-semibold text-cyan-300"
+                              )}
+                            >
+                              {preview}
+                            </p>
+                          </div>
+
+                          {/* Unread Count Badge */}
                           {conversation.unread_count > 0 && (
                             <span className="grid min-w-5 place-items-center rounded-full bg-cyan-500 px-1.5 py-0.5 text-[10px] font-bold text-slate-950 shadow-md">
                               {conversation.unread_count > 99 ? "99+" : conversation.unread_count}
