@@ -2,16 +2,13 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    id: "/",
-    name: "ChatSphere",
-    short_name: "ChatSphere",
-    description: "Secure real-time direct and group messaging.",
+    name: "Aether Chat",
+    short_name: "Aether",
+    description: "Next-Gen Real-Time Messaging & Team Collaboration Platform",
     start_url: "/",
-    scope: "/",
     display: "standalone",
-    background_color: "#09090b",
-    theme_color: "#09090b",
-    orientation: "portrait-primary",
+    background_color: "#0B0F17",
+    theme_color: "#0B0F17",
     icons: [
       {
         src: "/icon-192.png",

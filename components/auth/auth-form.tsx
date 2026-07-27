@@ -91,7 +91,7 @@ export function AuthForm({ mode }: AuthFormProps) {
           <span className="grid size-10 place-items-center rounded-2xl bg-primary text-primary-foreground">
             <MessageCircleMore className="size-5" />
           </span>
-          <span className="text-xl font-semibold">ChatSphere</span>
+          <span className="text-xl font-bold tracking-wider uppercase bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">Aether Chat</span>
         </div>
       </div>
 
@@ -116,7 +116,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                 </div>
                 <DialogTitle>Administrator Login</DialogTitle>
                 <DialogDescription>
-                  Sign in with your admin credentials to manage ChatSphere.
+                  Sign in with your admin credentials to manage Aether Chat.
                 </DialogDescription>
               </DialogHeader>
 
@@ -126,7 +126,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                   <Input
                     required
                     type="email"
-                    placeholder="admin@chatsphere.app"
+                    placeholder="admin@aetherchat.app"
                     value={adminEmail}
                     onChange={(e) => setAdminEmail(e.target.value)}
                   />
@@ -153,7 +153,7 @@ export function AuthForm({ mode }: AuthFormProps) {
         <div className="mb-8 text-center sm:text-left pr-24 sm:pr-28">
           <p className="text-sm font-medium text-primary">{isLogin ? "Welcome back" : "Create your space"}</p>
           <h2 className="mt-2 text-3xl font-semibold tracking-tight">
-            {isLogin ? "Sign in to ChatSphere" : "Join ChatSphere"}
+            {isLogin ? "Sign in to Aether Chat" : "Join Aether Chat"}
           </h2>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
             {isLogin

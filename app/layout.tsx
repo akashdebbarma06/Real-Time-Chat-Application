@@ -9,7 +9,7 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 export const viewport: Viewport = {
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#09090b" },
+    { media: "(prefers-color-scheme: dark)", color: "#0B0F17" },
   ],
   width: "device-width",
   initialScale: 1,
@@ -19,23 +19,23 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: { default: "ChatSphere - Real-Time Messaging Platform", template: "%s · ChatSphere" },
-  description: "A fast, secure, real-time messaging and group collaboration platform built for web and Android.",
-  keywords: ["chat", "realtime messaging", "chatsphere", "group chat", "direct messaging", "android app"],
-  authors: [{ name: "ChatSphere Team" }],
+  title: { default: "Aether Chat - Next-Gen Real-Time Messaging", template: "%s · Aether Chat" },
+  description: "A fast, secure, premium real-time messaging and team collaboration platform built with cyan-blue aesthetics.",
+  keywords: ["aether chat", "realtime messaging", "group chat", "direct messaging", "collaboration", "encrypted chat"],
+  authors: [{ name: "Aether Team" }],
   metadataBase: new URL("https://chatsphere-tan.vercel.app"),
   openGraph: {
-    title: "ChatSphere - Real-Time Messaging Platform",
-    description: "Connect instantly with friends and teams using ChatSphere.",
+    title: "Aether Chat - Next-Gen Real-Time Messaging",
+    description: "Connect instantly with friends and teams using Aether Chat.",
     url: "https://chatsphere-tan.vercel.app",
-    siteName: "ChatSphere",
+    siteName: "Aether Chat",
     locale: "en_US",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "ChatSphere - Real-Time Messaging",
-    description: "Instant, secure messaging platform for web and Android.",
+    title: "Aether Chat - Real-Time Messaging",
+    description: "Next-gen, secure messaging platform for web and mobile.",
   },
   icons: {
     icon: "/icon-192.png",
@@ -47,7 +47,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased bg-[#0B0F17] text-slate-100`}>
         <AppProviders>{children}</AppProviders>
       </body>
     </html>

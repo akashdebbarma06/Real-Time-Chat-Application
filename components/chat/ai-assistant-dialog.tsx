@@ -27,7 +27,7 @@ export function AIAssistantDialog({ open, onOpenChange }: AIAssistantDialogProps
   const [messages, setMessages] = useState<AIMessage[]>([
     {
       sender: "ai",
-      text: "Hello! I am your ChatSphere AI Assistant 🤖✨. How can I help you write messages, summarize conversations, or generate ideas today?",
+      text: "Hello! I am your Aether Chat AI Assistant 🤖✨. How can I help you write messages, summarize conversations, or generate ideas today?",
     },
   ]);
   const [input, setInput] = useState("");
@@ -67,7 +67,7 @@ export function AIAssistantDialog({ open, onOpenChange }: AIAssistantDialogProps
             </div>
             <div>
               <DialogTitle className="text-sm font-bold flex items-center gap-1.5">
-                <span>ChatSphere AI Assistant</span>
+                <span>Aether Chat AI Assistant</span>
                 <Sparkles className="size-3.5 text-cyan-400" />
               </DialogTitle>
               <p className="text-[10px] text-slate-400">Powered by Gemini AI</p>

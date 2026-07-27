@@ -334,7 +334,7 @@ export function MessagePanel({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `chatsphere-${title.toLowerCase().replace(/\s+/g, "-")}.txt`;
+    a.download = `aether-chat-${title.toLowerCase().replace(/\s+/g, "-")}.txt`;
     a.click();
     URL.revokeObjectURL(url);
     toast.success("Chat history exported!");

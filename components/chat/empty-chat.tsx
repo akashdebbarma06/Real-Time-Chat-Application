@@ -5,7 +5,7 @@ import { NewChatDialog } from "@/components/chat/new-chat-dialog";
 
 export function EmptyChat({ currentUserId }: { currentUserId?: string }) {
   return (
-    <section className="hidden h-svh flex-1 items-center justify-center bg-[radial-gradient(circle_at_center,color-mix(in_oklab,var(--primary)_10%,transparent),transparent_45%)] bg-slate-950 p-8 md:flex">
+    <section className="hidden h-svh flex-1 items-center justify-center bg-[radial-gradient(circle_at_center,color-mix(in_oklab,var(--primary)_10%,transparent),transparent_45%)] bg-[#0B0F17] p-8 md:flex">
       <div className="max-w-md text-center">
         {/* Large 💬 Icon Badge */}
         <div className="mx-auto grid size-24 place-items-center rounded-3xl border border-slate-800 bg-slate-900/90 text-cyan-400 shadow-2xl shadow-cyan-500/10 backdrop-blur-md animate-in fade-in zoom-in duration-300">
@@ -13,9 +13,9 @@ export function EmptyChat({ currentUserId }: { currentUserId?: string }) {
         </div>
 
         {/* Title & Description */}
-        <h2 className="mt-7 text-2xl font-bold tracking-tight text-slate-100">No conversation selected</h2>
+        <h2 className="mt-7 text-2xl font-bold tracking-tight text-slate-100">Welcome to Aether Chat</h2>
         <p className="mt-2 text-sm text-slate-400 leading-relaxed">
-          Choose a chat or start a new one to begin messaging.
+          Select a conversation from the sidebar or start a new chat to begin messaging.
         </p>
 
         {/* Action Button */}
@@ -39,7 +39,7 @@ export function EmptyChat({ currentUserId }: { currentUserId?: string }) {
           <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 shadow-sm">
             <UsersRound className="mb-2.5 size-5 text-cyan-400" />
             <p className="font-semibold text-slate-200">Group Chats</p>
-            <p className="mt-1 text-[11px] text-slate-400 leading-normal">Bring your team together in one sphere.</p>
+            <p className="mt-1 text-[11px] text-slate-400 leading-normal">Bring your team together in Aether Chat.</p>
           </div>
         </div>
       </div>

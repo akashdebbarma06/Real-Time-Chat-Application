@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.chatsphere.app',
-  appName: 'ChatSphere',
+  appId: 'com.aetherchat.app',
+  appName: 'Aether Chat',
   webDir: 'out',
 
   // ── Hosted WebView ─────────────────────────────────────────────

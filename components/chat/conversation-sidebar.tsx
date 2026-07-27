@@ -110,7 +110,7 @@ export function ConversationSidebar({
             <MessageCircleMore className="size-5" />
           </span>
           <span className="font-bold tracking-wider text-base uppercase bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
-            ChatSphere
+            Aether Chat
           </span>
         </div>
 
