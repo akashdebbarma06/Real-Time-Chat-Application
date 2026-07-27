@@ -1,4 +1,5 @@
-import { Download, MessageCircleMore, ShieldCheck, Sparkles } from "lucide-react";
+import { MessageCircleMore, ShieldCheck, Sparkles } from "lucide-react";
+import { DownloadCapsuleButton } from "@/components/layout/download-capsule-button";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -34,16 +35,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       </section>
 
       <section className="flex min-h-svh flex-col items-center justify-between p-6 sm:p-10">
-        {/* Top Right Highlighted Capsule Download Box */}
+        {/* Top Right Highlighted Capsule Download Box (Web Only) */}
         <div className="w-full flex justify-end">
-          <a
-            href="/downloads/ChatSphere.apk"
-            download="ChatSphere.apk"
-            className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-md shadow-primary/25 transition-all hover:bg-primary/90 hover:scale-105"
-          >
-            <span>Download</span>
-            <Download className="size-3.5" />
-          </a>
+          <DownloadCapsuleButton />
         </div>
 
         <div className="w-full flex justify-center my-auto">{children}</div>

@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { Download, MessageCircleMore } from "lucide-react";
+import { MessageCircleMore } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DownloadCapsuleButton } from "@/components/layout/download-capsule-button";
 
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -22,15 +23,8 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
               <Link href="/contact">Contact</Link>
             </Button>
 
-            {/* Highlighted Capsule Download Box with Download Icon */}
-            <a
-              href="/downloads/ChatSphere.apk"
-              download="ChatSphere.apk"
-              className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-md shadow-primary/25 transition-all hover:bg-primary/90 hover:scale-105"
-            >
-              <span>Download</span>
-              <Download className="size-3.5" />
-            </a>
+            {/* Highlighted Capsule Download Box (Web Only) */}
+            <DownloadCapsuleButton />
 
             <Button asChild size="sm" variant="secondary" className="rounded-full">
               <Link href="/login">Launch App</Link>
