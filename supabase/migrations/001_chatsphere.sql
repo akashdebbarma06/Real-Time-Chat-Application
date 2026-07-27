@@ -28,7 +28,7 @@ create table public.conversations (
   name text,
   avatar_url text,
   direct_key text unique,
-  created_by uuid not null references public.profiles(id) on delete restrict,
+  created_by uuid not null references public.profiles(id) on delete cascade,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint group_name_required check (type = 'direct' or nullif(trim(name), '') is not null)
@@ -47,7 +47,7 @@ create table public.conversation_members (
 create table public.messages (
   id uuid primary key default gen_random_uuid(),
   conversation_id uuid not null references public.conversations(id) on delete cascade,
-  sender_id uuid not null references public.profiles(id) on delete restrict,
+  sender_id uuid not null references public.profiles(id) on delete cascade,
   content text not null default '',
   message_type public.message_type not null default 'text',
   attachment_path text,
