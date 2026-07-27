@@ -53,6 +53,24 @@ interface TypingPayload {
 const MESSAGE_SELECT =
   "id, conversation_id, sender_id, content, message_type, attachment_path, attachment_name, attachment_size, created_at, edited_at, deleted_at, sender:profiles!messages_sender_id_fkey(id, username, display_name, avatar_url, bio, last_seen_at), read_receipts:message_reads!message_reads_message_id_fkey(user_id, read_at)";
 
+function formatMessageDateSeparator(dateString: string): string {
+  const d = new Date(dateString);
+  const now = new Date();
+
+  if (d.toDateString() === now.toDateString()) return "Today";
+
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
+
+  const diffDays = Math.floor((now.getTime() - d.getTime()) / (1000 * 3600 * 24));
+  if (diffDays < 7) {
+    return d.toLocaleDateString("en-US", { weekday: "long" });
+  }
+
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
 export function MessagePanel({
   profile,
   conversation,
@@ -154,7 +172,7 @@ export function MessagePanel({
       channelRef.current = null;
       void supabase.removeChannel(channel);
     };
-  }, [conversationId, loadMessages, onConversationActivity, profile.id]);
+  }, [conversationId, isMuted, loadMessages, onConversationActivity, profile.id]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: loading ? "auto" : "smooth" });
@@ -171,13 +189,14 @@ export function MessagePanel({
   const onlinePeers = peers.filter((peer) => onlineUserIds.has(peer.id));
   const isPeerOnline = conversation?.type === "direct" && onlinePeers.length > 0;
 
-  const statusText = conversation?.type === "group"
-    ? `${conversation.members.length} members${onlinePeers.length ? ` · ${onlinePeers.length} online` : ""}`
-    : isPeerOnline
-      ? "Online"
-      : peers[0]
-        ? `Last seen ${new Date(peers[0].last_seen_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
-        : "Offline";
+  const statusText =
+    conversation?.type === "group"
+      ? `${conversation.members.length} members${onlinePeers.length ? ` · ${onlinePeers.length} online` : ""}`
+      : isPeerOnline
+        ? "Online"
+        : peers[0]
+          ? `Last seen ${new Date(peers[0].last_seen_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+          : "Offline";
 
   const lastOwnMessageId = [...messages].reverse().find((message) => message.sender_id === profile.id)?.id;
 
@@ -355,7 +374,6 @@ export function MessagePanel({
 
         {/* Header Action Buttons */}
         <div className="flex items-center gap-1">
-          {/* Toggle In-Chat Search Button */}
           <Button
             variant={isSearching ? "secondary" : "ghost"}
             size="icon-sm"
@@ -483,18 +501,37 @@ export function MessagePanel({
             </div>
           ) : displayMessages.length ? (
             <div className="space-y-5 sm:space-y-6">
-              {displayMessages.map((message) => (
-                <MessageBubble
-                  key={message.id}
-                  message={message}
-                  currentUserId={profile.id}
-                  showSenderName={conversation?.type === "group"}
-                  showReceipt={message.id === lastOwnMessageId}
-                  onReply={(msg) => setReplyingToMessage(msg)}
-                  onEdit={handleEditMessage}
-                  onDelete={handleDeleteMessage}
-                />
-              ))}
+              {displayMessages.map((message, index) => {
+                const currentDateLabel = formatMessageDateSeparator(message.created_at);
+                const prevMessage = index > 0 ? displayMessages[index - 1] : null;
+                const prevDateLabel = prevMessage ? formatMessageDateSeparator(prevMessage.created_at) : null;
+                const showDateSeparator = currentDateLabel !== prevDateLabel;
+
+                return (
+                  <div key={message.id}>
+                    {/* Centered Date Separator Pill */}
+                    {showDateSeparator && (
+                      <div className="my-6 flex items-center justify-center gap-3">
+                        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-800 to-transparent" />
+                        <span className="rounded-full border border-slate-800/80 bg-slate-900/90 px-3.5 py-1 text-[11px] font-semibold text-slate-400 shadow-sm backdrop-blur-md">
+                          {currentDateLabel}
+                        </span>
+                        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-800 to-transparent" />
+                      </div>
+                    )}
+
+                    <MessageBubble
+                      message={message}
+                      currentUserId={profile.id}
+                      showSenderName={conversation?.type === "group"}
+                      showReceipt={message.id === lastOwnMessageId}
+                      onReply={(msg) => setReplyingToMessage(msg)}
+                      onEdit={handleEditMessage}
+                      onDelete={handleDeleteMessage}
+                    />
+                  </div>
+                );
+              })}
 
               {/* Animated 3-dot Typing Indicator */}
               {typingLabel && (
