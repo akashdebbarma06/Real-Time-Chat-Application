@@ -6,18 +6,24 @@ import {
   ArrowLeft,
   Bell,
   BellOff,
+  Bot,
   Download,
   MessageCircleMore,
   MoreVertical,
+  Phone,
   Search,
+  Sparkles,
   Trash2,
   User,
   UsersRound,
+  Video,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { notifyIncomingMessage, requestNotificationPermission } from "@/lib/notifications";
+import { AIAssistantDialog } from "@/components/chat/ai-assistant-dialog";
+import { CallModal } from "@/components/chat/call-modal";
 import { ConversationAvatar } from "@/components/chat/conversation-avatar";
 import { MessageBubble } from "@/components/chat/message-bubble";
 import { MessageComposer } from "@/components/chat/message-composer";
@@ -87,6 +93,11 @@ export function MessagePanel({
 
   // User Profile Sheet State
   const [userProfileSheetOpen, setUserProfileSheetOpen] = useState(false);
+
+  // Call & AI Dialog State
+  const [callModalOpen, setCallModalOpen] = useState(false);
+  const [callMode, setCallMode] = useState<"video" | "audio">("video");
+  const [aiDialogOpen, setAiDialogOpen] = useState(false);
 
   // In-Chat Search State
   const [isSearching, setIsSearching] = useState(false);
@@ -384,6 +395,49 @@ export function MessagePanel({
 
         {/* Header Action Buttons */}
         <div className="flex items-center gap-1">
+          {/* AI Assistant Button */}
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => setAiDialogOpen(true)}
+            aria-label="AI Assistant"
+            className="rounded-full text-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-300"
+            title="ChatSphere AI Assistant"
+          >
+            <Sparkles className="size-4" />
+          </Button>
+
+          {/* Audio Call Button */}
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => {
+              setCallMode("audio");
+              setCallModalOpen(true);
+            }}
+            aria-label="Audio Call"
+            className="rounded-full text-slate-300 hover:bg-slate-800"
+            title="Start Audio Call"
+          >
+            <Phone className="size-4" />
+          </Button>
+
+          {/* Video Call Button */}
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => {
+              setCallMode("video");
+              setCallModalOpen(true);
+            }}
+            aria-label="Video Call"
+            className="rounded-full text-slate-300 hover:bg-slate-800"
+            title="Start Video Call"
+          >
+            <Video className="size-4" />
+          </Button>
+
+          {/* Toggle In-Chat Search Button */}
           <Button
             variant={isSearching ? "secondary" : "ghost"}
             size="icon-sm"
@@ -594,6 +648,21 @@ export function MessagePanel({
         isOnline={isPeerOnline}
         isMuted={isMuted}
         onToggleMute={() => setIsMuted(!isMuted)}
+      />
+
+      {/* AI Assistant Dialog */}
+      <AIAssistantDialog
+        open={aiDialogOpen}
+        onOpenChange={setAiDialogOpen}
+      />
+
+      {/* Audio / Video Call & Screen Sharing Modal */}
+      <CallModal
+        open={callModalOpen}
+        onOpenChange={setCallModalOpen}
+        title={title}
+        peerAvatarUrl={conversation?.avatar_url || peers[0]?.avatar_url}
+        mode={callMode}
       />
     </section>
   );
