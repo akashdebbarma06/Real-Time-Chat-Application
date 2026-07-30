@@ -1,18 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Capacitor } from "@capacitor/core";
 import { Download } from "lucide-react";
 
 export function DownloadCapsuleButton() {
-  const [isNative, setIsNative] = useState<boolean | null>(null);
+  const [isNative] = useState<boolean>(() => Capacitor.isNativePlatform());
 
-  useEffect(() => {
-    setIsNative(Capacitor.isNativePlatform());
-  }, []);
-
-  // While checking platform on initial render or if inside native Android/iOS APK, hide button
-  if (isNative === null || isNative === true) {
+  // Hide button inside native Android/iOS APK
+  if (isNative === true) {
     return null;
   }
 
