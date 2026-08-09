@@ -66,7 +66,7 @@ export function MessageComposer({
     if (sending || disabled) return;
 
     if (selectedFile) {
-      const caption = content.trim();
+      const caption = content.trim().slice(0, 2000);
       setSelectedFile(null);
       setPreviewUrl(null);
       setContent("");
@@ -79,6 +79,10 @@ export function MessageComposer({
 
     const trimmed = content.trim();
     if (!trimmed) return;
+    if (trimmed.length > 2000) {
+      toast.error("Message content exceeds 2,000 characters limit");
+      return;
+    }
     setContent("");
     onTyping(false);
     await onSendText(trimmed);
@@ -86,6 +90,12 @@ export function MessageComposer({
 
   function handleFileSelect(file?: File) {
     if (!file) return;
+    const forbiddenExts = [".exe", ".bat", ".cmd", ".sh", ".msi", ".vbs", ".ps1"];
+    const ext = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
+    if (forbiddenExts.includes(ext)) {
+      toast.error("Executable files are not permitted for security");
+      return;
+    }
     if (file.size > MAX_FILE_SIZE) {
       toast.error("Files must be 6 MB or smaller");
       return;

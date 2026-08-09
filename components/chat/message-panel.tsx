@@ -1,44 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
-import {
-  ArrowLeft,
-  Bell,
-  BellOff,
-  Download,
-  MessageCircleMore,
-  MoreVertical,
-  Phone,
-  Search,
-  Sparkles,
-  Trash2,
-  User,
-  UsersRound,
-  Video,
-  X,
-} from "lucide-react";
 import { toast } from "sonner";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { notifyIncomingMessage, requestNotificationPermission } from "@/lib/notifications";
-import { ComingSoonDialog } from "@/components/ui/coming-soon-dialog";
-import { ConversationAvatar } from "@/components/chat/conversation-avatar";
-import { MessageBubble } from "@/components/chat/message-bubble";
+import { InChatSearch } from "@/components/chat/in-chat-search";
+import { MessageHeader } from "@/components/chat/message-header";
+import { MessageList } from "@/components/chat/message-list";
 import { MessageComposer } from "@/components/chat/message-composer";
 import { UserProfileSheet } from "@/components/chat/user-profile-sheet";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { ComingSoonDialog } from "@/components/ui/coming-soon-dialog";
 import { createClient } from "@/lib/supabase/client";
-import { cn, getConversationPeers, getConversationTitle, sanitizeFilename } from "@/lib/utils";
+import { getConversationPeers, getConversationTitle, sanitizeFilename } from "@/lib/utils";
 import type { ChatMessage, ConversationSummary, Profile } from "@/types/chat";
 
 interface MessagePanelProps {
@@ -58,24 +31,6 @@ interface TypingPayload {
 const MESSAGE_SELECT =
   "id, conversation_id, sender_id, content, message_type, attachment_path, attachment_name, attachment_size, created_at, edited_at, deleted_at, sender:profiles!messages_sender_id_fkey(id, username, display_name, avatar_url, bio, last_seen_at), read_receipts:message_reads!message_reads_message_id_fkey(user_id, read_at)";
 
-function formatMessageDateSeparator(dateString: string): string {
-  const d = new Date(dateString);
-  const now = new Date();
-
-  if (d.toDateString() === now.toDateString()) return "Today";
-
-  const yesterday = new Date(now);
-  yesterday.setDate(now.getDate() - 1);
-  if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
-
-  const diffDays = Math.floor((now.getTime() - d.getTime()) / (1000 * 3600 * 24));
-  if (diffDays < 7) {
-    return d.toLocaleDateString("en-US", { weekday: "long" });
-  }
-
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-}
-
 export function MessagePanel({
   profile,
   conversation,
@@ -89,18 +44,12 @@ export function MessagePanel({
   const [replyingToMessage, setReplyingToMessage] = useState<ChatMessage | null>(null);
   const [typingUsers, setTypingUsers] = useState<Map<string, string>>(new Map());
 
-  // User Profile Sheet State
   const [userProfileSheetOpen, setUserProfileSheetOpen] = useState(false);
-
-  // Coming Soon Dialog State
   const [comingSoonOpen, setComingSoonOpen] = useState(false);
   const [comingSoonFeature, setComingSoonFeature] = useState("Feature");
 
-  // In-Chat Search State
   const [isSearching, setIsSearching] = useState(false);
   const [inChatQuery, setInChatQuery] = useState("");
-
-  // Notification Mute State
   const [isMuted, setIsMuted] = useState(false);
 
   const channelRef = useRef<RealtimeChannel | null>(null);
@@ -153,7 +102,6 @@ export function MessagePanel({
           void loadMessages();
           onConversationActivity();
 
-          // Notification sound & push alert
           const newMsg = payload?.payload as { sender_id?: string; content?: string; sender_name?: string } | undefined;
           if (newMsg?.sender_id !== profile.id) {
             notifyIncomingMessage({
@@ -219,7 +167,6 @@ export function MessagePanel({
     return `${names.slice(0, 2).join(" and ")} are typing…`;
   }, [typingUsers]);
 
-  // In-Chat Search Filtered Messages
   const displayMessages = useMemo(() => {
     if (!inChatQuery.trim()) return messages;
     const q = inChatQuery.toLowerCase();
@@ -339,296 +286,59 @@ export function MessagePanel({
 
   return (
     <section className="flex h-svh min-h-0 flex-col bg-background">
-      {/* Improved Chat Header */}
-      <header className="flex h-16 shrink-0 items-center justify-between border-b bg-background/90 px-3 backdrop-blur-xl sm:px-5">
-        <div className="flex items-center gap-3 min-w-0 flex-1">
-          <Button asChild variant="ghost" size="icon-sm" className="md:hidden">
-            <Link href="/chat" aria-label="Back to conversations">
-              <ArrowLeft />
-            </Link>
-          </Button>
+      <MessageHeader
+        title={title}
+        conversation={conversation}
+        profile={profile}
+        peers={peers}
+        isPeerOnline={isPeerOnline}
+        statusText={statusText}
+        typingLabel={typingLabel}
+        isMuted={isMuted}
+        isSearching={isSearching}
+        onToggleSearch={() => {
+          setIsSearching(!isSearching);
+          if (isSearching) setInChatQuery("");
+        }}
+        onToggleMute={() => setIsMuted(!isMuted)}
+        onExportHistory={exportChatHistory}
+        onClearHistory={() => {
+          setMessages([]);
+          toast.success("Chat history cleared");
+        }}
+        onOpenProfile={() => setUserProfileSheetOpen(true)}
+        onOpenFeature={(feature) => {
+          setComingSoonFeature(feature);
+          setComingSoonOpen(true);
+        }}
+      />
 
-          {/* Click Avatar or Name to Open User Profile Side Sheet */}
-          <button
-            onClick={() => setUserProfileSheetOpen(true)}
-            className="flex items-center gap-3 min-w-0 text-left hover:opacity-80 transition"
-          >
-            <div className="relative shrink-0">
-              {conversation ? (
-                <ConversationAvatar conversation={conversation} userId={profile.id} className="size-10" />
-              ) : (
-                <div className="grid size-10 place-items-center rounded-full bg-muted">
-                  <MessageCircleMore className="size-5" />
-                </div>
-              )}
-              {/* Online/Offline Visual Status Indicator Dot */}
-              {conversation?.type === "direct" && (
-                <span
-                  className={cn(
-                    "absolute bottom-0 right-0 size-3 rounded-full border-2 border-background shadow-sm",
-                    isPeerOnline ? "bg-emerald-500" : "bg-slate-400"
-                  )}
-                />
-              )}
-            </div>
-
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <h1 className="truncate text-base font-semibold">{title}</h1>
-                {isMuted && <BellOff className="size-3.5 text-muted-foreground shrink-0" />}
-              </div>
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <span
-                  className={cn(
-                    "size-2 rounded-full shrink-0",
-                    isPeerOnline ? "bg-emerald-500 animate-pulse" : "bg-slate-400"
-                  )}
-                />
-                <span className="truncate">{typingLabel || statusText}</span>
-              </div>
-            </div>
-          </button>
-        </div>
-
-        {/* Header Action Buttons */}
-        <div className="flex items-center gap-1">
-          {/* AI Assistant Button */}
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={() => {
-              setComingSoonFeature("Aether AI Assistant");
-              setComingSoonOpen(true);
-            }}
-            aria-label="AI Assistant"
-            className="rounded-full text-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-300"
-            title="Aether AI Assistant"
-          >
-            <Sparkles className="size-4" />
-          </Button>
-
-          {/* Audio Call Button */}
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={() => {
-              setComingSoonFeature("Voice Calls");
-              setComingSoonOpen(true);
-            }}
-            aria-label="Audio Call"
-            className="rounded-full text-slate-300 hover:bg-slate-800"
-            title="Start Voice Call"
-          >
-            <Phone className="size-4" />
-          </Button>
-
-          {/* Video Call Button */}
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={() => {
-              setComingSoonFeature("Video Calls & Screen Sharing");
-              setComingSoonOpen(true);
-            }}
-            aria-label="Video Call"
-            className="rounded-full text-slate-300 hover:bg-slate-800"
-            title="Start Video Call"
-          >
-            <Video className="size-4" />
-          </Button>
-
-          {/* Toggle In-Chat Search Button */}
-          <Button
-            variant={isSearching ? "secondary" : "ghost"}
-            size="icon-sm"
-            onClick={() => {
-              setIsSearching(!isSearching);
-              if (isSearching) setInChatQuery("");
-            }}
-            aria-label="Search within chat"
-            className="rounded-full"
-          >
-            <Search className="size-4" />
-          </Button>
-
-          {conversation?.type === "group" && (
-            <Button variant="ghost" size="icon-sm" aria-label="Group members" className="rounded-full">
-              <UsersRound className="size-4" />
-            </Button>
-          )}
-
-          {/* 3-Dots Overflow Menu */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon-sm" aria-label="Conversation options" className="rounded-full">
-                <MoreVertical className="size-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" side="bottom" className="w-56 bg-slate-900 border-slate-800 text-slate-100 p-1 rounded-2xl shadow-xl">
-              <DropdownMenuItem
-                onClick={() => setUserProfileSheetOpen(true)}
-                className="flex items-center gap-2 text-xs rounded-xl cursor-pointer"
-              >
-                <User className="size-4 text-cyan-400" />
-                <span>View Contact Profile</span>
-              </DropdownMenuItem>
-
-              <DropdownMenuItem
-                onClick={() => setIsSearching(true)}
-                className="flex items-center gap-2 text-xs rounded-xl cursor-pointer"
-              >
-                <Search className="size-4 text-cyan-400" />
-                <span>Search in Chat</span>
-              </DropdownMenuItem>
-
-              <DropdownMenuItem
-                onClick={() => {
-                  setIsMuted(!isMuted);
-                  toast.success(isMuted ? "Notifications unmuted" : "Notifications muted");
-                }}
-                className="flex items-center gap-2 text-xs rounded-xl cursor-pointer"
-              >
-                {isMuted ? <Bell className="size-4 text-emerald-400" /> : <BellOff className="size-4 text-amber-400" />}
-                <span>{isMuted ? "Unmute Notifications" : "Mute Notifications"}</span>
-              </DropdownMenuItem>
-
-              <DropdownMenuItem
-                onClick={exportChatHistory}
-                className="flex items-center gap-2 text-xs rounded-xl cursor-pointer"
-              >
-                <Download className="size-4 text-cyan-400" />
-                <span>Export Chat Transcript</span>
-              </DropdownMenuItem>
-
-              <DropdownMenuSeparator className="bg-slate-800 my-1" />
-
-              <DropdownMenuItem
-                onClick={() => {
-                  setMessages([]);
-                  toast.success("Chat history cleared");
-                }}
-                className="flex items-center gap-2 text-xs text-rose-400 hover:text-rose-300 rounded-xl cursor-pointer"
-              >
-                <Trash2 className="size-4" />
-                <span>Clear Chat History</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </header>
-
-      {/* Expandable In-Chat Search Bar */}
       {isSearching && (
-        <div className="flex items-center gap-2 border-b bg-slate-900/90 px-4 py-2 text-xs">
-          <Search className="size-4 text-cyan-400 shrink-0" />
-          <Input
-            value={inChatQuery}
-            onChange={(e) => setInChatQuery(e.target.value)}
-            placeholder="Search messages in this chat..."
-            className="h-8 border-slate-800 bg-slate-950 text-slate-100 text-xs rounded-xl focus-visible:ring-cyan-500/50"
-            autoFocus
-          />
-          {inChatQuery && (
-            <span className="text-[11px] text-slate-400 shrink-0">
-              {displayMessages.length} match{displayMessages.length !== 1 ? "es" : ""}
-            </span>
-          )}
-          <Button
-            size="icon-sm"
-            variant="ghost"
-            onClick={() => {
-              setIsSearching(false);
-              setInChatQuery("");
-            }}
-            className="size-7 rounded-full text-slate-400 hover:text-white"
-          >
-            <X className="size-4" />
-          </Button>
-        </div>
+        <InChatSearch
+          query={inChatQuery}
+          matchCount={displayMessages.length}
+          onQueryChange={setInChatQuery}
+          onClose={() => {
+            setIsSearching(false);
+            setInChatQuery("");
+          }}
+        />
       )}
 
-      {/* Messages Scroll Area */}
-      <ScrollArea className="min-h-0 flex-1">
-        <div
-          className={cn(
-            "mx-auto max-w-6xl px-3 sm:px-5",
-            displayMessages.length > 0 ? "flex flex-col py-4" : "flex min-h-full flex-col items-center justify-center py-5"
-          )}
-        >
-          {loading ? (
-            <div className="space-y-4 py-4">
-              {Array.from({ length: 7 }).map((_, index) => (
-                <div key={index} className={index % 3 === 0 ? "flex justify-end" : "flex justify-start"}>
-                  <Skeleton className="h-14 w-[55%] rounded-2xl" />
-                </div>
-              ))}
-            </div>
-          ) : displayMessages.length ? (
-            <div className="space-y-5 sm:space-y-6">
-              {displayMessages.map((message, index) => {
-                const currentDateLabel = formatMessageDateSeparator(message.created_at);
-                const prevMessage = index > 0 ? displayMessages[index - 1] : null;
-                const prevDateLabel = prevMessage ? formatMessageDateSeparator(prevMessage.created_at) : null;
-                const showDateSeparator = currentDateLabel !== prevDateLabel;
-
-                return (
-                  <div key={message.id}>
-                    {/* Centered Date Separator Pill */}
-                    {showDateSeparator && (
-                      <div className="my-6 flex items-center justify-center gap-3">
-                        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-800 to-transparent" />
-                        <span className="rounded-full border border-slate-800/80 bg-slate-900/90 px-3.5 py-1 text-[11px] font-semibold text-slate-400 shadow-sm backdrop-blur-md">
-                          {currentDateLabel}
-                        </span>
-                        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-800 to-transparent" />
-                      </div>
-                    )}
-
-                    <MessageBubble
-                      message={message}
-                      currentUserId={profile.id}
-                      showSenderName={conversation?.type === "group"}
-                      showReceipt={message.id === lastOwnMessageId}
-                      onReply={(msg) => setReplyingToMessage(msg)}
-                      onEdit={handleEditMessage}
-                      onDelete={handleDeleteMessage}
-                    />
-                  </div>
-                );
-              })}
-
-              {/* Animated 3-dot Typing Indicator */}
-              {typingLabel && (
-                <div className="flex items-end gap-2.5 my-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  <div className="flex items-center gap-3 rounded-3xl rounded-bl-[6px] border border-slate-800/80 bg-slate-900/90 px-4.5 py-3 shadow-lg shadow-black/20 backdrop-blur-md">
-                    <span className="text-xs font-medium text-slate-300">{typingLabel}</span>
-                    <div className="flex items-center gap-1.5 px-0.5">
-                      <span className="size-2 rounded-full bg-cyan-400 animate-bounce" />
-                      <span className="size-2 rounded-full bg-cyan-400 animate-bounce [animation-delay:0.2s]" />
-                      <span className="size-2 rounded-full bg-cyan-400 animate-bounce [animation-delay:0.4s]" />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="text-center py-12 animate-in fade-in zoom-in duration-300">
-              <div className="mx-auto grid size-20 place-items-center rounded-3xl border border-slate-800 bg-slate-900/90 text-cyan-400 shadow-xl shadow-cyan-500/10 backdrop-blur-md">
-                <MessageCircleMore className="size-9" />
-              </div>
-              <h2 className="mt-5 text-xl font-bold text-slate-100">
-                {inChatQuery ? "No matching messages" : "Start the conversation"}
-              </h2>
-              <p className="mt-2 text-sm text-slate-400 max-w-sm mx-auto leading-relaxed">
-                {inChatQuery
-                  ? `No messages match "${inChatQuery}". Try searching for another keyword.`
-                  : `Say hello or share a file to kick off your chat with ${title}! 👋`}
-              </p>
-            </div>
-          )}
-          <div ref={bottomRef} />
-        </div>
-      </ScrollArea>
+      <MessageList
+        messages={displayMessages}
+        loading={loading}
+        currentUserId={profile.id}
+        isGroup={conversation?.type === "group"}
+        lastOwnMessageId={lastOwnMessageId}
+        typingLabel={typingLabel}
+        inChatQuery={inChatQuery}
+        title={title}
+        bottomRef={bottomRef}
+        onReply={(msg) => setReplyingToMessage(msg)}
+        onEdit={handleEditMessage}
+        onDelete={handleDeleteMessage}
+      />
 
       <MessageComposer
         sending={sending}
@@ -640,7 +350,6 @@ export function MessagePanel({
         onTyping={broadcastTyping}
       />
 
-      {/* User Profile Side Sheet */}
       <UserProfileSheet
         open={userProfileSheetOpen}
         onOpenChange={setUserProfileSheetOpen}
@@ -650,7 +359,6 @@ export function MessagePanel({
         onToggleMute={() => setIsMuted(!isMuted)}
       />
 
-      {/* Graceful Coming Soon Dialog */}
       <ComingSoonDialog
         open={comingSoonOpen}
         onOpenChange={setComingSoonOpen}

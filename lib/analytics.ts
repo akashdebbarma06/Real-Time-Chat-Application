@@ -5,10 +5,12 @@ interface EventPayload {
   properties?: Record<string, unknown>;
 }
 
-/**
- * Lightweight client-side monitoring & analytics logger.
- * Sends events in production without slowing down the user thread.
- */
+declare global {
+  interface Window {
+    gtag?: (command: string, eventName: string, eventParams?: Record<string, unknown>) => void;
+  }
+}
+
 export function trackEvent({ eventName, properties }: EventPayload) {
   if (process.env.NODE_ENV !== "production") {
     console.log(`[Analytics Track] ${eventName}:`, properties || {});
@@ -16,9 +18,8 @@ export function trackEvent({ eventName, properties }: EventPayload) {
   }
 
   try {
-    if (typeof window !== "undefined" && "gtag" in window) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (window as any).gtag("event", eventName, properties);
+    if (typeof window !== "undefined" && typeof window.gtag === "function") {
+      window.gtag("event", eventName, properties);
     }
   } catch (err) {
     console.error("Analytics dispatch error:", err);

@@ -2,13 +2,15 @@
 
 import { toast } from "sonner";
 
-/**
- * Play a pleasant Web Audio API chime notification sound.
- * Works on any browser & mobile device without needing external audio asset files.
- */
+declare global {
+  interface Window {
+    webkitAudioContext?: typeof AudioContext;
+  }
+}
+
 export function playNotificationSound() {
   try {
-    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtx) return;
 
     const ctx = new AudioCtx();
