@@ -145,7 +145,7 @@ export function MessageBubble({
           </div>
 
           {/* Reaction Pills below message */}
-          {Object.entries(reactions).some(([_, users]) => users.length > 0) && (
+          {Object.entries(reactions).some(([, users]) => users.length > 0) && (
             <div className="mt-2.5 flex flex-wrap gap-1.5" onClick={(e) => e.stopPropagation()}>
               {Object.entries(reactions).map(([emoji, users]) => {
                 if (!users.length) return null;

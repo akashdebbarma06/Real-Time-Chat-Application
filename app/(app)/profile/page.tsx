@@ -1,19 +1,37 @@
+export const dynamic = "force-dynamic";
+
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ArrowLeft, MessageCircleMore } from "lucide-react";
 import { ProfileForm } from "@/components/profile/profile-form";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { getCurrentProfile } from "@/lib/current-user";
 import { createClient } from "@/lib/supabase/server";
+import { logServerError } from "@/lib/logger";
 
 export const metadata: Metadata = { title: "Profile · Aether Chat" };
 
+async function loadProfileData() {
+  try {
+    const profile = await getCurrentProfile();
+    const supabase = await createClient();
+    const { data: claimsData } = await supabase.auth.getClaims();
+    const email = (claimsData?.claims?.email as string) || undefined;
+
+    return { profile, email };
+  } catch (error) {
+    logServerError(error, "Failed to load profile page data");
+    redirect("/login");
+  }
+}
+
 export default async function ProfilePage() {
-  const profile = await getCurrentProfile();
-  const supabase = await createClient();
-  const { data: claimsData } = await supabase.auth.getClaims();
-  const email = (claimsData?.claims?.email as string) || undefined;
+  const result = await loadProfileData();
+  if (!result) return null;
+
+  const { profile, email } = result;
 
   return (
     <main className="min-h-svh bg-[#0B0F17] text-slate-100 pb-12">

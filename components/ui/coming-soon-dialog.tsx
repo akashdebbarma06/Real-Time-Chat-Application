@@ -1,6 +1,6 @@
 "use client";
 
-import { Rocket, Sparkles } from "lucide-react";
+import { Rocket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

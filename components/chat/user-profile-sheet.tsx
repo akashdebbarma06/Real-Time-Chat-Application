@@ -1,19 +1,15 @@
 "use client";
 
-import Image from "next/image";
 import {
   Bell,
   BellOff,
   FileIcon,
-  Globe,
   ImageIcon,
   ShieldAlert,
   UserX,
-  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,

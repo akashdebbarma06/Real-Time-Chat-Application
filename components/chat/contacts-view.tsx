@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MessageSquare, Search, UserCheck, Users, Zap } from "lucide-react";
 import { toast } from "sonner";
-import { ConversationAvatar } from "@/components/chat/conversation-avatar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

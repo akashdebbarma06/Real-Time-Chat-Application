@@ -6,7 +6,6 @@ import {
   Bell,
   Check,
   ChevronRight,
-  Copy,
   Globe,
   HelpCircle,
   Key,
@@ -15,16 +14,12 @@ import {
   Mail,
   MessageSquare,
   Phone,
-  Plus,
   Share2,
   Shield,
   ShieldCheck,
   Trash2,
-  User,
-  UserMinus,
   UserPlus,
   UserX,
-  Vibrate,
   Volume2,
 } from "lucide-react";
 import { playNotificationSound, requestNotificationPermission } from "@/lib/notifications";
@@ -33,10 +28,8 @@ import { ComingSoonDialog } from "@/components/ui/coming-soon-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
-import { useTheme } from "next-themes";
 import { createClient } from "@/lib/supabase/client";
 import { getInitials } from "@/lib/utils";
 import type { Profile } from "@/types/chat";

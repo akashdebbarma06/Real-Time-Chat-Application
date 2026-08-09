@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Bot, Loader2, Send, Sparkles, User, X } from "lucide-react";
+import { Bot, Loader2, Send, Sparkles, User } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {

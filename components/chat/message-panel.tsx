@@ -6,7 +6,6 @@ import {
   ArrowLeft,
   Bell,
   BellOff,
-  Bot,
   Download,
   MessageCircleMore,
   MoreVertical,

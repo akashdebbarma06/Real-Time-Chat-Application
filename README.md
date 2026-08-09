@@ -61,12 +61,19 @@ npm install
 
 ### 3. Configure Environment Variables
 
-Create a `.env.local` file.
+Create a `.env.local` file from `.env.example`.
+
+```bash
+cp .env.example .env.local
+```
+
+Example `.env.local` values:
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_publishable_key
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
+NODE_ENV=development
 ```
 
 > Never expose your Supabase Service Role Key in the client application.

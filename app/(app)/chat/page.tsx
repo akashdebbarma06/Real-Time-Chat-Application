@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import type { Metadata } from "next";
 import { ChatWorkspace } from "@/components/chat/chat-workspace";
 import { getCurrentProfile } from "@/lib/current-user";

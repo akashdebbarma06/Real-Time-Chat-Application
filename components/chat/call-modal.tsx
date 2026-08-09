@@ -9,7 +9,6 @@ import {
   ScreenShare,
   Video,
   VideoOff,
-  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";

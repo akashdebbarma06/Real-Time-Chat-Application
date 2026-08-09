@@ -37,6 +37,7 @@ export function ProfileForm({ profile, userEmail }: { profile: Profile; userEmai
 
   const displayName = profile.display_name;
   const bioWordCount = countWords(bio);
+  const email = userEmail || "Not available";
 
   function addLink() {
     if (links.length >= 5) return toast.error("Maximum 5 links allowed");
@@ -159,21 +160,27 @@ export function ProfileForm({ profile, userEmail }: { profile: Profile; userEmai
 
       <div className="h-px bg-border" />
 
-      {/* 2. Bio (100 word limit) */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <label className="text-xs font-semibold text-muted-foreground uppercase">Bio</label>
-          <span className={`text-xs ${bioWordCount > 90 ? "text-rose-500 font-semibold" : "text-muted-foreground"}`}>
-            {bioWordCount}/100 words
-          </span>
+      {/* 2. Email & Bio */}
+      <div className="space-y-4">
+        <div className="rounded-3xl border border-slate-800 bg-slate-950/60 p-4 text-sm text-slate-300">
+          <p className="text-xs font-semibold uppercase text-muted-foreground">Email</p>
+          <p className="mt-1 truncate">{email}</p>
         </div>
-        <Textarea
-          rows={3}
-          placeholder="Write a short bio about yourself..."
-          value={bio}
-          onChange={(e) => handleBioChange(e.target.value)}
-          className="rounded-xl"
-        />
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-semibold text-muted-foreground uppercase">Bio</label>
+            <span className={`text-xs ${bioWordCount > 90 ? "text-rose-500 font-semibold" : "text-muted-foreground"}`}>
+              {bioWordCount}/100 words
+            </span>
+          </div>
+          <Textarea
+            rows={3}
+            placeholder="Write a short bio about yourself..."
+            value={bio}
+            onChange={(e) => handleBioChange(e.target.value)}
+            className="rounded-xl"
+          />
+        </div>
       </div>
 
       {/* 3. Username */}

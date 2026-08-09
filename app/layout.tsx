@@ -1,10 +1,13 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AppProviders } from "@/components/providers/app-providers";
+import { getSiteUrl } from "@/lib/supabase/config";
 import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
+
+const baseUrl = getSiteUrl();
 
 export const viewport: Viewport = {
   themeColor: [
@@ -23,11 +26,11 @@ export const metadata: Metadata = {
   description: "A fast, secure, premium real-time messaging and team collaboration platform built with cyan-blue aesthetics.",
   keywords: ["aether chat", "realtime messaging", "group chat", "direct messaging", "collaboration", "encrypted chat"],
   authors: [{ name: "Aether Team" }],
-  metadataBase: new URL("https://chatsphere-tan.vercel.app"),
+  metadataBase: new URL(baseUrl),
   openGraph: {
     title: "Aether Chat - Next-Gen Real-Time Messaging",
     description: "Connect instantly with friends and teams using Aether Chat.",
-    url: "https://chatsphere-tan.vercel.app",
+    url: baseUrl,
     siteName: "Aether Chat",
     locale: "en_US",
     type: "website",
