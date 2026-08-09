@@ -1,15 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/types/database";
-import { getPublicSupabaseKey, getPublicSupabaseUrl } from "@/lib/supabase/config";
-import { logServerError } from "@/lib/logger";
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient<Database>(
-    getPublicSupabaseUrl(),
-    getPublicSupabaseKey(),
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY! || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         getAll: () => request.cookies.getAll(),
@@ -18,8 +16,8 @@ export async function updateSession(request: NextRequest) {
             cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
             response = NextResponse.next({ request });
             cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
-          } catch (error) {
-            logServerError(error, "Failed to set cookies in middleware session update");
+          } catch {
+            // Expected in edge cases during middleware cookie writes
           }
         },
       },
@@ -48,7 +46,7 @@ export async function updateSession(request: NextRequest) {
 
     return response;
   } catch (error) {
-    logServerError(error, "Auth session validation failed in middleware");
+    console.error("Auth session validation failed in middleware", error);
     return NextResponse.redirect(new URL("/login", request.url));
   }
 }

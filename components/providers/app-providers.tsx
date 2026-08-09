@@ -1,7 +1,7 @@
 "use client";
 
 import { Toaster } from "sonner";
-import { ThemeProvider } from "@/components/providers/theme-provider";
+import { ThemeProvider } from "next-themes";
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
   return (

@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getSiteUrl } from "@/lib/supabase/config";
-import { logServerError } from "@/lib/logger";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -11,7 +9,7 @@ export async function GET(request: Request) {
 
   const host = request.headers.get("x-forwarded-host") || request.headers.get("host");
   const proto = request.headers.get("x-forwarded-proto") || "https";
-  const baseUrl = host && !host.includes("localhost") ? `${proto}://${host}` : getSiteUrl();
+  const baseUrl = host && !host.includes("localhost") ? `${proto}://${host}` : process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
   if (!code) {
     return NextResponse.redirect(new URL("/login?error=missing_code", baseUrl));
@@ -22,13 +20,13 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (error) {
-      logServerError(error, "OAuth callback session exchange failed");
+      console.error("OAuth callback session exchange failed", error);
       return NextResponse.redirect(new URL("/login?error=callback", baseUrl));
     }
 
     return NextResponse.redirect(new URL(next, baseUrl));
   } catch (error) {
-    logServerError(error, "Unhandled exception in OAuth callback");
+      console.error("Unhandled exception in OAuth callback", error);
     return NextResponse.redirect(new URL("/login?error=callback", baseUrl));
   }
 }

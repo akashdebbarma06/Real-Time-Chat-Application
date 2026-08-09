@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, Lock, MessageCircleMore, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { getSiteUrl } from "@/lib/supabase/config";
 import {
   Dialog,
   DialogContent,
@@ -37,7 +36,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   async function handleSocialAuth(provider: "google" | "github") {
     setLoading(provider);
     const supabase = createClient();
-    const siteUrl = getSiteUrl();
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
     const origin =
       typeof window !== "undefined" && window.location.origin && !window.location.origin.includes("localhost")
         ? window.location.origin

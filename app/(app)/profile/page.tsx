@@ -9,7 +9,6 @@ import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { getCurrentProfile } from "@/lib/current-user";
 import { createClient } from "@/lib/supabase/server";
-import { logServerError } from "@/lib/logger";
 
 export const metadata: Metadata = { title: "Profile · Aether Chat" };
 
@@ -22,7 +21,7 @@ async function loadProfileData() {
 
     return { profile, email };
   } catch (error) {
-    logServerError(error, "Failed to load profile page data");
+    console.error("Failed to load profile page data", error);
     redirect("/login");
   }
 }
