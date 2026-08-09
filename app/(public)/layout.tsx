@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { MessageCircleMore } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DownloadCapsuleButton } from "@/components/layout/download-capsule-button";
 
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -24,9 +23,6 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
             <Button asChild variant="ghost" size="sm" className="text-slate-300 hover:text-white">
               <Link href="/contact">Contact</Link>
             </Button>
-
-            {/* Highlighted Capsule Download Box (Web Only) */}
-            <DownloadCapsuleButton />
 
             <Button asChild size="sm" className="rounded-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold shadow-md shadow-cyan-500/20">
               <Link href="/login">Launch App</Link>

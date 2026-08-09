@@ -1,5 +1,4 @@
 import { MessageCircleMore, ShieldCheck, Sparkles } from "lucide-react";
-import { DownloadCapsuleButton } from "@/components/layout/download-capsule-button";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -10,7 +9,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <span className="grid size-10 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/25">
             <MessageCircleMore className="size-5" />
           </span>
-          ChatSphere
+          Aether Chat
         </div>
         <div className="max-w-xl space-y-7">
           <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-sm text-white/80 dark:text-foreground/80">
@@ -35,11 +34,6 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       </section>
 
       <section className="flex min-h-svh flex-col items-center justify-between p-6 sm:p-10">
-        {/* Top Right Highlighted Capsule Download Box (Web Only) */}
-        <div className="w-full flex justify-end">
-          <DownloadCapsuleButton />
-        </div>
-
         <div className="w-full flex justify-center my-auto">{children}</div>
 
         <footer className="mt-8 flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-muted-foreground">

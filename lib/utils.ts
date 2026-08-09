@@ -55,6 +55,11 @@ export function getConversationPeers(conversation: ConversationSummary, userId: 
 export function sanitizeFilename(filename: string) {
   const parts = filename.split(".");
   const extension = parts.length > 1 ? `.${parts.pop()?.toLowerCase().replace(/[^a-z0-9]/g, "")}` : "";
-  const base = parts.join(".").replace(/[^a-zA-Z0-9-_]/g, "-").replace(/-+/g, "-").slice(0, 80);
+  const base = parts
+    .join(".")
+    .replace(/[^a-zA-Z0-9-_]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
   return `${base || "file"}${extension}`;
 }
