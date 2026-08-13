@@ -61,8 +61,8 @@ export function ConversationSidebar({
   // Primary Tabs: chats | contacts | settings
   const [activeTab, setActiveTab] = useState<"chats" | "contacts" | "settings">("chats");
 
-  // Chat Filter Sub-tabs: recent | pinned | archived
-  const [chatFilter, setChatFilter] = useState<"recent" | "pinned" | "archived">("recent");
+  // Chat Filter Sub-tabs: all | unread | groups
+  const [chatFilter, setChatFilter] = useState<"all" | "unread" | "groups">("all");
 
   // Pinned & Archived Conversation ID Sets
   const [pinnedIds, setPinnedIds] = useState<Set<string>>(new Set());
@@ -74,14 +74,13 @@ export function ConversationSidebar({
 
   const filteredConversations = useMemo(() => {
     return conversations.filter((conversation) => {
-      const isPinned = pinnedIds.has(conversation.id);
       const isArchived = archivedIds.has(conversation.id);
 
-      if (chatFilter === "pinned") return isPinned && !isArchived;
-      if (chatFilter === "archived") return isArchived;
+      if (chatFilter === "unread") return conversation.unread_count > 0 && !isArchived;
+      if (chatFilter === "groups") return conversation.type === "group" && !isArchived;
       return !isArchived;
     });
-  }, [archivedIds, chatFilter, conversations, pinnedIds]);
+  }, [archivedIds, chatFilter, conversations]);
 
   function togglePin(id: string, event: React.MouseEvent) {
     event.preventDefault();
@@ -106,30 +105,23 @@ export function ConversationSidebar({
   }
 
   return (
-    <aside className="flex h-svh min-h-0 flex-col border-r bg-slate-950 text-slate-100">
-      {/* Top Header App Home Bar with Title & 3-Dots Dropdown Menu */}
-      <div className="flex h-16 items-center justify-between border-b border-slate-800/80 px-4 shrink-0 bg-slate-900/60 backdrop-blur-xl">
-        <div className="flex items-center gap-2.5">
-          <span className="grid size-9 place-items-center rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/20">
-            <MessageCircleMore className="size-5" />
-          </span>
-          <span className="font-bold tracking-wider text-base uppercase bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
-            Aether Chat
-          </span>
-        </div>
+    <aside className="flex h-svh min-h-0 flex-col border-r bg-background text-foreground">
+      {/* Top Header */}
+      <div className="flex h-16 items-center justify-between border-b px-5 shrink-0">
+        <h1 className="text-2xl font-bold tracking-tight">Activity</h1>
 
-        {/* 3-Dots Dropdown Menu (Day/Night Mode & Create New Group) */}
+        {/* 3-Dots Dropdown Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="grid size-9 place-items-center rounded-xl border border-slate-700/60 bg-slate-800/50 text-slate-300 transition hover:bg-slate-700 hover:text-white">
+            <button className="grid size-9 place-items-center rounded-xl text-muted-foreground transition hover:bg-accent hover:text-foreground">
               <MoreVertical className="size-5" />
             </button>
           </DropdownMenuTrigger>
 
-          <DropdownMenuContent align="end" side="bottom" className="w-64 bg-slate-900 border-slate-800 text-slate-200 shadow-2xl p-2 rounded-2xl">
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-800/50">
+          <DropdownMenuContent align="end" side="bottom" className="w-64 p-2 rounded-2xl shadow-2xl">
+            <div className="flex items-center justify-between p-2.5 rounded-xl bg-muted/50">
               <div className="flex items-center gap-2 text-xs font-medium">
-                {theme === "dark" ? <Moon className="size-4 text-cyan-400" /> : <Sun className="size-4 text-amber-400" />}
+                {theme === "dark" ? <Moon className="size-4 text-primary" /> : <Sun className="size-4 text-amber-400" />}
                 <span>Day / Night Mode</span>
               </div>
               <Switch
@@ -138,20 +130,20 @@ export function ConversationSidebar({
               />
             </div>
 
-            <DropdownMenuSeparator className="bg-slate-800 my-2" />
+            <DropdownMenuSeparator className="my-2" />
 
             <DropdownMenuItem
               onClick={() => {
                 setComingSoonFeature("My QR Code & Contact Share");
                 setComingSoonOpen(true);
               }}
-              className="flex items-center gap-2 text-xs rounded-xl cursor-pointer p-2.5 hover:bg-slate-800"
+              className="flex items-center gap-2 text-xs rounded-xl cursor-pointer p-2.5"
             >
-              <QrCode className="size-4 text-cyan-400" />
+              <QrCode className="size-4 text-primary" />
               <span>My QR Code</span>
             </DropdownMenuItem>
 
-            <DropdownMenuSeparator className="bg-slate-800 my-2" />
+            <DropdownMenuSeparator className="my-2" />
 
             <NewChatDialog currentUserId={profile.id} onCreated={onConversationCreated} triggerVariant="full" />
           </DropdownMenuContent>
@@ -163,60 +155,61 @@ export function ConversationSidebar({
         {/* 1. CHATS TAB */}
         {activeTab === "chats" && (
           <div className="flex h-full flex-col">
+            {/* Filter Pill Tabs: All Chats | Unread | groups */}
+            <div className="px-5 pt-4 pb-3">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setChatFilter("all")}
+                  className={cn(
+                    "rounded-full px-4 py-1.5 text-sm font-medium transition-all",
+                    chatFilter === "all"
+                      ? "bg-foreground text-background shadow-sm"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  )}
+                >
+                  All Chats
+                </button>
+                <button
+                  onClick={() => setChatFilter("unread")}
+                  className={cn(
+                    "rounded-full px-4 py-1.5 text-sm font-medium transition-all",
+                    chatFilter === "unread"
+                      ? "bg-foreground text-background shadow-sm"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  )}
+                >
+                  Unread
+                </button>
+                <button
+                  onClick={() => setChatFilter("groups")}
+                  className={cn(
+                    "rounded-full px-4 py-1.5 text-sm font-medium transition-all lowercase",
+                    chatFilter === "groups"
+                      ? "bg-foreground text-background shadow-sm"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  )}
+                >
+                  groups
+                </button>
+              </div>
+            </div>
+
             {/* Search Input */}
-            <div className="p-3 pb-2">
+            <div className="px-5 pb-3">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   value={query}
                   onChange={(event) => onQueryChange(event.target.value)}
-                  className="border-slate-800 bg-slate-900/80 text-slate-200 pl-9 rounded-2xl text-xs focus-visible:ring-cyan-500/50 placeholder:text-slate-500"
+                  className="border-border bg-muted/50 text-foreground pl-9 rounded-xl text-xs focus-visible:ring-primary/50 placeholder:text-muted-foreground"
                   placeholder="Search conversations..."
                 />
               </div>
             </div>
 
-            {/* Chat Sub-Filters: Recent | Pinned | Archived */}
-            <div className="px-3 pb-2">
-              <div className="grid grid-cols-3 gap-1 rounded-xl bg-slate-900 p-1 text-xs font-medium border border-slate-800">
-                <button
-                  onClick={() => setChatFilter("recent")}
-                  className={`flex items-center justify-center gap-1.5 rounded-lg py-1.5 transition-all ${
-                    chatFilter === "recent"
-                      ? "bg-cyan-500 text-slate-950 font-bold shadow-sm"
-                      : "text-slate-400 hover:text-slate-200"
-                  }`}
-                >
-                  <span>Recent</span>
-                </button>
-                <button
-                  onClick={() => setChatFilter("pinned")}
-                  className={`flex items-center justify-center gap-1.5 rounded-lg py-1.5 transition-all ${
-                    chatFilter === "pinned"
-                      ? "bg-cyan-500 text-slate-950 font-bold shadow-sm"
-                      : "text-slate-400 hover:text-slate-200"
-                  }`}
-                >
-                  <Pin className="size-3" />
-                  <span>Pinned ({pinnedIds.size})</span>
-                </button>
-                <button
-                  onClick={() => setChatFilter("archived")}
-                  className={`flex items-center justify-center gap-1.5 rounded-lg py-1.5 transition-all ${
-                    chatFilter === "archived"
-                      ? "bg-cyan-500 text-slate-950 font-bold shadow-sm"
-                      : "text-slate-400 hover:text-slate-200"
-                  }`}
-                >
-                  <Archive className="size-3" />
-                  <span>Archived</span>
-                </button>
-              </div>
-            </div>
-
             {/* Active Chats List */}
             <ScrollArea className="flex-1 px-3">
-              <div className="space-y-2 pb-4 pt-1">
+              <div className="space-y-1 pb-4 pt-1">
                 {filteredConversations.map((conversation) => {
                   const title = getConversationTitle(conversation, profile.id);
                   const peers = getConversationPeers(conversation, profile.id);
@@ -242,77 +235,75 @@ export function ConversationSidebar({
                       key={conversation.id}
                       href={`/chat/${conversation.id}`}
                       className={cn(
-                        "group relative flex items-center gap-3.5 rounded-2xl border border-slate-800/80 bg-slate-900/60 p-3.5 transition-all hover:bg-slate-800/80 hover:border-slate-700 shadow-sm",
-                        active && "border-cyan-500/60 bg-slate-800/90 shadow-md ring-1 ring-cyan-500/30"
+                        "group relative flex items-center gap-3.5 rounded-2xl p-3 transition-all hover:bg-muted/60",
+                        active && "bg-muted/80"
                       )}
                     >
-                      {/* Avatar + Online Indicator */}
+                      {/* Avatar + Notification Dot */}
                       <div className="relative shrink-0">
                         <ConversationAvatar conversation={conversation} userId={profile.id} />
+                        {/* Red notification dot for unread */}
+                        {conversation.unread_count > 0 && (
+                          <span className="absolute -left-0.5 top-1/2 -translate-y-1/2 size-2.5 rounded-full bg-rose-500 border-2 border-background" />
+                        )}
+                        {/* Online indicator */}
                         {isOnline && (
-                          <span className="absolute bottom-0 right-0 size-3 rounded-full border-2 border-slate-950 bg-emerald-500 shadow-sm" />
+                          <span className="absolute bottom-0 right-0 size-3 rounded-full border-2 border-background bg-emerald-500 shadow-sm" />
                         )}
                       </div>
 
                       {/* Content */}
                       <div className="min-w-0 flex-1">
-                        {/* Row 1: Title + Mute + Pin + Time */}
+                        {/* Row 1: Title + Pin + Relative Time */}
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                            <p className="truncate text-sm font-semibold text-slate-100">{title}</p>
-                            {isPinned && <Pin className="size-3 text-cyan-400 shrink-0 rotate-45" />}
+                            <p className="truncate text-sm font-semibold text-foreground">{title}</p>
+                            {isPinned && <Pin className="size-3 text-primary shrink-0 rotate-45" />}
                           </div>
-                          <time className="shrink-0 text-[11px] text-slate-400 font-medium">
+                          <time className="shrink-0 text-xs text-muted-foreground font-medium">
                             {formatConversationTime(lastMessage?.created_at || conversation.updated_at)}
                           </time>
                         </div>
 
-                        {/* Row 2: Message preview / Typing... + Read Checkmarks + Unread Count */}
-                        <div className="mt-1 flex items-center justify-between gap-2">
+                        {/* Row 2: Activity subtitle + read checkmarks */}
+                        <div className="mt-0.5 flex items-center justify-between gap-2">
                           <div className="flex items-center gap-1 min-w-0 flex-1">
                             {/* Read Status Checkmarks for Own Sent Messages */}
                             {ownLastMessage && (
                               <span className="shrink-0">
                                 {readBySomeoneElse ? (
-                                  <CheckCheck className="size-3.5 text-cyan-400" aria-label="Read" />
+                                  <CheckCheck className="size-3.5 text-primary" aria-label="Read" />
                                 ) : (
-                                  <Check className="size-3.5 text-slate-400" aria-label="Sent" />
+                                  <Check className="size-3.5 text-muted-foreground" aria-label="Sent" />
                                 )}
                               </span>
                             )}
 
                             <p
                               className={cn(
-                                "min-w-0 flex-1 truncate text-xs text-slate-400",
-                                conversation.unread_count > 0 && "font-semibold text-cyan-300"
+                                "min-w-0 flex-1 truncate text-xs text-muted-foreground",
+                                conversation.unread_count > 0 && "font-semibold text-foreground"
                               )}
                             >
                               {preview}
                             </p>
                           </div>
-
-                          {/* Unread Count Badge */}
-                          {conversation.unread_count > 0 && (
-                            <span className="grid min-w-5 place-items-center rounded-full bg-cyan-500 px-1.5 py-0.5 text-[10px] font-bold text-slate-950 shadow-md">
-                              {conversation.unread_count > 99 ? "99+" : conversation.unread_count}
-                            </span>
-                          )}
                         </div>
                       </div>
 
                       {/* Hover Actions: Pin & Archive */}
-                      <div className="absolute right-2 top-2 hidden group-hover:flex items-center gap-1 bg-slate-950/90 backdrop-blur-md rounded-full border border-slate-800 p-1 shadow-md">
+                      <div className="absolute right-2 top-2 hidden group-hover:flex items-center gap-1 bg-background/90 backdrop-blur-md rounded-full border p-1 shadow-md">
                         <button
                           onClick={(e) => togglePin(conversation.id, e)}
                           title={isPinned ? "Unpin chat" : "Pin chat"}
-                          className="p-1 hover:text-cyan-400 transition-colors text-slate-400"
+                          className="p-1 hover:text-primary transition-colors text-muted-foreground"
                         >
                           {isPinned ? <PinOff className="size-3" /> : <Pin className="size-3" />}
                         </button>
                         <button
                           onClick={(e) => toggleArchive(conversation.id, e)}
                           title={isArchived ? "Unarchive chat" : "Archive chat"}
-                          className="p-1 hover:text-cyan-400 transition-colors text-slate-400"
+                          className="p-1 hover:text-primary transition-colors text-muted-foreground"
                         >
                           {isArchived ? <ArchiveRestore className="size-3" /> : <Archive className="size-3" />}
                         </button>
@@ -323,14 +314,14 @@ export function ConversationSidebar({
 
                 {!filteredConversations.length && (
                   <div className="px-6 py-16 text-center">
-                    <MessageCircleMore className="mx-auto size-8 text-slate-600" />
-                    <p className="mt-4 text-sm font-medium text-slate-300">No {chatFilter} chats</p>
-                    <p className="mt-1 text-xs text-slate-500">
-                      {chatFilter === "pinned"
-                        ? "Hover on any chat to pin it."
-                        : chatFilter === "archived"
-                          ? "No archived conversations."
-                          : "Start a new chat using the 3-dots menu above."}
+                    <MessageCircleMore className="mx-auto size-8 text-muted-foreground/50" />
+                    <p className="mt-4 text-sm font-medium text-foreground">No {chatFilter === "all" ? "recent" : chatFilter} chats</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {chatFilter === "unread"
+                        ? "You're all caught up!"
+                        : chatFilter === "groups"
+                          ? "No group conversations yet."
+                          : "Start a new chat using the menu above."}
                     </p>
                   </div>
                 )}
@@ -352,54 +343,57 @@ export function ConversationSidebar({
         {activeTab === "settings" && <SettingsView profile={profile} />}
       </div>
 
-      {/* Floating Bottom Navigation Bar (Footer) */}
-      <div className="p-3 pt-1 shrink-0">
-        <nav className="rounded-3xl border border-cyan-500/20 bg-slate-900/90 backdrop-blur-xl grid grid-cols-4 gap-1 p-1.5 shadow-2xl">
+      {/* Bottom Navigation Bar */}
+      <div className="border-t shrink-0">
+        <nav className="grid grid-cols-4 py-1">
           <button
             onClick={() => setActiveTab("chats")}
-            className={`flex flex-col items-center justify-center gap-1 rounded-2xl py-2 transition-all ${
+            className={cn(
+              "flex flex-col items-center justify-center gap-1 py-2.5 transition-all text-xs",
               activeTab === "chats"
-                ? "bg-cyan-500 text-slate-950 font-bold shadow-md shadow-cyan-500/25"
-                : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
-            }`}
+                ? "text-primary font-semibold"
+                : "text-muted-foreground hover:text-foreground"
+            )}
           >
             <MessageCircleMore className="size-5" />
-            <span className="text-[10px]">Chats</span>
+            <span className="text-[10px]">Home</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setComingSoonFeature("Status Updates");
+              setComingSoonOpen(true);
+            }}
+            className="flex flex-col items-center justify-center gap-1 py-2.5 text-muted-foreground hover:text-foreground transition-all"
+          >
+            <UsersRound className="size-5" />
+            <span className="text-[10px]">Status</span>
           </button>
 
           <button
             onClick={() => setActiveTab("contacts")}
-            className={`flex flex-col items-center justify-center gap-1 rounded-2xl py-2 transition-all ${
+            className={cn(
+              "flex flex-col items-center justify-center gap-1 py-2.5 transition-all text-xs",
               activeTab === "contacts"
-                ? "bg-cyan-500 text-slate-950 font-bold shadow-md shadow-cyan-500/25"
-                : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
-            }`}
+                ? "text-primary font-semibold"
+                : "text-muted-foreground hover:text-foreground"
+            )}
           >
             <Users className="size-5" />
             <span className="text-[10px]">Contacts</span>
           </button>
 
           <button
-            onClick={() => {
-              setComingSoonFeature("Aether Communities & Public Channels");
-              setComingSoonOpen(true);
-            }}
-            className="flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-all"
-          >
-            <UsersRound className="size-5" />
-            <span className="text-[10px]">Communities</span>
-          </button>
-
-          <button
             onClick={() => setActiveTab("settings")}
-            className={`flex flex-col items-center justify-center gap-1 rounded-2xl py-2 transition-all ${
+            className={cn(
+              "flex flex-col items-center justify-center gap-1 py-2.5 transition-all text-xs",
               activeTab === "settings"
-                ? "bg-cyan-500 text-slate-950 font-bold shadow-md shadow-cyan-500/25"
-                : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
-            }`}
+                ? "text-primary font-semibold"
+                : "text-muted-foreground hover:text-foreground"
+            )}
           >
             <Settings className="size-5" />
-            <span className="text-[10px]">Settings</span>
+            <span className="text-[10px]">Account</span>
           </button>
         </nav>
       </div>

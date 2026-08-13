@@ -85,8 +85,9 @@ export function AuthForm({ mode }: AuthFormProps) {
   }
 
   return (
-    <div className="w-full max-w-md">
-      <div className="mb-8 flex items-center justify-between lg:hidden">
+    <div className="w-full max-w-sm">
+      {/* Mobile-only logo */}
+      <div className="mb-8 flex items-center justify-center lg:hidden">
         <div className="flex items-center gap-3">
           <span className="grid size-10 place-items-center rounded-2xl bg-primary text-primary-foreground">
             <MessageCircleMore className="size-5" />
@@ -95,8 +96,8 @@ export function AuthForm({ mode }: AuthFormProps) {
         </div>
       </div>
 
-      <div className="relative rounded-3xl border bg-card p-6 shadow-2xl shadow-black/5 sm:p-8">
-        {/* Top Right Admin Login Button */}
+      <div className="relative rounded-3xl border bg-card p-8 shadow-2xl shadow-black/5 sm:p-10">
+        {/* Admin Login - top right corner */}
         <div className="absolute right-6 top-6 sm:right-8 sm:top-8">
           <Dialog open={adminOpen} onOpenChange={setAdminOpen}>
             <DialogTrigger asChild>
@@ -106,7 +107,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                 className="h-8 gap-1.5 px-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted"
               >
                 <Lock className="size-3.5" />
-                <span>Admin Login</span>
+                <span>Admin</span>
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
@@ -150,27 +151,65 @@ export function AuthForm({ mode }: AuthFormProps) {
           </Dialog>
         </div>
 
-        <div className="mb-8 text-center sm:text-left pr-24 sm:pr-28">
-          <p className="text-sm font-medium text-primary">{isLogin ? "Welcome back" : "Create your space"}</p>
-          <h2 className="mt-2 text-3xl font-semibold tracking-tight">
-            {isLogin ? "Sign in to Aether Chat" : "Join Aether Chat"}
-          </h2>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            {isLogin
-              ? "Pick up your conversations instantly with one click."
-              : "Start direct messages and group conversations in seconds."}
-          </p>
+        {/* App Name / Heading */}
+        <div className="mb-8 text-center">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            Aether Chat
+          </h1>
+          <div className="mt-4">
+            <h2 className="text-lg font-semibold text-foreground">
+              {isLogin ? "Welcome back" : "Create an account"}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {isLogin
+                ? "Sign in to continue your conversations"
+                : "Enter your email to sign up for this app"}
+            </p>
+          </div>
         </div>
 
-        {/* 1-Click Social Sign-In Buttons */}
+        {/* Email Input (visual placeholder — actual sign-in uses OAuth) */}
         <div className="space-y-3">
+          <Input
+            type="email"
+            placeholder="email@domain.com"
+            className="h-12 rounded-xl border-border bg-background px-4 text-sm"
+            disabled
+          />
+
+          {/* Continue Button (primary, solid) */}
+          <Button
+            type="button"
+            size="lg"
+            disabled={loading !== false}
+            onClick={() => void handleSocialAuth("google")}
+            className="w-full h-12 rounded-xl bg-foreground text-background font-semibold text-sm hover:bg-foreground/90 dark:bg-foreground dark:text-background dark:hover:bg-foreground/90"
+          >
+            {loading === "google" ? (
+              <Loader2 className="size-5 animate-spin" />
+            ) : (
+              "Continue"
+            )}
+          </Button>
+        </div>
+
+        {/* Divider: ── or ── */}
+        <div className="my-6 flex items-center gap-3">
+          <div className="h-px flex-1 bg-border" />
+          <span className="text-xs font-medium text-muted-foreground">or</span>
+          <div className="h-px flex-1 bg-border" />
+        </div>
+
+        {/* Social Sign-In Buttons */}
+        <div className="space-y-3">
+          {/* Continue with Google */}
           <Button
             type="button"
             variant="outline"
             size="lg"
             disabled={loading !== false}
             onClick={() => void handleSocialAuth("google")}
-            className="w-full flex items-center justify-center gap-3 h-12 text-sm font-medium border-muted-foreground/20 hover:bg-accent"
+            className="w-full flex items-center justify-center gap-3 h-12 rounded-xl text-sm font-medium border-border hover:bg-accent"
           >
             {loading === "google" ? (
               <Loader2 className="size-5 animate-spin" />
@@ -197,13 +236,14 @@ export function AuthForm({ mode }: AuthFormProps) {
             <span>Continue with Google</span>
           </Button>
 
+          {/* Continue with GitHub (styled like Apple in the Figma) */}
           <Button
             type="button"
             variant="outline"
             size="lg"
             disabled={loading !== false}
             onClick={() => void handleSocialAuth("github")}
-            className="w-full flex items-center justify-center gap-3 h-12 text-sm font-medium border-muted-foreground/20 hover:bg-accent"
+            className="w-full flex items-center justify-center gap-3 h-12 rounded-xl text-sm font-medium border-border hover:bg-accent"
           >
             {loading === "github" ? (
               <Loader2 className="size-5 animate-spin" />
@@ -216,8 +256,9 @@ export function AuthForm({ mode }: AuthFormProps) {
           </Button>
         </div>
 
-        <p className="mt-8 text-center text-xs text-muted-foreground leading-relaxed">
-          By continuing, you agree to ChatSphere&apos;s{" "}
+        {/* Terms / Privacy */}
+        <p className="mt-8 text-center text-[11px] text-muted-foreground leading-relaxed">
+          By clicking continue, you agree to our{" "}
           <a href="/terms" className="underline hover:text-foreground">
             Terms of Service
           </a>{" "}

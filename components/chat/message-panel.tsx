@@ -20,7 +20,6 @@ import {
   MoreVertical,
   Phone,
   Search,
-  Sparkles,
   Trash2,
   User,
   UsersRound,
@@ -334,7 +333,7 @@ export function MessagePanel({
   return (
     <section className="flex h-svh min-h-0 flex-col bg-background">
       {/* HEADER COMPONENT INLINED */}
-      <header className="flex h-16 shrink-0 items-center justify-between border-b bg-background/90 px-3 backdrop-blur-xl sm:px-5">
+      <header className="flex h-16 shrink-0 items-center justify-between border-b bg-background px-3 sm:px-5">
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <Button asChild variant="ghost" size="icon-sm" className="md:hidden">
             <Link href="/chat" aria-label="Back to conversations">
@@ -354,52 +353,28 @@ export function MessagePanel({
                   <MessageCircleMore className="size-5" />
                 </div>
               )}
-              {conversation?.type === "direct" && (
-                <span
-                  className={cn(
-                    "absolute bottom-0 right-0 size-3 rounded-full border-2 border-background shadow-sm",
-                    isPeerOnline ? "bg-emerald-500" : "bg-slate-400"
-                  )}
-                />
+              {conversation?.type === "direct" && isPeerOnline && (
+                <span className="absolute bottom-0 right-0 size-3 rounded-full border-2 border-background bg-emerald-500 shadow-sm" />
               )}
             </div>
 
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <h1 className="truncate text-base font-semibold">{title}</h1>
-                {isMuted && <BellOff className="size-3.5 text-muted-foreground shrink-0" />}
-              </div>
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <span
-                  className={cn(
-                    "size-2 rounded-full shrink-0",
-                    isPeerOnline ? "bg-emerald-500 animate-pulse" : "bg-slate-400"
-                  )}
-                />
-                <span className="truncate">{typingLabel || statusText}</span>
-              </div>
+              <h1 className="truncate text-base font-semibold">{title}</h1>
+              <p className="text-xs text-muted-foreground truncate">
+                {typingLabel || statusText}
+              </p>
             </div>
           </button>
         </div>
 
         <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={() => { setComingSoonFeature("Aether AI Assistant"); setComingSoonOpen(true); }}
-            aria-label="AI Assistant"
-            className="rounded-full text-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-300"
-            title="Aether AI Assistant"
-          >
-            <Sparkles className="size-4" />
-          </Button>
 
           <Button
             variant="ghost"
             size="icon-sm"
             onClick={() => { setComingSoonFeature("Voice Calls"); setComingSoonOpen(true); }}
             aria-label="Audio Call"
-            className="rounded-full text-slate-300 hover:bg-slate-800"
+            className="rounded-full text-foreground hover:bg-muted"
             title="Start Voice Call"
           >
             <Phone className="size-4" />
@@ -410,7 +385,7 @@ export function MessagePanel({
             size="icon-sm"
             onClick={() => { setComingSoonFeature("Video Calls & Screen Sharing"); setComingSoonOpen(true); }}
             aria-label="Video Call"
-            className="rounded-full text-slate-300 hover:bg-slate-800"
+            className="rounded-full text-foreground hover:bg-muted"
             title="Start Video Call"
           >
             <Video className="size-4" />
@@ -441,12 +416,12 @@ export function MessagePanel({
                 <MoreVertical className="size-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" side="bottom" className="w-56 bg-slate-900 border-slate-800 text-slate-100 p-1 rounded-2xl shadow-xl">
+            <DropdownMenuContent align="end" side="bottom" className="w-56 p-1 rounded-2xl shadow-xl">
               <DropdownMenuItem
                 onClick={() => setUserProfileSheetOpen(true)}
                 className="flex items-center gap-2 text-xs rounded-xl cursor-pointer"
               >
-                <User className="size-4 text-cyan-400" />
+                <User className="size-4 text-primary" />
                 <span>View Contact Profile</span>
               </DropdownMenuItem>
 
@@ -454,7 +429,7 @@ export function MessagePanel({
                 onClick={() => setIsSearching(true)}
                 className="flex items-center gap-2 text-xs rounded-xl cursor-pointer"
               >
-                <Search className="size-4 text-cyan-400" />
+                <Search className="size-4 text-primary" />
                 <span>Search in Chat</span>
               </DropdownMenuItem>
 
@@ -465,7 +440,7 @@ export function MessagePanel({
                 }}
                 className="flex items-center gap-2 text-xs rounded-xl cursor-pointer"
               >
-                {isMuted ? <Bell className="size-4 text-emerald-400" /> : <BellOff className="size-4 text-amber-400" />}
+                {isMuted ? <Bell className="size-4 text-emerald-500" /> : <BellOff className="size-4 text-amber-500" />}
                 <span>{isMuted ? "Unmute Notifications" : "Mute Notifications"}</span>
               </DropdownMenuItem>
 
@@ -473,18 +448,18 @@ export function MessagePanel({
                 onClick={exportChatHistory}
                 className="flex items-center gap-2 text-xs rounded-xl cursor-pointer"
               >
-                <Download className="size-4 text-cyan-400" />
+                <Download className="size-4 text-primary" />
                 <span>Export Chat Transcript</span>
               </DropdownMenuItem>
 
-              <DropdownMenuSeparator className="bg-slate-800 my-1" />
+              <DropdownMenuSeparator className="my-1" />
 
               <DropdownMenuItem
                 onClick={() => {
                   setMessages([]);
                   toast.success("Chat history cleared");
                 }}
-                className="flex items-center gap-2 text-xs text-rose-400 hover:text-rose-300 rounded-xl cursor-pointer"
+                className="flex items-center gap-2 text-xs text-destructive rounded-xl cursor-pointer"
               >
                 <Trash2 className="size-4" />
                 <span>Clear Chat History</span>
@@ -496,17 +471,17 @@ export function MessagePanel({
 
       {/* SEARCH COMPONENT INLINED */}
       {isSearching && (
-        <div className="flex items-center gap-2 border-b bg-slate-900/90 px-4 py-2 text-xs">
-          <Search className="size-4 text-cyan-400 shrink-0" />
+        <div className="flex items-center gap-2 border-b bg-muted/50 px-4 py-2 text-xs">
+          <Search className="size-4 text-primary shrink-0" />
           <Input
             value={inChatQuery}
             onChange={(e) => setInChatQuery(e.target.value)}
             placeholder="Search messages in this chat..."
-            className="h-8 border-slate-800 bg-slate-950 text-slate-100 text-xs rounded-xl focus-visible:ring-cyan-500/50"
+            className="h-8 text-xs rounded-xl focus-visible:ring-primary/50"
             autoFocus
           />
           {inChatQuery && (
-            <span className="text-[11px] text-slate-400 shrink-0">
+            <span className="text-[11px] text-muted-foreground shrink-0">
               {displayMessages.length} match{displayMessages.length !== 1 ? "es" : ""}
             </span>
           )}
@@ -517,7 +492,7 @@ export function MessagePanel({
               setIsSearching(false);
               setInChatQuery("");
             }}
-            className="size-7 rounded-full text-slate-400 hover:text-white"
+            className="size-7 rounded-full text-muted-foreground hover:text-foreground"
             aria-label="Close search"
           >
             <X className="size-4" />
@@ -552,12 +527,10 @@ export function MessagePanel({
                 return (
                   <div key={message.id}>
                     {showDateSeparator && (
-                      <div className="my-6 flex items-center justify-center gap-3">
-                        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-800 to-transparent" />
-                        <span className="rounded-full border border-slate-800/80 bg-slate-900/90 px-3.5 py-1 text-[11px] font-semibold text-slate-400 shadow-sm backdrop-blur-md">
+                      <div className="my-6 flex items-center justify-center">
+                        <span className="rounded-full bg-muted px-3.5 py-1 text-[11px] font-medium text-muted-foreground">
                           {currentDateLabel}
                         </span>
-                        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-800 to-transparent" />
                       </div>
                     )}
 
@@ -576,12 +549,12 @@ export function MessagePanel({
 
               {typingLabel && (
                 <div className="flex items-end gap-2.5 my-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  <div className="flex items-center gap-3 rounded-3xl rounded-bl-[6px] border border-slate-800/80 bg-slate-900/90 px-4.5 py-3 shadow-lg shadow-black/20 backdrop-blur-md">
-                    <span className="text-xs font-medium text-slate-300">{typingLabel}</span>
+                  <div className="flex items-center gap-3 rounded-2xl rounded-bl-sm bg-muted px-4 py-2.5 shadow-sm">
+                    <span className="text-xs font-medium text-muted-foreground">{typingLabel}</span>
                     <div className="flex items-center gap-1.5 px-0.5">
-                      <span className="size-2 rounded-full bg-cyan-400 animate-bounce" />
-                      <span className="size-2 rounded-full bg-cyan-400 animate-bounce [animation-delay:0.2s]" />
-                      <span className="size-2 rounded-full bg-cyan-400 animate-bounce [animation-delay:0.4s]" />
+                      <span className="size-2 rounded-full bg-foreground/40 animate-bounce" />
+                      <span className="size-2 rounded-full bg-foreground/40 animate-bounce [animation-delay:0.2s]" />
+                      <span className="size-2 rounded-full bg-foreground/40 animate-bounce [animation-delay:0.4s]" />
                     </div>
                   </div>
                 </div>
@@ -589,13 +562,13 @@ export function MessagePanel({
             </div>
           ) : (
             <div className="text-center py-12 animate-in fade-in zoom-in duration-300">
-              <div className="mx-auto grid size-20 place-items-center rounded-3xl border border-slate-800 bg-slate-900/90 text-cyan-400 shadow-xl shadow-cyan-500/10 backdrop-blur-md">
+              <div className="mx-auto grid size-20 place-items-center rounded-3xl border bg-muted text-muted-foreground shadow-sm">
                 <MessageCircleMore className="size-9" />
               </div>
-              <h2 className="mt-5 text-xl font-bold text-slate-100">
+              <h2 className="mt-5 text-xl font-bold text-foreground">
                 {inChatQuery ? "No matching messages" : "Start the conversation"}
               </h2>
-              <p className="mt-2 text-sm text-slate-400 max-w-sm mx-auto leading-relaxed">
+              <p className="mt-2 text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
                 {inChatQuery
                   ? `No messages match "${inChatQuery}". Try searching for another keyword.`
                   : `Say hello or share a file to kick off your chat with ${title}! 👋`}

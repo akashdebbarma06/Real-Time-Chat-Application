@@ -123,18 +123,18 @@ export function MessageComposer({
   }
 
   return (
-    <div className="border-t bg-background/90 p-3 backdrop-blur-xl sm:p-4 space-y-3">
+    <div className="border-t bg-background p-3 sm:p-4 space-y-3">
       {/* 1. Reply Banner Preview */}
       {replyToMessage && (
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-2.5 text-xs">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 p-2.5 text-xs">
           <div className="flex items-center gap-2 min-w-0">
-            <CornerUpLeft className="size-4 text-cyan-400 shrink-0" />
+            <CornerUpLeft className="size-4 text-primary shrink-0" />
             <div className="min-w-0">
-              <span className="font-semibold text-cyan-400">Replying to {replyToMessage.sender.display_name}</span>
-              <p className="truncate text-slate-300">{replyToMessage.content || "Attachment"}</p>
+              <span className="font-semibold text-primary">Replying to {replyToMessage.sender.display_name}</span>
+              <p className="truncate text-muted-foreground">{replyToMessage.content || "Attachment"}</p>
             </div>
           </div>
-          <Button size="icon-sm" variant="ghost" onClick={onCancelReply} className="size-6 text-slate-400 hover:text-white">
+          <Button size="icon-sm" variant="ghost" onClick={onCancelReply} className="size-6 text-muted-foreground hover:text-foreground">
             <X className="size-3.5" />
           </Button>
         </div>
@@ -142,108 +142,32 @@ export function MessageComposer({
 
       {/* 2. File Attachment Preview Card */}
       {selectedFile && (
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-900 p-2.5 shadow-lg">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 rounded-2xl border bg-muted/50 p-2.5 shadow-sm">
           <div className="flex items-center gap-3 min-w-0">
             {previewUrl ? (
-              <div className="relative size-12 overflow-hidden rounded-xl border border-slate-700 shrink-0">
+              <div className="relative size-12 overflow-hidden rounded-xl border shrink-0">
                 <Image src={previewUrl} alt="Preview" fill unoptimized className="object-cover" />
               </div>
             ) : (
-              <div className="grid size-12 place-items-center rounded-xl bg-cyan-500/10 text-cyan-400 shrink-0">
+              <div className="grid size-12 place-items-center rounded-xl bg-primary/10 text-primary shrink-0">
                 <FileIcon className="size-6" />
               </div>
             )}
             <div className="min-w-0">
-              <p className="truncate text-xs font-semibold text-slate-100">{selectedFile.name}</p>
-              <p className="text-[10px] text-slate-400">{formatFileSize(selectedFile.size)}</p>
+              <p className="truncate text-xs font-semibold text-foreground">{selectedFile.name}</p>
+              <p className="text-[10px] text-muted-foreground">{formatFileSize(selectedFile.size)}</p>
             </div>
           </div>
-          <Button size="icon-sm" variant="ghost" onClick={clearSelectedFile} className="text-slate-400 hover:text-rose-400">
+          <Button size="icon-sm" variant="ghost" onClick={clearSelectedFile} className="text-muted-foreground hover:text-destructive">
             <X className="size-4" />
           </Button>
         </div>
       )}
 
-      {/* 3. Improved Input Container */}
-      <div className="mx-auto max-w-6xl rounded-3xl border border-slate-800 bg-slate-900/90 p-3 shadow-xl backdrop-blur-md space-y-2">
-        {/* Top Action Bar: 😊 Emoji, 📎 File Upload, 🖼️ Image Upload */}
-        <div className="flex items-center gap-1 border-b border-slate-800/60 pb-2">
-          {/* 😊 Emoji Picker */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                className="rounded-full text-slate-400 hover:text-cyan-400 hover:bg-slate-800"
-                aria-label="Emoji picker"
-              >
-                <Smile className="size-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" side="top" className="p-2 bg-slate-900 border-slate-800 rounded-2xl shadow-2xl grid grid-cols-7 gap-1">
-              {QUICK_EMOJIS.map((emoji) => (
-                <button
-                  key={emoji}
-                  type="button"
-                  onClick={() => insertEmoji(emoji)}
-                  className="grid size-8 place-items-center rounded-xl text-lg hover:bg-slate-800 hover:scale-125 transition-transform"
-                >
-                  {emoji}
-                </button>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {/* 📎 File Upload */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            className="hidden"
-            onChange={(e) => void handleFileSelect(e.target.files?.[0])}
-          />
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            disabled={disabled || sending}
-            onClick={() => fileInputRef.current?.click()}
-            className="rounded-full text-slate-400 hover:text-cyan-400 hover:bg-slate-800"
-            aria-label="Attach file"
-          >
-            <Paperclip className="size-4" />
-          </Button>
-
-          {/* 🖼️ Image Upload */}
-          <input
-            ref={imageInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => void handleFileSelect(e.target.files?.[0])}
-          />
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            disabled={disabled || sending}
-            onClick={() => imageInputRef.current?.click()}
-            className="rounded-full text-slate-400 hover:text-cyan-400 hover:bg-slate-800"
-            aria-label="Attach image"
-          >
-            <ImageIcon className="size-4" />
-          </Button>
-
-          {isRecordingVoice && (
-            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/20 text-rose-400 text-xs font-semibold animate-pulse">
-              <span className="size-2 rounded-full bg-rose-500" />
-              <span>Recording Voice Note...</span>
-            </div>
-          )}
-        </div>
-
-        {/* Auto-expanding Input Area + Voice (🎤) & Send (➤) Buttons */}
-        <div className="flex items-end gap-2 pt-1">
+      {/* 3. Capsule Input Container (Figma pill style) */}
+      <div className="mx-auto max-w-6xl flex items-end gap-2">
+        {/* Input Capsule */}
+        <div className="flex-1 flex items-end rounded-full border bg-muted/30 px-4 py-1.5 shadow-sm">
           <Textarea
             ref={textareaRef}
             value={content}
@@ -259,38 +183,100 @@ export function MessageComposer({
               }
             }}
             rows={1}
-            placeholder={selectedFile ? "Add a caption…" : "Write a message…"}
-            className="max-h-40 min-h-11 flex-1 resize-none border-0 bg-transparent px-2 py-2.5 text-sm shadow-none focus-visible:ring-0 placeholder:text-slate-500"
+            placeholder={selectedFile ? "Add a caption…" : "Message..."}
+            className="max-h-32 min-h-9 flex-1 resize-none border-0 bg-transparent px-1 py-2 text-sm shadow-none focus-visible:ring-0 placeholder:text-muted-foreground"
           />
 
-          <div className="flex items-center gap-1.5 shrink-0">
-            {/* 🎤 Voice Message Button */}
-            <Button
+          {/* Right-side action icons inside the capsule */}
+          <div className="flex items-center gap-0.5 shrink-0 pb-1.5">
+            {/* Mic */}
+            <button
               type="button"
-              variant={isRecordingVoice ? "destructive" : "ghost"}
-              size="icon"
               disabled={disabled || sending}
               onClick={toggleVoiceRecording}
-              className={cn("rounded-full transition-all", !isRecordingVoice && "text-slate-400 hover:text-cyan-400 hover:bg-slate-800")}
+              className={cn(
+                "grid size-8 place-items-center rounded-full transition-all text-muted-foreground hover:text-foreground hover:bg-muted",
+                isRecordingVoice && "text-destructive"
+              )}
               aria-label="Voice message"
             >
-              {isRecordingVoice ? <MicOff className="size-5" /> : <Mic className="size-5" />}
-            </Button>
+              {isRecordingVoice ? <MicOff className="size-[18px]" /> : <Mic className="size-[18px]" />}
+            </button>
 
-            {/* ➤ Send Button */}
-            <Button
+            {/* Emoji Picker */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="grid size-8 place-items-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+                  aria-label="Emoji picker"
+                >
+                  <Smile className="size-[18px]" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" side="top" className="p-2 rounded-2xl shadow-2xl grid grid-cols-7 gap-1">
+                {QUICK_EMOJIS.map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={() => insertEmoji(emoji)}
+                    className="grid size-8 place-items-center rounded-xl text-lg hover:bg-muted hover:scale-125 transition-transform"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Image Attach */}
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => void handleFileSelect(e.target.files?.[0])}
+            />
+            <button
               type="button"
-              size="icon"
-              disabled={disabled || sending || (!content.trim() && !selectedFile)}
-              onClick={() => void submit()}
-              aria-label="Send message"
-              className="size-10 rounded-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold shadow-md shadow-cyan-500/20"
+              disabled={disabled || sending}
+              onClick={() => imageInputRef.current?.click()}
+              className="grid size-8 place-items-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+              aria-label="Attach image"
             >
-              {sending ? <Loader2 className="size-5 animate-spin" /> : <SendHorizontal className="size-5" />}
-            </Button>
+              <ImageIcon className="size-[18px]" />
+            </button>
           </div>
         </div>
+
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          onChange={(e) => void handleFileSelect(e.target.files?.[0])}
+        />
+
+        {/* Send Button (circle) */}
+        {(content.trim() || selectedFile) && (
+          <Button
+            type="button"
+            size="icon"
+            disabled={disabled || sending || (!content.trim() && !selectedFile)}
+            onClick={() => void submit()}
+            aria-label="Send message"
+            className="size-10 shrink-0 rounded-full bg-foreground hover:bg-foreground/90 text-background font-bold shadow-sm"
+          >
+            {sending ? <Loader2 className="size-5 animate-spin" /> : <SendHorizontal className="size-5" />}
+          </Button>
+        )}
       </div>
+
+      {isRecordingVoice && (
+        <div className="mx-auto max-w-6xl flex items-center gap-2 px-4 py-1 rounded-full bg-destructive/10 text-destructive text-xs font-semibold animate-pulse">
+          <span className="size-2 rounded-full bg-destructive" />
+          <span>Recording Voice Note...</span>
+        </div>
+      )}
 
       <ComingSoonDialog
         open={comingSoonOpen}
