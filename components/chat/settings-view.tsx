@@ -80,7 +80,7 @@ export function SettingsView({ profile }: SettingsViewProps) {
     { id: "notifications", icon: Bell, title: "Notifications", desc: "Alerts, tone & vibration" },
     { id: "language", icon: Globe, title: "Language", desc: selectedLanguage },
     { id: "help", icon: HelpCircle, title: "Help & Feedback", desc: "Help centre, contact us & policies" },
-    { id: "invite", icon: Share2, title: "Invite a Friend", desc: "Share ChatSphere with friends" },
+    { id: "invite", icon: Share2, title: "Invite a Friend", desc: "Share Aether Chat with friends" },
   ];
 
   function VisibilitySelector({
@@ -224,7 +224,7 @@ export function SettingsView({ profile }: SettingsViewProps) {
                           <div className="flex-1 min-w-0">
                             <p className="text-xs text-slate-400">Email Address</p>
                             <p className="text-sm font-medium truncate mt-0.5">
-                              {profile.username}@chatsphere.app
+                              {profile.username}@aetherchat.app
                             </p>
                           </div>
                         </div>

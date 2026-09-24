@@ -221,7 +221,7 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
 ### 3. Initialize Database Schema & RLS Policies
 
-Copy the contents of [`supabase/migrations/001_chatsphere.sql`](supabase/migrations/001_chatsphere.sql) and execute it inside the **Supabase SQL Editor** (or deploy via Supabase CLI `supabase db push`).
+Copy the contents of [`supabase/migrations/001_aether_chat.sql`](supabase/migrations/001_aether_chat.sql) and execute it inside the **Supabase SQL Editor** (or deploy via Supabase CLI `supabase db push`).
 
 ### 4. Run Development Server
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 /**
- * Mock implementation verifying the logic behind Supabase RLS policies in 001_chatsphere.sql:
+ * Mock implementation verifying the logic behind Supabase RLS policies in 001_aether_chat.sql:
  * - is_conversation_member(p_conversation_id, p_user_id)
  * - direct_key format least(u1, u2) || ':' || greatest(u1, u2)
  */

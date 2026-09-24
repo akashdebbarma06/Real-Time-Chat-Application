@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Terms of Service",
-  description: "Terms of Service governing the use of ChatSphere application and services.",
+  description: "Terms of Service governing the use of Aether Chat application and services.",
 };
 
 export default function TermsPage() {
@@ -15,14 +15,14 @@ export default function TermsPage() {
         <section className="space-y-3">
           <h2 className="text-xl font-semibold">1. Acceptance of Terms</h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            By creating an account or using ChatSphere, you agree to be bound by these Terms of Service. If you do not agree to these terms, you may not access or use the application.
+            By creating an account or using Aether Chat, you agree to be bound by these Terms of Service. If you do not agree to these terms, you may not access or use the application.
           </p>
         </section>
 
         <section className="space-y-3">
           <h2 className="text-xl font-semibold">2. User Conduct & Acceptable Use</h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            You agree to use ChatSphere responsibly and legally. You may not:
+            You agree to use Aether Chat responsibly and legally. You may not:
           </p>
           <ul className="list-disc pl-6 text-sm text-muted-foreground space-y-1">
             <li>Send spam, abusive, harassing, or illegal content.</li>
@@ -42,7 +42,7 @@ export default function TermsPage() {
         <section className="space-y-3">
           <h2 className="text-xl font-semibold">4. Service Availability & Modifications</h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            We reserve the right to modify, suspend, or discontinue any feature of ChatSphere at any time without prior notice. We are not liable for any service interruptions or loss of data.
+            We reserve the right to modify, suspend, or discontinue any feature of Aether Chat at any time without prior notice. We are not liable for any service interruptions or loss of data.
           </p>
         </section>
 

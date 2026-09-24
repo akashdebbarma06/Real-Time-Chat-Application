@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
-  description: "Privacy Policy for ChatSphere application and services.",
+  description: "Privacy Policy for Aether Chat application and services.",
 };
 
 export default function PrivacyPage() {
@@ -15,7 +15,7 @@ export default function PrivacyPage() {
         <section className="space-y-3">
           <h2 className="text-xl font-semibold">1. Information We Collect</h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            ChatSphere collects minimal personal information necessary to provide real-time messaging services:
+            Aether Chat collects minimal personal information necessary to provide real-time messaging services:
           </p>
           <ul className="list-disc pl-6 text-sm text-muted-foreground space-y-1">
             <li><strong>Account Information:</strong> Email address, username, display name, and avatar image.</li>
@@ -27,7 +27,7 @@ export default function PrivacyPage() {
         <section className="space-y-3">
           <h2 className="text-xl font-semibold">2. How We Use Your Information</h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            We use collected data solely for operating and improving ChatSphere:
+            We use collected data solely for operating and improving Aether Chat:
           </p>
           <ul className="list-disc pl-6 text-sm text-muted-foreground space-y-1">
             <li>To authenticate users and secure account access.</li>
@@ -53,14 +53,14 @@ export default function PrivacyPage() {
         <section className="space-y-3">
           <h2 className="text-xl font-semibold">5. User Rights & Account Deletion</h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            You have full control over your data. You may edit your profile information at any time. To request complete account and data deletion, please contact us at <strong>support@chatsphere.app</strong>.
+            You have full control over your data. You may edit your profile information at any time. To request complete account and data deletion, please contact us at <strong>support@aetherchat.app</strong>.
           </p>
         </section>
 
         <section className="space-y-3">
           <h2 className="text-xl font-semibold">6. Changes to This Policy</h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            We may update this Privacy Policy periodically. Continued use of ChatSphere following any changes constitutes your acceptance of the updated policy.
+            We may update this Privacy Policy periodically. Continued use of Aether Chat following any changes constitutes your acceptance of the updated policy.
           </p>
         </section>
       </div>

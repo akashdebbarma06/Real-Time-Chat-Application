@@ -1,4 +1,4 @@
--- ChatSphere database, RLS, Realtime authorization, and Storage policies.
+-- Aether Chat database, RLS, Realtime authorization, and Storage policies.
 -- Run with `supabase db push` or paste into the Supabase SQL editor.
 
 create extension if not exists citext with schema extensions;
@@ -120,7 +120,7 @@ begin
   values (
     new.id,
     safe_username,
-    coalesce(nullif(new.raw_user_meta_data ->> 'display_name', ''), split_part(coalesce(new.email, 'ChatSphere user'), '@', 1))
+    coalesce(nullif(new.raw_user_meta_data ->> 'display_name', ''), split_part(coalesce(new.email, 'Aether Chat user'), '@', 1))
   );
   return new;
 end;

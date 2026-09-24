@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Cookie Policy",
-  description: "Cookie Policy detailing the use of cookies and local storage in ChatSphere.",
+  description: "Cookie Policy detailing the use of cookies and local storage in Aether Chat.",
 };
 
 export default function CookiesPage() {
@@ -22,7 +22,7 @@ export default function CookiesPage() {
         <section className="space-y-3">
           <h2 className="text-xl font-semibold">2. Essential Cookies Used</h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            ChatSphere uses strictly essential cookies and local storage tokens for core functionality:
+            Aether Chat uses strictly essential cookies and local storage tokens for core functionality:
           </p>
           <ul className="list-disc pl-6 text-sm text-muted-foreground space-y-1">
             <li><strong>Authentication Sessions:</strong> Supabase authentication JWT tokens to keep you logged in securely.</li>
@@ -33,14 +33,14 @@ export default function CookiesPage() {
         <section className="space-y-3">
           <h2 className="text-xl font-semibold">3. Analytics & Third-Party Cookies</h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            ChatSphere does <strong>not</strong> use third-party advertising, tracking, or cross-site profiling cookies. Minimal telemetry collected by hosting infrastructure (such as Vercel or Next.js) is anonymous and used solely for operational performance monitoring.
+            Aether Chat does <strong>not</strong> use third-party advertising, tracking, or cross-site profiling cookies. Minimal telemetry collected by hosting infrastructure (such as Vercel or Next.js) is anonymous and used solely for operational performance monitoring.
           </p>
         </section>
 
         <section className="space-y-3">
           <h2 className="text-xl font-semibold">4. Managing Cookies</h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            You can clear or block cookies in your browser settings. However, disabling essential authentication cookies will prevent you from signing in to ChatSphere.
+            You can clear or block cookies in your browser settings. However, disabling essential authentication cookies will prevent you from signing in to Aether Chat.
           </p>
         </section>
       </div>
