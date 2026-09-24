@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { MessageCircleMore, ShieldCheck, Zap, Users, Lock, Radio } from "lucide-react";
+import { MessageCircleMore, ShieldCheck, Zap, Users, Lock, Radio, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
@@ -22,9 +22,14 @@ export default function AboutPage() {
         <p className="mt-4 text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed">
           Aether Chat is designed from the ground up for seamless, secure, and instant communication across web and mobile platforms.
         </p>
-        <div className="mt-8 flex justify-center gap-4">
+        <div className="mt-8 flex flex-wrap justify-center gap-4">
           <Button asChild size="lg" className="rounded-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold shadow-lg shadow-cyan-500/20">
             <Link href="/signup">Get Started Free</Link>
+          </Button>
+          <Button asChild variant="outline" size="lg" className="rounded-full border-cyan-500/30 bg-slate-900 text-cyan-300 hover:bg-slate-800">
+            <a href="/downloads/AetherChat.apk" download="AetherChat.apk" className="flex items-center gap-2">
+              <Download className="size-4" /> Download APK
+            </a>
           </Button>
           <Button asChild variant="outline" size="lg" className="rounded-full border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800">
             <Link href="/contact">Get in Touch</Link>
@@ -75,6 +80,15 @@ export default function AboutPage() {
           <p className="mt-2 text-sm text-slate-400 leading-relaxed">
             Available on Web, Progressive Web App (PWA), and native Android APK with synchronized notifications.
           </p>
+          <div className="mt-4">
+            <a
+              href="/downloads/AetherChat.apk"
+              download="AetherChat.apk"
+              className="inline-flex items-center gap-2 text-xs font-semibold text-cyan-400 hover:text-cyan-300 transition"
+            >
+              <Download className="size-3.5" /> Download Android APK &rarr;
+            </a>
+          </div>
         </div>
       </div>
     </div>

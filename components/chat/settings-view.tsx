@@ -6,6 +6,7 @@ import {
   Bell,
   Check,
   ChevronRight,
+  Download,
   Globe,
   HelpCircle,
   Key,
@@ -468,6 +469,20 @@ export function SettingsView({ profile }: SettingsViewProps) {
                         </div>
                         <ChevronRight className="size-4 text-slate-500" />
                       </Link>
+
+                      {/* Download Android APK */}
+                      <a
+                        href="/downloads/AetherChat.apk"
+                        download="AetherChat.apk"
+                        className="flex items-center gap-3 rounded-xl border border-cyan-500/30 bg-cyan-950/20 p-3 hover:bg-cyan-950/40 transition"
+                      >
+                        <Download className="size-5 text-cyan-400" />
+                        <div className="text-left flex-1">
+                          <p className="text-sm font-medium text-cyan-300">Download Android App</p>
+                          <p className="text-xs text-slate-400">Native signed APK for Android</p>
+                        </div>
+                        <ChevronRight className="size-4 text-cyan-400" />
+                      </a>
                     </div>
                   )}
                 </DialogContent>

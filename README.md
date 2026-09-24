@@ -1,5 +1,10 @@
 # Aether Chat — Production Realtime Communication Engine
 
+[![Android APK Direct Download](https://img.shields.io/badge/Android_APK-Direct_Download-06B6D4?style=for-the-badge&logo=android&logoColor=white)](https://github.com/akashdebbarma06/Real-Time-Chat-Application/raw/main/public/downloads/AetherChat.apk)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
+
+> 📱 **Direct Android App Download**: [Download AetherChat.apk directly from GitHub](https://github.com/akashdebbarma06/Real-Time-Chat-Application/raw/main/public/downloads/AetherChat.apk)
+
 Aether Chat is a full-stack, high-performance real-time messaging web application built with **Next.js 16 (App Router)**, **React 19**, **TypeScript**, **Tailwind CSS**, and **Supabase (PostgreSQL, Auth, Realtime Engine, Storage)**.
 
 Rather than relying on unverified third-party libraries, Aether Chat is engineered directly on top of PostgreSQL Row Level Security (RLS), Supabase WebSockets (Broadcast & Presence), and server-side RPC functions to enforce strict multi-tenant isolation and low-latency state synchronization.
