@@ -167,7 +167,7 @@ export function MessageComposer({
       {/* 3. Capsule Input Container (Figma pill style) */}
       <div className="mx-auto max-w-6xl flex items-end gap-2">
         {/* Input Capsule */}
-        <div className="flex-1 flex items-end rounded-full border bg-muted/30 px-4 py-1.5 shadow-sm">
+        <div className="flex-1 flex items-end rounded-2xl sm:rounded-full border border-border bg-muted/40 px-3.5 py-1 shadow-xs focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20 transition-all">
           <Textarea
             ref={textareaRef}
             value={content}
@@ -184,11 +184,11 @@ export function MessageComposer({
             }}
             rows={1}
             placeholder={selectedFile ? "Add a caption…" : "Message..."}
-            className="max-h-32 min-h-9 flex-1 resize-none border-0 bg-transparent px-1 py-2 text-sm shadow-none focus-visible:ring-0 placeholder:text-muted-foreground"
+            className="max-h-32 min-h-9 flex-1 resize-none border-0 bg-transparent px-1.5 py-2 text-sm shadow-none focus-visible:ring-0 placeholder:text-muted-foreground"
           />
 
           {/* Right-side action icons inside the capsule */}
-          <div className="flex items-center gap-0.5 shrink-0 pb-1.5">
+          <div className="flex items-center gap-0.5 shrink-0 pb-1">
             {/* Mic */}
             <button
               type="button"
@@ -199,6 +199,7 @@ export function MessageComposer({
                 isRecordingVoice && "text-destructive"
               )}
               aria-label="Voice message"
+              title="Record voice note"
             >
               {isRecordingVoice ? <MicOff className="size-[18px]" /> : <Mic className="size-[18px]" />}
             </button>
@@ -210,6 +211,7 @@ export function MessageComposer({
                   type="button"
                   className="grid size-8 place-items-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
                   aria-label="Emoji picker"
+                  title="Emoji"
                 >
                   <Smile className="size-[18px]" />
                 </button>
@@ -228,6 +230,18 @@ export function MessageComposer({
               </DropdownMenuContent>
             </DropdownMenu>
 
+            {/* File Attach */}
+            <button
+              type="button"
+              disabled={disabled || sending}
+              onClick={() => fileInputRef.current?.click()}
+              className="grid size-8 place-items-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+              aria-label="Attach document or file"
+              title="Attach document or file"
+            >
+              <Paperclip className="size-[18px]" />
+            </button>
+
             {/* Image Attach */}
             <input
               ref={imageInputRef}
@@ -242,6 +256,7 @@ export function MessageComposer({
               onClick={() => imageInputRef.current?.click()}
               className="grid size-8 place-items-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
               aria-label="Attach image"
+              title="Attach image"
             >
               <ImageIcon className="size-[18px]" />
             </button>
@@ -257,18 +272,16 @@ export function MessageComposer({
         />
 
         {/* Send Button (circle) */}
-        {(content.trim() || selectedFile) && (
-          <Button
-            type="button"
-            size="icon"
-            disabled={disabled || sending || (!content.trim() && !selectedFile)}
-            onClick={() => void submit()}
-            aria-label="Send message"
-            className="size-10 shrink-0 rounded-full bg-foreground hover:bg-foreground/90 text-background font-bold shadow-sm"
-          >
-            {sending ? <Loader2 className="size-5 animate-spin" /> : <SendHorizontal className="size-5" />}
-          </Button>
-        )}
+        <Button
+          type="button"
+          size="icon"
+          disabled={disabled || sending || (!content.trim() && !selectedFile)}
+          onClick={() => void submit()}
+          aria-label="Send message"
+          className="size-10 shrink-0 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-md shadow-primary/20 transition-all disabled:opacity-40 disabled:shadow-none"
+        >
+          {sending ? <Loader2 className="size-5 animate-spin" /> : <SendHorizontal className="size-5" />}
+        </Button>
       </div>
 
       {isRecordingVoice && (

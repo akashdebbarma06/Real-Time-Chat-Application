@@ -18,6 +18,7 @@ import {
   Sun,
   Users,
   UsersRound,
+  X,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { ContactsView } from "@/components/chat/contacts-view";
@@ -105,49 +106,64 @@ export function ConversationSidebar({
   }
 
   return (
-    <aside className="flex h-svh min-h-0 flex-col border-r bg-background text-foreground">
+    <aside className="flex h-full min-h-0 flex-col border-r bg-background text-foreground">
       {/* Top Header */}
       <div className="flex h-16 items-center justify-between border-b px-5 shrink-0">
-        <h1 className="text-2xl font-bold tracking-tight">Activity</h1>
+        <h1 className="text-2xl font-bold tracking-tight">
+          {activeTab === "chats" ? "Messages" : activeTab === "contacts" ? "Contacts" : "Settings"}
+        </h1>
 
-        {/* 3-Dots Dropdown Menu */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="grid size-9 place-items-center rounded-xl text-muted-foreground transition hover:bg-accent hover:text-foreground">
-              <MoreVertical className="size-5" />
-            </button>
-          </DropdownMenuTrigger>
+        <div className="flex items-center gap-1">
+          {activeTab === "chats" && (
+            <NewChatDialog
+              currentUserId={profile.id}
+              onCreated={onConversationCreated}
+              triggerVariant="icon"
+            />
+          )}
 
-          <DropdownMenuContent align="end" side="bottom" className="w-64 p-2 rounded-2xl shadow-2xl">
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-muted/50">
-              <div className="flex items-center gap-2 text-xs font-medium">
-                {theme === "dark" ? <Moon className="size-4 text-primary" /> : <Sun className="size-4 text-amber-400" />}
-                <span>Day / Night Mode</span>
+          {/* 3-Dots Dropdown Menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className="grid size-9 place-items-center rounded-xl text-muted-foreground transition hover:bg-accent hover:text-foreground"
+                aria-label="Options"
+              >
+                <MoreVertical className="size-5" />
+              </button>
+            </DropdownMenuTrigger>
+
+            <DropdownMenuContent align="end" side="bottom" className="w-64 p-2 rounded-2xl shadow-2xl">
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-muted/50">
+                <div className="flex items-center gap-2 text-xs font-medium">
+                  {theme === "dark" ? <Moon className="size-4 text-primary" /> : <Sun className="size-4 text-amber-400" />}
+                  <span>Day / Night Mode</span>
+                </div>
+                <Switch
+                  checked={theme === "dark"}
+                  onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
+                />
               </div>
-              <Switch
-                checked={theme === "dark"}
-                onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
-              />
-            </div>
 
-            <DropdownMenuSeparator className="my-2" />
+              <DropdownMenuSeparator className="my-2" />
 
-            <DropdownMenuItem
-              onClick={() => {
-                setComingSoonFeature("My QR Code & Contact Share");
-                setComingSoonOpen(true);
-              }}
-              className="flex items-center gap-2 text-xs rounded-xl cursor-pointer p-2.5"
-            >
-              <QrCode className="size-4 text-primary" />
-              <span>My QR Code</span>
-            </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  setComingSoonFeature("My QR Code & Contact Share");
+                  setComingSoonOpen(true);
+                }}
+                className="flex items-center gap-2 text-xs rounded-xl cursor-pointer p-2.5"
+              >
+                <QrCode className="size-4 text-primary" />
+                <span>My QR Code</span>
+              </DropdownMenuItem>
 
-            <DropdownMenuSeparator className="my-2" />
+              <DropdownMenuSeparator className="my-2" />
 
-            <NewChatDialog currentUserId={profile.id} onCreated={onConversationCreated} triggerVariant="full" />
-          </DropdownMenuContent>
-        </DropdownMenu>
+              <NewChatDialog currentUserId={profile.id} onCreated={onConversationCreated} triggerVariant="full" />
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       {/* Main Content Area based on Selected Primary Tab */}
@@ -183,13 +199,13 @@ export function ConversationSidebar({
                 <button
                   onClick={() => setChatFilter("groups")}
                   className={cn(
-                    "rounded-full px-4 py-1.5 text-sm font-medium transition-all lowercase",
+                    "rounded-full px-4 py-1.5 text-sm font-medium transition-all",
                     chatFilter === "groups"
                       ? "bg-foreground text-background shadow-sm"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted"
                   )}
                 >
-                  groups
+                  Groups
                 </button>
               </div>
             </div>
@@ -201,9 +217,19 @@ export function ConversationSidebar({
                 <Input
                   value={query}
                   onChange={(event) => onQueryChange(event.target.value)}
-                  className="border-border bg-muted/50 text-foreground pl-9 rounded-xl text-xs focus-visible:ring-primary/50 placeholder:text-muted-foreground"
+                  className="border-border bg-muted/50 text-foreground pl-9 pr-8 rounded-xl text-xs focus-visible:ring-primary/50 placeholder:text-muted-foreground"
                   placeholder="Search conversations..."
                 />
+                {query && (
+                  <button
+                    type="button"
+                    onClick={() => onQueryChange("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label="Clear search"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                )}
               </div>
             </div>
 
@@ -239,13 +265,9 @@ export function ConversationSidebar({
                         active && "bg-muted/80"
                       )}
                     >
-                      {/* Avatar + Notification Dot */}
+                      {/* Avatar */}
                       <div className="relative shrink-0">
                         <ConversationAvatar conversation={conversation} userId={profile.id} />
-                        {/* Red notification dot for unread */}
-                        {conversation.unread_count > 0 && (
-                          <span className="absolute -left-0.5 top-1/2 -translate-y-1/2 size-2.5 rounded-full bg-rose-500 border-2 border-background" />
-                        )}
                         {/* Online indicator */}
                         {isOnline && (
                           <span className="absolute bottom-0 right-0 size-3 rounded-full border-2 border-background bg-emerald-500 shadow-sm" />
@@ -265,7 +287,7 @@ export function ConversationSidebar({
                           </time>
                         </div>
 
-                        {/* Row 2: Activity subtitle + read checkmarks */}
+                        {/* Row 2: Activity subtitle + read checkmarks + unread badge */}
                         <div className="mt-0.5 flex items-center justify-between gap-2">
                           <div className="flex items-center gap-1 min-w-0 flex-1">
                             {/* Read Status Checkmarks for Own Sent Messages */}
@@ -288,6 +310,12 @@ export function ConversationSidebar({
                               {preview}
                             </p>
                           </div>
+
+                          {conversation.unread_count > 0 && (
+                            <span className="ml-1 flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground shadow-sm">
+                              {conversation.unread_count}
+                            </span>
+                          )}
                         </div>
                       </div>
 

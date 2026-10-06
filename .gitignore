@@ -26,7 +26,11 @@ yarn-error.log*
 *.swo
 .DS_Store
 Thumbs.db
+desktop.ini
+*.suo
 
 # Build artifacts & caches
 *.tsbuildinfo
 /.vercel
+.turbo/
+coverage/

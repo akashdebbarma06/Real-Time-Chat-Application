@@ -162,9 +162,9 @@ export function ProfileForm({ profile, userEmail }: { profile: Profile; userEmai
 
       {/* 2. Email & Bio */}
       <div className="space-y-4">
-        <div className="rounded-3xl border border-slate-800 bg-slate-950/60 p-4 text-sm text-slate-300">
+        <div className="rounded-2xl border bg-muted/40 p-4 text-sm text-foreground">
           <p className="text-xs font-semibold uppercase text-muted-foreground">Email</p>
-          <p className="mt-1 truncate">{email}</p>
+          <p className="mt-1 truncate font-medium">{email}</p>
         </div>
         <div className="space-y-2">
           <div className="flex items-center justify-between">

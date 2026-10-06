@@ -24,6 +24,8 @@ export function AuthForm({ mode }: AuthFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState<"google" | "github" | false>(false);
+  const [email, setEmail] = useState("");
+  const [emailLoading, setEmailLoading] = useState(false);
 
   // Admin Login States
   const [adminOpen, setAdminOpen] = useState(false);
@@ -32,6 +34,37 @@ export function AuthForm({ mode }: AuthFormProps) {
   const [adminLoading, setAdminLoading] = useState(false);
 
   const isLogin = mode === "login";
+
+  async function handleEmailAuth(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const cleanEmail = email.trim();
+    if (!cleanEmail) {
+      toast.error("Please enter your email address");
+      return;
+    }
+    setEmailLoading(true);
+    const supabase = createClient();
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+    const origin =
+      typeof window !== "undefined" && window.location.origin && !window.location.origin.includes("localhost")
+        ? window.location.origin
+        : siteUrl;
+
+    const { error } = await supabase.auth.signInWithOtp({
+      email: cleanEmail,
+      options: {
+        emailRedirectTo: `${origin}/auth/callback`,
+      },
+    });
+
+    setEmailLoading(false);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Magic sign-in link sent! Please check your email inbox.");
+      setEmail("");
+    }
+  }
 
   async function handleSocialAuth(provider: "google" | "github") {
     setLoading(provider);
@@ -168,30 +201,32 @@ export function AuthForm({ mode }: AuthFormProps) {
           </div>
         </div>
 
-        {/* Email Input (visual placeholder — actual sign-in uses OAuth) */}
-        <div className="space-y-3">
+        {/* Email Magic Link Sign-In Form */}
+        <form onSubmit={handleEmailAuth} className="space-y-3">
           <Input
             type="email"
-            placeholder="email@domain.com"
-            className="h-12 rounded-xl border-border bg-background px-4 text-sm"
-            disabled
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="name@example.com"
+            className="h-12 rounded-xl border-border bg-background px-4 text-sm focus-visible:ring-primary/50"
+            disabled={emailLoading || loading !== false}
           />
 
-          {/* Continue Button (primary, solid) */}
+          {/* Continue Button */}
           <Button
-            type="button"
+            type="submit"
             size="lg"
-            disabled={loading !== false}
-            onClick={() => void handleSocialAuth("google")}
-            className="w-full h-12 rounded-xl bg-foreground text-background font-semibold text-sm hover:bg-foreground/90 dark:bg-foreground dark:text-background dark:hover:bg-foreground/90"
+            disabled={emailLoading || loading !== false}
+            className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:bg-primary/90 shadow-md shadow-primary/20"
           >
-            {loading === "google" ? (
+            {emailLoading ? (
               <Loader2 className="size-5 animate-spin" />
             ) : (
-              "Continue"
+              "Continue with Email"
             )}
           </Button>
-        </div>
+        </form>
 
         {/* Divider: ── or ── */}
         <div className="my-6 flex items-center gap-3">

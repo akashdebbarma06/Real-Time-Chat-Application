@@ -71,7 +71,7 @@ export function MessageBubble({
     <div
       onClick={() => setShowMobileActions((prev) => !prev)}
       className={cn(
-        "group relative flex items-end gap-2.5 my-1.5 sm:my-2 transition-all animate-message-appear select-none",
+        "group relative flex items-end gap-2.5 my-1.5 sm:my-2 transition-all animate-message-appear",
         own ? "justify-end" : "justify-start"
       )}
     >
@@ -83,7 +83,7 @@ export function MessageBubble({
       )}
 
       {/* Bubble Container */}
-      <div className={cn("relative max-w-[76%] sm:max-w-[68%]", own && "items-end")}>
+      <div className={cn("relative flex flex-col max-w-[76%] sm:max-w-[68%]", own && "items-end")}>
         {showSenderName && !own && (
           <p className="mb-1 px-2 text-xs font-semibold text-muted-foreground">{message.sender.display_name}</p>
         )}
@@ -91,9 +91,9 @@ export function MessageBubble({
         {/* Bubble */}
         <div
           className={cn(
-            "relative rounded-2xl px-4 py-2.5 sm:px-5 sm:py-3 transition-all",
+            "relative rounded-2xl px-4 py-2.5 sm:px-5 sm:py-3 transition-all select-text",
             own
-              ? "rounded-br-sm bg-foreground text-background shadow-sm"
+              ? "rounded-br-sm bg-primary text-primary-foreground shadow-sm shadow-primary/20"
               : "rounded-bl-sm bg-muted text-foreground shadow-sm"
           )}
         >
@@ -130,16 +130,16 @@ export function MessageBubble({
           <div
             className={cn(
               "mt-1.5 flex items-center justify-end gap-1 text-[10px]",
-              own ? "text-background/60" : "text-muted-foreground"
+              own ? "text-primary-foreground/75" : "text-muted-foreground"
             )}
           >
             <time>{formatMessageTime(message.created_at)}</time>
             {message.edited_at && <span>· edited</span>}
             {own && showReceipt && (
               readBySomeoneElse ? (
-                <CheckCheck className="size-3.5 text-background/70" aria-label="Read" />
+                <CheckCheck className="size-3.5 text-primary-foreground/90" aria-label="Read" />
               ) : (
-                <Check className="size-3.5 text-background/50" aria-label="Sent" />
+                <Check className="size-3.5 text-primary-foreground/60" aria-label="Sent" />
               )
             )}
           </div>

@@ -115,29 +115,29 @@ export function ChatWorkspace({ profile, selectedConversationId }: ChatWorkspace
 
   return (
     <main className="grid h-svh min-h-0 overflow-hidden md:grid-cols-[360px_minmax(0,1fr)]">
-      <div className={selectedConversationId ? "hidden md:block" : "block"}>
+      <div className={selectedConversationId ? "hidden md:block h-full min-h-0" : "block h-full min-h-0"}>
         <ConversationSidebar profile={profile} conversations={filtered} selectedConversationId={selectedConversationId} onlineUserIds={onlineUserIds} query={query} onQueryChange={setQuery} onConversationCreated={() => void loadConversations()} />
       </div>
       {selectedConversationId ? (
         <MessagePanel key={selectedConversationId} profile={profile} conversation={selectedConversation} conversationId={selectedConversationId} onlineUserIds={onlineUserIds} onConversationActivity={handleConversationActivity} />
       ) : (
-        <EmptyChat currentUserId={profile.id} />
+        <EmptyChat currentUserId={profile.id} onCreated={() => void loadConversations()} />
       )}
 
       {/* Global Desktop Keyboard Shortcuts Help Modal */}
       <KeyboardShortcutsDialog />
 
       {/* Controlled New Chat Dialog for Ctrl+N */}
-      {newChatOpen && (
-        <NewChatDialog
-          currentUserId={profile.id}
-          onCreated={() => {
-            setNewChatOpen(false);
-            void loadConversations();
-          }}
-          triggerVariant="icon"
-        />
-      )}
+      <NewChatDialog
+        currentUserId={profile.id}
+        open={newChatOpen}
+        onOpenChange={setNewChatOpen}
+        onCreated={() => {
+          setNewChatOpen(false);
+          void loadConversations();
+        }}
+        triggerVariant="none"
+      />
     </main>
   );
 }

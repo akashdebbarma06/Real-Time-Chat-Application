@@ -16,12 +16,22 @@ import type { Profile } from "@/types/chat";
 interface NewChatDialogProps {
   currentUserId: string;
   onCreated: () => void;
-  triggerVariant?: "icon" | "full";
+  triggerVariant?: "icon" | "full" | "none";
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function NewChatDialog({ currentUserId, onCreated, triggerVariant = "icon" }: NewChatDialogProps) {
+export function NewChatDialog({
+  currentUserId,
+  onCreated,
+  triggerVariant = "icon",
+  open: controlledOpen,
+  onOpenChange: setControlledOpen,
+}: NewChatDialogProps) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
   const [mode, setMode] = useState<"direct" | "group">("direct");
   const [query, setQuery] = useState("");
   const [users, setUsers] = useState<Profile[]>([]);
@@ -50,7 +60,7 @@ export function NewChatDialog({ currentUserId, onCreated, triggerVariant = "icon
     const { data, error } = await createClient().rpc("create_direct_conversation", { other_user: userId });
     setLoading(false);
     if (error) return toast.error(error.message);
-    setOpen(false);
+    handleOpenChange(false);
     onCreated();
     router.push(`/chat/${data}`);
   }
@@ -62,13 +72,17 @@ export function NewChatDialog({ currentUserId, onCreated, triggerVariant = "icon
     const { data, error } = await createClient().rpc("create_group_conversation", { group_name: groupName.trim(), member_ids: [...selected] });
     setLoading(false);
     if (error) return toast.error(error.message);
-    setOpen(false);
+    handleOpenChange(false);
     onCreated();
     router.push(`/chat/${data}`);
   }
 
-  function reset(nextOpen: boolean) {
-    setOpen(nextOpen);
+  function handleOpenChange(nextOpen: boolean) {
+    if (isControlled) {
+      setControlledOpen?.(nextOpen);
+    } else {
+      setInternalOpen(nextOpen);
+    }
     if (!nextOpen) {
       setQuery("");
       setSelected(new Set());
@@ -78,22 +92,24 @@ export function NewChatDialog({ currentUserId, onCreated, triggerVariant = "icon
   }
 
   return (
-    <Dialog open={open} onOpenChange={reset}>
-      <DialogTrigger asChild>
-        {triggerVariant === "full" ? (
-          <Button
-            size="lg"
-            className="w-full flex items-center justify-center gap-2 rounded-2xl bg-primary text-primary-foreground font-semibold shadow-md shadow-primary/20 hover:bg-primary/90 hover:scale-[1.01] transition-all"
-          >
-            <UserPlus className="size-4" />
-            <span>New Chat</span>
-          </Button>
-        ) : (
-          <Button size="icon-sm" aria-label="Start a conversation">
-            <UserPlus />
-          </Button>
-        )}
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      {triggerVariant !== "none" && (
+        <DialogTrigger asChild>
+          {triggerVariant === "full" ? (
+            <Button
+              size="lg"
+              className="w-full flex items-center justify-center gap-2 rounded-2xl bg-primary text-primary-foreground font-semibold shadow-md shadow-primary/20 hover:bg-primary/90 hover:scale-[1.01] transition-all"
+            >
+              <UserPlus className="size-4" />
+              <span>New Chat</span>
+            </Button>
+          ) : (
+            <Button size="icon-sm" aria-label="Start a conversation">
+              <UserPlus />
+            </Button>
+          )}
+        </DialogTrigger>
+      )}
       <DialogContent className="max-w-xl">
         <DialogHeader><DialogTitle>Start a conversation</DialogTitle><DialogDescription>Message someone directly or bring a group together.</DialogDescription></DialogHeader>
         <div className="grid grid-cols-2 rounded-xl bg-muted p-1">
@@ -116,7 +132,7 @@ export function NewChatDialog({ currentUserId, onCreated, triggerVariant = "icon
             {!users.length && <p className="p-8 text-center text-sm text-muted-foreground">No people found.</p>}
           </div>
         </ScrollArea>
-        {mode === "group" && <DialogFooter><Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button><Button onClick={() => void createGroup()} disabled={loading}>{loading && <Loader2 className="animate-spin" />}Create group</Button></DialogFooter>}
+        {mode === "group" && <DialogFooter><Button variant="ghost" onClick={() => handleOpenChange(false)}>Cancel</Button><Button onClick={() => void createGroup()} disabled={loading}>{loading && <Loader2 className="animate-spin" />}Create group</Button></DialogFooter>}
       </DialogContent>
     </Dialog>
   );

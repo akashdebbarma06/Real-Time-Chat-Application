@@ -99,8 +99,8 @@ export function SettingsView({ profile }: SettingsViewProps) {
       { id: "everyone_except", label: "Everyone Except..." },
     ];
     return (
-      <div className="space-y-2 rounded-xl border border-slate-800 bg-slate-950 p-3">
-        <p className="text-sm font-medium text-slate-200">{label}</p>
+      <div className="space-y-2 rounded-xl border bg-muted/40 p-3">
+        <p className="text-sm font-medium text-foreground">{label}</p>
         <div className="grid grid-cols-3 gap-1.5">
           {options.map((opt) => (
             <button
@@ -109,8 +109,8 @@ export function SettingsView({ profile }: SettingsViewProps) {
               onClick={() => onChange(opt.id)}
               className={`rounded-lg py-2 text-[11px] font-semibold transition-all ${
                 value === opt.id
-                  ? "bg-cyan-500 text-slate-950 shadow-sm"
-                  : "bg-slate-800/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "bg-muted text-muted-foreground hover:text-foreground hover:bg-accent"
               }`}
             >
               {opt.label}
@@ -122,30 +122,25 @@ export function SettingsView({ profile }: SettingsViewProps) {
   }
 
   return (
-    <div className="flex h-full flex-col bg-slate-950 text-slate-100">
-      {/* Settings Title Header */}
-      <div className="border-b border-slate-800 p-4">
-        <h2 className="text-xl font-bold tracking-tight text-slate-100">Settings</h2>
-      </div>
-
+    <div className="flex h-full flex-col bg-background text-foreground">
       {/* Circular Avatar Profile Header */}
-      <Link href="/profile" className="flex flex-col items-center gap-2 py-5 border-b border-slate-800 transition hover:bg-slate-900/40">
-        <Avatar className="size-20 rounded-full border-2 border-cyan-500/40 shadow-lg shadow-cyan-500/10">
+      <Link href="/profile" className="flex flex-col items-center gap-2 py-5 border-b border-border transition hover:bg-muted/40">
+        <Avatar className="size-20 rounded-full border-2 border-primary/30 shadow-lg shadow-primary/10">
           <AvatarImage src={profile.avatar_url || undefined} alt={profile.display_name} />
-          <AvatarFallback className="rounded-full text-xl font-bold bg-gradient-to-br from-cyan-500/20 to-blue-600/20 text-cyan-400">
+          <AvatarFallback className="rounded-full text-xl font-bold bg-primary/10 text-primary">
             {getInitials(profile.display_name)}
           </AvatarFallback>
         </Avatar>
         <div className="text-center">
-          <h3 className="text-base font-semibold text-slate-100">{profile.display_name}</h3>
-          <p className="text-xs text-slate-400">@{profile.username}</p>
+          <h3 className="text-base font-semibold text-foreground">{profile.display_name}</h3>
+          <p className="text-xs text-muted-foreground">@{profile.username}</p>
         </div>
-        <span className="text-xs font-semibold text-cyan-400 hover:text-cyan-300 transition">Edit</span>
+        <span className="text-xs font-semibold text-primary hover:underline transition">Edit Profile</span>
       </Link>
 
       {/* Settings Menu List */}
       <ScrollArea className="flex-1 px-3">
-        <div className="space-y-2 py-2">
+        <div className="space-y-2 py-3">
           {settingsMenu.map((item) => {
             const Icon = item.icon;
 
@@ -158,18 +153,18 @@ export function SettingsView({ profile }: SettingsViewProps) {
                     setComingSoonFeature("Invite Friends & QR Code Sharing");
                     setComingSoonOpen(true);
                   }}
-                  className="flex w-full items-center justify-between rounded-2xl border border-slate-800/80 bg-slate-900/60 p-3.5 text-left transition-all hover:bg-slate-800/80 hover:border-cyan-500/50"
+                  className="flex w-full items-center justify-between rounded-2xl border bg-card/60 p-3.5 text-left transition-all hover:bg-muted hover:border-primary/40 shadow-xs"
                 >
                   <div className="flex items-center gap-3.5 min-w-0">
-                    <div className="grid size-10 place-items-center rounded-xl bg-cyan-500/10 text-cyan-400 shrink-0">
+                    <div className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary shrink-0">
                       <Icon className="size-5" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-slate-100">{item.title}</p>
-                      <p className="truncate text-xs text-slate-400">{item.desc}</p>
+                      <p className="truncate text-sm font-semibold text-foreground">{item.title}</p>
+                      <p className="truncate text-xs text-muted-foreground">{item.desc}</p>
                     </div>
                   </div>
-                  <ChevronRight className="size-4 text-slate-500 shrink-0" />
+                  <ChevronRight className="size-4 text-muted-foreground shrink-0" />
                 </button>
               );
             }
@@ -181,24 +176,24 @@ export function SettingsView({ profile }: SettingsViewProps) {
                 onOpenChange={(open) => setSelectedSection(open ? item.id : null)}
               >
                 <DialogTrigger asChild>
-                  <button className="flex w-full items-center justify-between rounded-2xl border border-slate-800/80 bg-slate-900/60 p-3.5 text-left transition-all hover:bg-slate-800/80 hover:border-cyan-500/50">
+                  <button className="flex w-full items-center justify-between rounded-2xl border bg-card/60 p-3.5 text-left transition-all hover:bg-muted hover:border-primary/40 shadow-xs">
                     <div className="flex items-center gap-3.5 min-w-0">
-                      <div className="grid size-10 place-items-center rounded-xl bg-cyan-500/10 text-cyan-400 shrink-0">
+                      <div className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary shrink-0">
                         <Icon className="size-5" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-slate-100">{item.title}</p>
-                        <p className="truncate text-xs text-slate-400">{item.desc}</p>
+                        <p className="truncate text-sm font-semibold text-foreground">{item.title}</p>
+                        <p className="truncate text-xs text-muted-foreground">{item.desc}</p>
                       </div>
                     </div>
-                    <ChevronRight className="size-4 text-slate-500 shrink-0" />
+                    <ChevronRight className="size-4 text-muted-foreground shrink-0" />
                   </button>
                 </DialogTrigger>
 
-                <DialogContent className="sm:max-w-md bg-slate-900 border-slate-800 text-slate-100">
+                <DialogContent className="sm:max-w-md">
                   <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                      <Icon className="size-5 text-cyan-400" />
+                      <Icon className="size-5 text-primary" />
                       <span>{item.title}</span>
                     </DialogTitle>
                   </DialogHeader>
@@ -208,23 +203,24 @@ export function SettingsView({ profile }: SettingsViewProps) {
                     <div className="space-y-3 pt-2">
                       {/* 1. Add new account */}
                       <button
+                        type="button"
                         onClick={() => toast.info("Add new account coming soon")}
-                        className="flex w-full items-center gap-3 rounded-xl border border-slate-800 bg-slate-950 p-3 hover:bg-slate-800 transition"
+                        className="flex w-full items-center gap-3 rounded-xl border bg-muted/30 p-3 hover:bg-muted transition"
                       >
-                        <UserPlus className="size-5 text-cyan-400" />
+                        <UserPlus className="size-5 text-primary" />
                         <div className="text-left">
-                          <p className="text-sm font-medium">Add New Account</p>
-                          <p className="text-xs text-slate-400">Switch between multiple accounts</p>
+                          <p className="text-sm font-medium text-foreground">Add New Account</p>
+                          <p className="text-xs text-muted-foreground">Switch between multiple accounts</p>
                         </div>
                       </button>
 
                       {/* 2. Email */}
-                      <div className="rounded-xl border border-slate-800 bg-slate-950 p-3">
+                      <div className="rounded-xl border bg-muted/30 p-3">
                         <div className="flex items-center gap-3">
-                          <Mail className="size-5 text-cyan-400 shrink-0" />
+                          <Mail className="size-5 text-primary shrink-0" />
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs text-slate-400">Email Address</p>
-                            <p className="text-sm font-medium truncate mt-0.5">
+                            <p className="text-xs text-muted-foreground">Email Address</p>
+                            <p className="text-sm font-medium text-foreground truncate mt-0.5">
                               {profile.username}@aetherchat.app
                             </p>
                           </div>
@@ -233,23 +229,24 @@ export function SettingsView({ profile }: SettingsViewProps) {
 
                       {/* 3. Passkey */}
                       <button
+                        type="button"
                         onClick={() => toast.info("Passkey setup coming soon")}
-                        className="flex w-full items-center gap-3 rounded-xl border border-slate-800 bg-slate-950 p-3 hover:bg-slate-800 transition"
+                        className="flex w-full items-center gap-3 rounded-xl border bg-muted/30 p-3 hover:bg-muted transition"
                       >
-                        <Key className="size-5 text-cyan-400" />
+                        <Key className="size-5 text-primary" />
                         <div className="text-left">
-                          <p className="text-sm font-medium">Passkey</p>
-                          <p className="text-xs text-slate-400">Set up passwordless login</p>
+                          <p className="text-sm font-medium text-foreground">Passkey</p>
+                          <p className="text-xs text-muted-foreground">Set up passwordless login</p>
                         </div>
                       </button>
 
                       {/* 4. Two-step verification */}
-                      <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950 p-3">
+                      <div className="flex items-center justify-between rounded-xl border bg-muted/30 p-3">
                         <div className="flex items-center gap-3">
-                          <ShieldCheck className="size-5 text-cyan-400" />
+                          <ShieldCheck className="size-5 text-primary" />
                           <div>
-                            <p className="text-sm font-medium">Two-Step Verification</p>
-                            <p className="text-xs text-slate-400">Extra layer of account security</p>
+                            <p className="text-sm font-medium text-foreground">Two-Step Verification</p>
+                            <p className="text-xs text-muted-foreground">Extra layer of account security</p>
                           </div>
                         </div>
                         <Switch checked={twoStepEnabled} onCheckedChange={setTwoStepEnabled} />
@@ -257,25 +254,27 @@ export function SettingsView({ profile }: SettingsViewProps) {
 
                       {/* 5. Change password & email */}
                       <button
+                        type="button"
                         onClick={() => toast.info("Change credentials coming soon")}
-                        className="flex w-full items-center gap-3 rounded-xl border border-slate-800 bg-slate-950 p-3 hover:bg-slate-800 transition"
+                        className="flex w-full items-center gap-3 rounded-xl border bg-muted/30 p-3 hover:bg-muted transition"
                       >
-                        <Lock className="size-5 text-cyan-400" />
+                        <Lock className="size-5 text-primary" />
                         <div className="text-left">
-                          <p className="text-sm font-medium">Change Password & Email</p>
-                          <p className="text-xs text-slate-400">Update login credentials</p>
+                          <p className="text-sm font-medium text-foreground">Change Password & Email</p>
+                          <p className="text-xs text-muted-foreground">Update login credentials</p>
                         </div>
                       </button>
 
                       {/* 6. Delete or deactivate account */}
                       <button
+                        type="button"
                         onClick={() => toast.error("Please contact support to delete your account")}
-                        className="flex w-full items-center gap-3 rounded-xl border border-rose-900/50 bg-rose-950/30 p-3 hover:bg-rose-950/50 transition"
+                        className="flex w-full items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/10 p-3 hover:bg-destructive/20 transition"
                       >
-                        <Trash2 className="size-5 text-rose-400" />
+                        <Trash2 className="size-5 text-destructive" />
                         <div className="text-left">
-                          <p className="text-sm font-medium text-rose-400">Delete or Deactivate Account</p>
-                          <p className="text-xs text-slate-400">Permanently remove or pause your account</p>
+                          <p className="text-sm font-medium text-destructive">Delete or Deactivate Account</p>
+                          <p className="text-xs text-muted-foreground">Permanently remove or pause your account</p>
                         </div>
                       </button>
                     </div>
@@ -284,7 +283,7 @@ export function SettingsView({ profile }: SettingsViewProps) {
                   {/* ═══════ PRIVACY & SECURITY ═══════ */}
                   {item.id === "privacy" && (
                     <div className="space-y-4 pt-2">
-                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Who Can See</p>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Who Can See</p>
 
                       {/* 1. Last Seen & Online */}
                       <VisibilitySelector
@@ -309,15 +308,16 @@ export function SettingsView({ profile }: SettingsViewProps) {
 
                       {/* 4. Blocked Contacts */}
                       <button
+                        type="button"
                         onClick={() => toast.info("No blocked contacts")}
-                        className="flex w-full items-center gap-3 rounded-xl border border-slate-800 bg-slate-950 p-3 hover:bg-slate-800 transition"
+                        className="flex w-full items-center gap-3 rounded-xl border bg-muted/30 p-3 hover:bg-muted transition"
                       >
-                        <UserX className="size-5 text-rose-400" />
+                        <UserX className="size-5 text-destructive" />
                         <div className="text-left flex-1">
-                          <p className="text-sm font-medium">Blocked Contacts</p>
-                          <p className="text-xs text-slate-400">Manage your blocked list</p>
+                          <p className="text-sm font-medium text-foreground">Blocked Contacts</p>
+                          <p className="text-xs text-muted-foreground">Manage your blocked list</p>
                         </div>
-                        <ChevronRight className="size-4 text-slate-500" />
+                        <ChevronRight className="size-4 text-muted-foreground" />
                       </button>
                     </div>
                   )}
@@ -326,12 +326,12 @@ export function SettingsView({ profile }: SettingsViewProps) {
                   {item.id === "notifications" && (
                     <div className="space-y-4 pt-2">
                       {/* 1. On/Off Toggle */}
-                      <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950 p-3">
+                      <div className="flex items-center justify-between rounded-xl border bg-muted/30 p-3">
                         <div className="flex items-center gap-3">
-                          <Bell className="size-5 text-cyan-400" />
+                          <Bell className="size-5 text-primary" />
                           <div>
-                            <p className="text-sm font-medium">Notifications</p>
-                            <p className="text-xs text-slate-400">Enable or disable all alerts</p>
+                            <p className="text-sm font-medium text-foreground">Notifications</p>
+                            <p className="text-xs text-muted-foreground">Enable or disable all alerts</p>
                           </div>
                         </div>
                         <Switch
@@ -350,15 +350,16 @@ export function SettingsView({ profile }: SettingsViewProps) {
                       </div>
 
                       {/* 2. Notification Tone */}
-                      <div className="rounded-xl border border-slate-800 bg-slate-950 p-3 space-y-2">
+                      <div className="rounded-xl border bg-muted/30 p-3 space-y-2">
                         <div className="flex items-center gap-3">
-                          <Volume2 className="size-5 text-cyan-400" />
-                          <p className="text-sm font-medium">Notification Tone</p>
+                          <Volume2 className="size-5 text-primary" />
+                          <p className="text-sm font-medium text-foreground">Notification Tone</p>
                         </div>
                         <div className="grid grid-cols-3 gap-1.5">
                           {["Default", "Chime", "Bell", "Pop", "Ping", "Silent"].map((tone) => (
                             <button
                               key={tone}
+                              type="button"
                               onClick={() => {
                                 setNotificationTone(tone);
                                 if (tone !== "Silent") playNotificationSound();
@@ -366,8 +367,8 @@ export function SettingsView({ profile }: SettingsViewProps) {
                               }}
                               className={`rounded-lg py-2 text-[11px] font-semibold transition-all ${
                                 notificationTone === tone
-                                  ? "bg-cyan-500 text-slate-950 shadow-sm"
-                                  : "bg-slate-800/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+                                  ? "bg-primary text-primary-foreground shadow-xs"
+                                  : "bg-muted text-muted-foreground hover:text-foreground hover:bg-accent"
                               }`}
                             >
                               {tone}
@@ -377,12 +378,12 @@ export function SettingsView({ profile }: SettingsViewProps) {
                       </div>
 
                       {/* 3. Vibrate */}
-                      <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950 p-3">
+                      <div className="flex items-center justify-between rounded-xl border bg-muted/30 p-3">
                         <div className="flex items-center gap-3">
-                          <Phone className="size-5 text-cyan-400" />
+                          <Phone className="size-5 text-primary" />
                           <div>
-                            <p className="text-sm font-medium">Vibrate</p>
-                            <p className="text-xs text-slate-400">Vibrate on new messages</p>
+                            <p className="text-sm font-medium text-foreground">Vibrate</p>
+                            <p className="text-xs text-muted-foreground">Vibrate on new messages</p>
                           </div>
                         </div>
                         <Switch checked={vibrateEnabled} onCheckedChange={setVibrateEnabled} />
@@ -410,6 +411,7 @@ export function SettingsView({ profile }: SettingsViewProps) {
                       ].map((lang) => (
                         <button
                           key={lang}
+                          type="button"
                           onClick={() => {
                             setSelectedLanguage(lang);
                             toast.success(`Language set to ${lang}`);
@@ -417,12 +419,12 @@ export function SettingsView({ profile }: SettingsViewProps) {
                           }}
                           className={`flex w-full items-center justify-between rounded-xl border p-3 text-left transition ${
                             selectedLanguage === lang
-                              ? "border-cyan-500/50 bg-cyan-500/10"
-                              : "border-slate-800 hover:bg-slate-800"
+                              ? "border-primary/50 bg-primary/10 text-primary"
+                              : "border-border hover:bg-muted text-foreground"
                           }`}
                         >
                           <span className="text-sm font-medium">{lang}</span>
-                          {selectedLanguage === lang && <Check className="size-4 text-cyan-400" />}
+                          {selectedLanguage === lang && <Check className="size-4 text-primary" />}
                         </button>
                       ))}
                     </div>
@@ -433,55 +435,56 @@ export function SettingsView({ profile }: SettingsViewProps) {
                     <div className="space-y-3 pt-2">
                       {/* Help Centre */}
                       <button
+                        type="button"
                         onClick={() => toast.info("Help Centre coming soon")}
-                        className="flex w-full items-center gap-3 rounded-xl border border-slate-800 bg-slate-950 p-3 hover:bg-slate-800 transition"
+                        className="flex w-full items-center gap-3 rounded-xl border bg-muted/30 p-3 hover:bg-muted transition"
                       >
-                        <HelpCircle className="size-5 text-cyan-400" />
+                        <HelpCircle className="size-5 text-primary" />
                         <div className="text-left flex-1">
-                          <p className="text-sm font-medium">Help Centre</p>
-                          <p className="text-xs text-slate-400">Browse FAQs & support articles</p>
+                          <p className="text-sm font-medium text-foreground">Help Centre</p>
+                          <p className="text-xs text-muted-foreground">Browse FAQs & support articles</p>
                         </div>
-                        <ChevronRight className="size-4 text-slate-500" />
+                        <ChevronRight className="size-4 text-muted-foreground" />
                       </button>
 
                       {/* Contact Us */}
                       <Link
                         href="/contact"
-                        className="flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-950 p-3 hover:bg-slate-800 transition"
+                        className="flex items-center gap-3 rounded-xl border bg-muted/30 p-3 hover:bg-muted transition"
                       >
-                        <MessageSquare className="size-5 text-cyan-400" />
+                        <MessageSquare className="size-5 text-primary" />
                         <div className="text-left flex-1">
-                          <p className="text-sm font-medium">Contact Us</p>
-                          <p className="text-xs text-slate-400">Reach our support team directly</p>
+                          <p className="text-sm font-medium text-foreground">Contact Us</p>
+                          <p className="text-xs text-muted-foreground">Reach our support team directly</p>
                         </div>
-                        <ChevronRight className="size-4 text-slate-500" />
+                        <ChevronRight className="size-4 text-muted-foreground" />
                       </Link>
 
                       {/* Privacy Policy */}
                       <Link
                         href="/privacy"
-                        className="flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-950 p-3 hover:bg-slate-800 transition"
+                        className="flex items-center gap-3 rounded-xl border bg-muted/30 p-3 hover:bg-muted transition"
                       >
-                        <Shield className="size-5 text-cyan-400" />
+                        <Shield className="size-5 text-primary" />
                         <div className="text-left flex-1">
-                          <p className="text-sm font-medium">Privacy Policy</p>
-                          <p className="text-xs text-slate-400">Data protection & usage terms</p>
+                          <p className="text-sm font-medium text-foreground">Privacy Policy</p>
+                          <p className="text-xs text-muted-foreground">Data protection & usage terms</p>
                         </div>
-                        <ChevronRight className="size-4 text-slate-500" />
+                        <ChevronRight className="size-4 text-muted-foreground" />
                       </Link>
 
                       {/* Download Android APK */}
                       <a
                         href="/downloads/AetherChat.apk"
                         download="AetherChat.apk"
-                        className="flex items-center gap-3 rounded-xl border border-cyan-500/30 bg-cyan-950/20 p-3 hover:bg-cyan-950/40 transition"
+                        className="flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/10 p-3 hover:bg-primary/20 transition"
                       >
-                        <Download className="size-5 text-cyan-400" />
+                        <Download className="size-5 text-primary" />
                         <div className="text-left flex-1">
-                          <p className="text-sm font-medium text-cyan-300">Download Android App</p>
-                          <p className="text-xs text-slate-400">Native signed APK for Android</p>
+                          <p className="text-sm font-medium text-primary">Download Android App</p>
+                          <p className="text-xs text-muted-foreground">Native signed APK for Android</p>
                         </div>
-                        <ChevronRight className="size-4 text-cyan-400" />
+                        <ChevronRight className="size-4 text-primary" />
                       </a>
                     </div>
                   )}
