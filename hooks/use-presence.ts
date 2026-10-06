@@ -18,9 +18,9 @@ export function usePresence(userId: string) {
     let cancelled = false;
     let heartbeat: ReturnType<typeof setInterval> | undefined;
 
-    // Use global public presence channel for instant cross-client tracking
-    const channel = supabase.channel("global-online-presence", {
-      config: { presence: { key: userId } },
+    // Use private online-users channel permitted by RLS policy
+    const channel = supabase.channel("online-users", {
+      config: { private: true, presence: { key: userId } },
     });
 
     async function syncPresence() {
@@ -46,6 +46,11 @@ export function usePresence(userId: string) {
     }
 
     async function connect() {
+      const { data } = await supabase.auth.getSession();
+      if (data.session?.access_token) {
+        await supabase.realtime.setAuth(data.session.access_token);
+      }
+
       channel
         .on("presence", { event: "sync" }, syncPresence)
         .on("presence", { event: "join" }, syncPresence)

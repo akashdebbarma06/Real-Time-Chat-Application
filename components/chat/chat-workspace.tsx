@@ -48,7 +48,16 @@ export function ChatWorkspace({ profile, selectedConversationId }: ChatWorkspace
     const supabase = createClient();
     const channel = supabase
       .channel(`user-conversations:${profile.id}`, { config: { private: true } })
-      .on("broadcast", { event: "conversation_changed" }, () => void loadConversations());
+      .on("broadcast", { event: "conversation_changed" }, () => void loadConversations())
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+        },
+        () => void loadConversations()
+      );
 
     void supabase.auth.getSession().then(async ({ data }) => {
       if (data.session?.access_token) await supabase.realtime.setAuth(data.session.access_token);

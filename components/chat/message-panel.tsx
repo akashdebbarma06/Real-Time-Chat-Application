@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { notifyIncomingMessage, requestNotificationPermission } from "@/lib/notifications";
@@ -82,12 +83,14 @@ export function MessagePanel({
   onlineUserIds,
   onConversationActivity,
 }: MessagePanelProps) {
+  const router = useRouter();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [replyingToMessage, setReplyingToMessage] = useState<ChatMessage | null>(null);
   const [typingUsers, setTypingUsers] = useState<Map<string, string>>(new Map());
 
+  const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
   const [userProfileSheetOpen, setUserProfileSheetOpen] = useState(false);
   const [comingSoonOpen, setComingSoonOpen] = useState(false);
   const [comingSoonFeature, setComingSoonFeature] = useState("Feature");
@@ -95,6 +98,9 @@ export function MessagePanel({
   const [isSearching, setIsSearching] = useState(false);
   const [inChatQuery, setInChatQuery] = useState("");
   const [isMuted, setIsMuted] = useState(false);
+
+  // Real-time broadcasted reactions state: { [messageId]: { [emoji]: userIds[] } }
+  const [reactionsByMessage, setReactionsByMessage] = useState<Record<string, Record<string, string[]>>>({});
 
   const channelRef = useRef<RealtimeChannel | null>(null);
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -164,6 +170,42 @@ export function MessagePanel({
           onConversationActivity();
         })
         .on("broadcast", { event: "READ_RECEIPT" }, () => void loadMessages())
+        .on("broadcast", { event: "REACTION" }, ({ payload }) => {
+          const { message_id, user_id, emoji } = payload as { message_id: string; user_id: string; emoji: string };
+          if (!message_id || !emoji) return;
+          setReactionsByMessage((prev) => {
+            const msgReactions = { ...(prev[message_id] || {}) };
+            const currentUsers = msgReactions[emoji] || [];
+            const hasReacted = currentUsers.includes(user_id);
+            msgReactions[emoji] = hasReacted
+              ? currentUsers.filter((id) => id !== user_id)
+              : [...currentUsers, user_id];
+            return { ...prev, [message_id]: msgReactions };
+          });
+        })
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "messages",
+            filter: `conversation_id=eq.${conversationId}`,
+          },
+          (payload) => {
+            void loadMessages();
+            onConversationActivity();
+            if (payload.eventType === "INSERT") {
+              const newRow = payload.new as { sender_id?: string; content?: string } | undefined;
+              if (newRow?.sender_id !== profile.id) {
+                notifyIncomingMessage({
+                  senderName: "New Message",
+                  content: newRow?.content || "Sent an attachment",
+                  muted: isMuted,
+                });
+              }
+            }
+          }
+        )
         .subscribe((status, error) => {
           if (status === "CHANNEL_ERROR") toast.error(error?.message || "Realtime connection failed");
         });
@@ -240,6 +282,44 @@ export function MessagePanel({
     }
   }
 
+  const handleToggleReaction = useCallback((messageId: string, emoji: string) => {
+    setReactionsByMessage((prev) => {
+      const msgReactions = { ...(prev[messageId] || {}) };
+      const currentUsers = msgReactions[emoji] || [];
+      const hasReacted = currentUsers.includes(profile.id);
+      msgReactions[emoji] = hasReacted
+        ? currentUsers.filter((id) => id !== profile.id)
+        : [...currentUsers, profile.id];
+      return { ...prev, [messageId]: msgReactions };
+    });
+
+    void channelRef.current?.send({
+      type: "broadcast",
+      event: "REACTION",
+      payload: { message_id: messageId, user_id: profile.id, emoji },
+    });
+  }, [profile.id]);
+
+  async function handleDeleteConversation() {
+    if (!window.confirm("Are you sure you want to delete this chat history? This cannot be undone.")) return;
+    setLoading(true);
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("messages")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("conversation_id", conversationId);
+
+    setLoading(false);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Chat history deleted");
+      setMessages([]);
+      onConversationActivity();
+      router.push("/chat");
+    }
+  }
+
   async function sendText(content: string) {
     setSending(true);
     let finalContent = content;
@@ -253,8 +333,21 @@ export function MessagePanel({
       .insert({ conversation_id: conversationId, sender_id: profile.id, content: finalContent, message_type: "text" });
 
     setSending(false);
-    if (error) toast.error(error.message);
-    else void loadMessages();
+    if (error) {
+      toast.error(error.message);
+    } else {
+      void channelRef.current?.send({
+        type: "broadcast",
+        event: "INSERT",
+        payload: {
+          sender_id: profile.id,
+          sender_name: profile.display_name,
+          content: finalContent,
+        },
+      });
+      void loadMessages();
+      onConversationActivity();
+    }
   }
 
   async function sendFile(file: File, caption: string) {
@@ -282,8 +375,21 @@ export function MessagePanel({
     });
 
     setSending(false);
-    if (error) toast.error(error.message);
-    else void loadMessages();
+    if (error) {
+      toast.error(error.message);
+    } else {
+      void channelRef.current?.send({
+        type: "broadcast",
+        event: "INSERT",
+        payload: {
+          sender_id: profile.id,
+          sender_name: profile.display_name,
+          content: caption || file.name,
+        },
+      });
+      void loadMessages();
+      onConversationActivity();
+    }
   }
 
   async function handleEditMessage(messageId: string, newContent: string) {
@@ -292,8 +398,17 @@ export function MessagePanel({
       .update({ content: newContent, edited_at: new Date().toISOString() })
       .eq("id", messageId);
 
-    if (error) toast.error(error.message);
-    else void loadMessages();
+    if (error) {
+      toast.error(error.message);
+    } else {
+      void channelRef.current?.send({
+        type: "broadcast",
+        event: "UPDATE",
+        payload: { id: messageId },
+      });
+      void loadMessages();
+      onConversationActivity();
+    }
   }
 
   async function handleDeleteMessage(messageId: string) {
@@ -302,10 +417,17 @@ export function MessagePanel({
       .update({ deleted_at: new Date().toISOString() })
       .eq("id", messageId);
 
-    if (error) toast.error(error.message);
-    else {
+    if (error) {
+      toast.error(error.message);
+    } else {
       toast.success("Message deleted");
+      void channelRef.current?.send({
+        type: "broadcast",
+        event: "DELETE",
+        payload: { id: messageId },
+      });
       void loadMessages();
+      onConversationActivity();
     }
   }
 
@@ -342,7 +464,10 @@ export function MessagePanel({
           </Button>
 
           <button
-            onClick={() => setUserProfileSheetOpen(true)}
+            onClick={() => {
+              setSelectedProfile(peers[0] || null);
+              setUserProfileSheetOpen(true);
+            }}
             className="flex items-center gap-3 min-w-0 text-left hover:opacity-80 transition"
           >
             <div className="relative shrink-0">
@@ -418,7 +543,10 @@ export function MessagePanel({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" side="bottom" className="w-56 p-1 rounded-2xl shadow-xl">
               <DropdownMenuItem
-                onClick={() => setUserProfileSheetOpen(true)}
+                onClick={() => {
+                  setSelectedProfile(peers[0] || null);
+                  setUserProfileSheetOpen(true);
+                }}
                 className="flex items-center gap-2 text-xs rounded-xl cursor-pointer"
               >
                 <User className="size-4 text-primary" />
@@ -455,14 +583,11 @@ export function MessagePanel({
               <DropdownMenuSeparator className="my-1" />
 
               <DropdownMenuItem
-                onClick={() => {
-                  setMessages([]);
-                  toast.success("Chat history cleared");
-                }}
+                onClick={() => void handleDeleteConversation()}
                 className="flex items-center gap-2 text-xs text-destructive rounded-xl cursor-pointer"
               >
                 <Trash2 className="size-4" />
-                <span>Clear Chat History</span>
+                <span>Delete Chat History</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -539,6 +664,12 @@ export function MessagePanel({
                       currentUserId={profile.id}
                       showSenderName={isGroup}
                       showReceipt={message.id === lastOwnMessageId}
+                      reactions={reactionsByMessage[message.id] || {}}
+                      onToggleReaction={(emoji) => handleToggleReaction(message.id, emoji)}
+                      onProfileClick={(p) => {
+                        setSelectedProfile(p);
+                        setUserProfileSheetOpen(true);
+                      }}
                       onReply={(msg) => setReplyingToMessage(msg)}
                       onEdit={handleEditMessage}
                       onDelete={handleDeleteMessage}
@@ -592,8 +723,8 @@ export function MessagePanel({
       <UserProfileSheet
         open={userProfileSheetOpen}
         onOpenChange={setUserProfileSheetOpen}
-        peerProfile={peers[0] || null}
-        isOnline={isPeerOnline}
+        peerProfile={selectedProfile || peers[0] || null}
+        isOnline={selectedProfile ? onlineUserIds.has(selectedProfile.id) : isPeerOnline}
         isMuted={isMuted}
         onToggleMute={() => setIsMuted(!isMuted)}
       />

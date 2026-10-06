@@ -23,28 +23,75 @@ export function ContactsView({ currentUserId, onlineUserIds, onConversationCreat
   const [tab, setTab] = useState<"friends" | "online" | "search">("friends");
   const [query, setQuery] = useState("");
   const [users, setUsers] = useState<Profile[]>([]);
+  const [searchResults, setSearchResults] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    async function loadProfiles() {
+    async function loadMutualContacts() {
+      setLoading(true);
+      const supabase = createClient();
+      const { data: memberRows, error: memberErr } = await supabase
+        .from("conversation_members")
+        .select("conversation_id")
+        .eq("user_id", currentUserId);
+
+      if (!memberErr && memberRows?.length) {
+        const convIds = memberRows.map((r) => r.conversation_id);
+        const { data: peerMemberRows } = await supabase
+          .from("conversation_members")
+          .select("user_id")
+          .in("conversation_id", convIds)
+          .neq("user_id", currentUserId);
+
+        const peerUserIds = [...new Set((peerMemberRows || []).map((m) => m.user_id))];
+        if (peerUserIds.length > 0) {
+          const { data: peerProfiles } = await supabase
+            .from("profiles")
+            .select("id, username, display_name, avatar_url, bio, last_seen_at")
+            .in("id", peerUserIds);
+
+          setUsers((peerProfiles || []) as Profile[]);
+        } else {
+          setUsers([]);
+        }
+      } else {
+        setUsers([]);
+      }
+      setLoading(false);
+    }
+
+    void loadMutualContacts();
+  }, [currentUserId]);
+
+  useEffect(() => {
+    if (tab !== "search") return;
+    const trimmed = query.trim().replace(/[,()]/g, "");
+    if (trimmed.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
       setLoading(true);
       const supabase = createClient();
       const { data, error } = await supabase
         .from("profiles")
         .select("id, username, display_name, avatar_url, bio, last_seen_at")
         .neq("id", currentUserId)
-        .order("display_name")
-        .limit(50);
+        .or(`display_name.ilike.%${trimmed}%,username.ilike.%${trimmed}%`)
+        .limit(20);
 
-      if (error) toast.error(error.message);
-      else setUsers((data || []) as Profile[]);
+      if (!error && data) {
+        setSearchResults(data as Profile[]);
+      }
       setLoading(false);
-    }
+    }, 250);
 
-    void loadProfiles();
-  }, [currentUserId]);
+    return () => clearTimeout(timer);
+  }, [currentUserId, query, tab]);
 
   const filteredUsers = useMemo(() => {
+    if (tab === "search") return searchResults;
     let list = users;
     if (tab === "online") {
       list = list.filter((user) => onlineUserIds.has(user.id));
@@ -54,7 +101,7 @@ export function ContactsView({ currentUserId, onlineUserIds, onConversationCreat
     return list.filter(
       (user) => user.display_name.toLowerCase().includes(q) || user.username.toLowerCase().includes(q)
     );
-  }, [onlineUserIds, query, tab, users]);
+  }, [onlineUserIds, query, searchResults, tab, users]);
 
   async function startChat(userId: string) {
     setLoading(true);
@@ -161,8 +208,24 @@ export function ContactsView({ currentUserId, onlineUserIds, onConversationCreat
           {!filteredUsers.length && (
             <div className="px-6 py-16 text-center">
               <UserCheck className="mx-auto size-8 text-muted-foreground/50" />
-              <p className="mt-4 text-sm font-medium">No contacts found</p>
-              <p className="mt-1 text-xs text-muted-foreground">Try searching for a different username.</p>
+              <p className="mt-4 text-sm font-medium">
+                {tab === "search" && query.trim().length < 2
+                  ? "Find people to chat with"
+                  : tab === "search"
+                    ? "No users found"
+                    : tab === "online"
+                      ? "No contacts currently online"
+                      : "No contacts yet"}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground max-w-xs mx-auto">
+                {tab === "search" && query.trim().length < 2
+                  ? "Enter a display name or @username above to search."
+                  : tab === "search"
+                    ? `No accounts matched "${query}". Check the spelling and try again.`
+                    : tab === "online"
+                      ? "When your chat partners sign on, they will appear here."
+                      : "Start a new conversation to add people to your contacts."}
+              </p>
             </div>
           )}
         </div>

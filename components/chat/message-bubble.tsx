@@ -15,7 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn, formatMessageTime, getInitials } from "@/lib/utils";
-import type { ChatMessage } from "@/types/chat";
+import type { ChatMessage, Profile } from "@/types/chat";
 
 const EMOJI_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🔥"];
 
@@ -24,6 +24,9 @@ interface MessageBubbleProps {
   currentUserId: string;
   showSenderName: boolean;
   showReceipt: boolean;
+  reactions?: { [emoji: string]: string[] };
+  onToggleReaction?: (emoji: string) => void;
+  onProfileClick?: (profile: Profile) => void;
   onReply?: (message: ChatMessage) => void;
   onEdit?: (messageId: string, newContent: string) => void;
   onDelete?: (messageId: string) => void;
@@ -34,6 +37,9 @@ export function MessageBubble({
   currentUserId,
   showSenderName,
   showReceipt,
+  reactions: externalReactions,
+  onToggleReaction,
+  onProfileClick,
   onReply,
   onEdit,
   onDelete,
@@ -41,7 +47,8 @@ export function MessageBubble({
   const own = message.sender_id === currentUserId;
   const readBySomeoneElse = message.read_receipts?.some((receipt) => receipt.user_id !== currentUserId);
 
-  const [reactions, setReactions] = useState<{ [emoji: string]: string[] }>({});
+  const [localReactions, setLocalReactions] = useState<{ [emoji: string]: string[] }>({});
+  const reactions = externalReactions || localReactions;
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content || "");
   const [showMobileActions, setShowMobileActions] = useState(false);
@@ -49,14 +56,18 @@ export function MessageBubble({
 
   function toggleReaction(emoji: string, e?: React.MouseEvent) {
     if (e) e.stopPropagation();
-    setReactions((prev) => {
-      const current = prev[emoji] || [];
-      const hasReacted = current.includes(currentUserId);
-      const next = hasReacted
-        ? current.filter((id) => id !== currentUserId)
-        : [...current, currentUserId];
-      return { ...prev, [emoji]: next };
-    });
+    if (onToggleReaction) {
+      onToggleReaction(emoji);
+    } else {
+      setLocalReactions((prev) => {
+        const current = prev[emoji] || [];
+        const hasReacted = current.includes(currentUserId);
+        const next = hasReacted
+          ? current.filter((id) => id !== currentUserId)
+          : [...current, currentUserId];
+        return { ...prev, [emoji]: next };
+      });
+    }
     setShowEmojiPicker(false);
   }
 
@@ -76,16 +87,35 @@ export function MessageBubble({
       )}
     >
       {!own && (
-        <Avatar className="size-8 shrink-0 border border-border shadow-sm">
-          <AvatarImage src={message.sender.avatar_url || undefined} alt={message.sender.display_name} />
-          <AvatarFallback className="text-xs">{getInitials(message.sender.display_name)}</AvatarFallback>
-        </Avatar>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onProfileClick?.(message.sender);
+          }}
+          className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-full cursor-pointer hover:opacity-80 transition"
+          aria-label={`View ${message.sender.display_name}'s profile`}
+        >
+          <Avatar className="size-8 shrink-0 border border-border shadow-sm">
+            <AvatarImage src={message.sender.avatar_url || undefined} alt={message.sender.display_name} />
+            <AvatarFallback className="text-xs">{getInitials(message.sender.display_name)}</AvatarFallback>
+          </Avatar>
+        </button>
       )}
 
       {/* Bubble Container */}
       <div className={cn("relative flex flex-col max-w-[76%] sm:max-w-[68%]", own && "items-end")}>
         {showSenderName && !own && (
-          <p className="mb-1 px-2 text-xs font-semibold text-muted-foreground">{message.sender.display_name}</p>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onProfileClick?.(message.sender);
+            }}
+            className="mb-1 px-2 text-xs font-semibold text-muted-foreground hover:text-foreground text-left cursor-pointer transition-colors"
+          >
+            {message.sender.display_name}
+          </button>
         )}
 
         {/* Bubble */}
