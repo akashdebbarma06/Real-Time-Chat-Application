@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { MessageSquare, Search, UserCheck, Users, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { createClient } from "@/lib/supabase/client";
@@ -66,10 +65,7 @@ export function ContactsView({ currentUserId, onlineUserIds, onConversationCreat
   useEffect(() => {
     if (tab !== "search") return;
     const trimmed = query.trim().replace(/[,()]/g, "");
-    if (trimmed.length < 2) {
-      setSearchResults([]);
-      return;
-    }
+    if (trimmed.length < 2) return;
 
     const timer = setTimeout(async () => {
       setLoading(true);
@@ -91,7 +87,9 @@ export function ContactsView({ currentUserId, onlineUserIds, onConversationCreat
   }, [currentUserId, query, tab]);
 
   const filteredUsers = useMemo(() => {
-    if (tab === "search") return searchResults;
+    if (tab === "search") {
+      return query.trim().length < 2 ? [] : searchResults;
+    }
     let list = users;
     if (tab === "online") {
       list = list.filter((user) => onlineUserIds.has(user.id));

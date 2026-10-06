@@ -8,7 +8,6 @@ import {
   ImageIcon,
   Loader2,
   Mic,
-  MicOff,
   Paperclip,
   SendHorizontal,
   Smile,
@@ -23,7 +22,7 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { cn, formatFileSize } from "@/lib/utils";
+import { formatFileSize } from "@/lib/utils";
 import type { ChatMessage } from "@/types/chat";
 
 const MAX_FILE_SIZE = 6 * 1024 * 1024;
@@ -51,7 +50,6 @@ export function MessageComposer({
   const [content, setContent] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [isRecordingVoice, setIsRecordingVoice] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -194,14 +192,11 @@ export function MessageComposer({
               type="button"
               disabled={disabled || sending}
               onClick={toggleVoiceRecording}
-              className={cn(
-                "grid size-8 place-items-center rounded-full transition-all text-muted-foreground hover:text-foreground hover:bg-muted",
-                isRecordingVoice && "text-destructive"
-              )}
+              className="grid size-8 place-items-center rounded-full transition-all text-muted-foreground hover:text-foreground hover:bg-muted"
               aria-label="Voice message"
               title="Record voice note"
             >
-              {isRecordingVoice ? <MicOff className="size-[18px]" /> : <Mic className="size-[18px]" />}
+              <Mic className="size-[18px]" />
             </button>
 
             {/* Emoji Picker */}
@@ -283,13 +278,6 @@ export function MessageComposer({
           {sending ? <Loader2 className="size-5 animate-spin" /> : <SendHorizontal className="size-5" />}
         </Button>
       </div>
-
-      {isRecordingVoice && (
-        <div className="mx-auto max-w-6xl flex items-center gap-2 px-4 py-1 rounded-full bg-destructive/10 text-destructive text-xs font-semibold animate-pulse">
-          <span className="size-2 rounded-full bg-destructive" />
-          <span>Recording Voice Note...</span>
-        </div>
-      )}
 
       <ComingSoonDialog
         open={comingSoonOpen}
