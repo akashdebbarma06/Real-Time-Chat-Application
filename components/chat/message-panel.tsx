@@ -359,7 +359,7 @@ export function MessagePanel({
             </div>
 
             <div className="min-w-0 flex-1">
-              <h1 className="truncate text-base font-semibold">{title}</h1>
+              <h2 className="truncate text-base font-semibold">{title}</h2>
               <p className="text-xs text-muted-foreground truncate">
                 {typingLabel || statusText}
               </p>

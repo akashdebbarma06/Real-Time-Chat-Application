@@ -115,48 +115,46 @@ export function ContactsView({ currentUserId, onlineUserIds, onConversationCreat
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="border-sidebar-border bg-background/70 pl-9 rounded-xl text-xs"
-            placeholder="Search contacts by name or @username..."
+            placeholder="Search contacts..."
+            aria-label="Search contacts by name or username"
           />
         </div>
       </div>
 
       {/* Contacts List */}
       <ScrollArea className="flex-1 px-3">
-        <div className="space-y-2 py-2">
+        <div className="space-y-1 py-1">
           {filteredUsers.map((user) => {
             const isOnline = onlineUserIds.has(user.id);
             return (
-              <div
+              <button
                 key={user.id}
-                className="flex items-center justify-between gap-3 rounded-2xl border border-sidebar-border/60 bg-muted/40 p-3 transition-all hover:bg-muted/80 hover:border-sidebar-border"
+                type="button"
+                disabled={loading}
+                onClick={() => void startChat(user.id)}
+                className="group flex w-full items-center justify-between gap-3 rounded-xl border border-transparent p-2 text-left transition-all hover:bg-muted/60 hover:border-sidebar-border/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer disabled:pointer-events-none disabled:opacity-50"
               >
-                <div className="flex items-center gap-3 min-w-0">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
                   <div className="relative shrink-0">
-                    <Avatar className="size-10 border shadow-sm">
+                    <Avatar className="size-9 border shadow-xs">
                       <AvatarImage src={user.avatar_url || undefined} alt={user.display_name} />
                       <AvatarFallback>{getInitials(user.display_name)}</AvatarFallback>
                     </Avatar>
                     {isOnline && (
-                      <span className="absolute bottom-0 right-0 size-3 rounded-full border-2 border-sidebar bg-emerald-500 shadow-sm" />
+                      <span className="absolute bottom-0 right-0 size-2.5 rounded-full border-2 border-sidebar bg-emerald-500 shadow-xs" />
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-foreground">{user.display_name}</p>
+                    <p className="truncate text-sm font-semibold text-foreground group-hover:text-primary transition-colors">{user.display_name}</p>
                     <p className="truncate text-xs text-muted-foreground">@{user.username}</p>
                   </div>
                 </div>
 
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  disabled={loading}
-                  onClick={() => void startChat(user.id)}
-                  className="rounded-full gap-1 text-xs shrink-0"
-                >
-                  <MessageSquare className="size-3.5" />
-                  <span>Message</span>
-                </Button>
-              </div>
+                <div className="flex items-center gap-1 shrink-0 text-muted-foreground/60 group-hover:text-primary transition-colors">
+                  <MessageSquare className="size-4" aria-hidden="true" />
+                  <span className="sr-only">Message {user.display_name}</span>
+                </div>
+              </button>
             );
           })}
 

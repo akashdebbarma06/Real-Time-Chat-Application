@@ -25,6 +25,7 @@ import { ContactsView } from "@/components/chat/contacts-view";
 import { ConversationAvatar } from "@/components/chat/conversation-avatar";
 import { NewChatDialog } from "@/components/chat/new-chat-dialog";
 import { SettingsView } from "@/components/chat/settings-view";
+import { Button } from "@/components/ui/button";
 import { ComingSoonDialog } from "@/components/ui/coming-soon-dialog";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -108,12 +109,12 @@ export function ConversationSidebar({
   return (
     <aside className="flex h-full min-h-0 flex-col border-r bg-background text-foreground">
       {/* Top Header */}
-      <div className="flex h-16 items-center justify-between border-b px-5 shrink-0">
+      <div className="flex h-16 items-center justify-between border-b px-4 sm:px-5 shrink-0">
         <h1 className="text-2xl font-bold tracking-tight">
           {activeTab === "chats" ? "Messages" : activeTab === "contacts" ? "Contacts" : "Settings"}
         </h1>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5 -mr-1">
           {activeTab === "chats" && (
             <NewChatDialog
               currentUserId={profile.id}
@@ -125,12 +126,14 @@ export function ConversationSidebar({
           {/* 3-Dots Dropdown Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button
-                className="grid size-9 place-items-center rounded-xl text-muted-foreground transition hover:bg-accent hover:text-foreground"
+              <Button
+                variant="ghost"
+                size="icon-sm"
                 aria-label="Options"
+                className="text-muted-foreground hover:text-foreground"
               >
-                <MoreVertical className="size-5" />
-              </button>
+                <MoreVertical className="size-4" />
+              </Button>
             </DropdownMenuTrigger>
 
             <DropdownMenuContent align="end" side="bottom" className="w-64 p-2 rounded-2xl shadow-2xl">

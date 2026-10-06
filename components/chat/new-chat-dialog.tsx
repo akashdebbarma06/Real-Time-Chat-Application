@@ -104,8 +104,13 @@ export function NewChatDialog({
               <span>New Chat</span>
             </Button>
           ) : (
-            <Button size="icon-sm" aria-label="Start a conversation">
-              <UserPlus />
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Start a conversation"
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <UserPlus className="size-4" />
             </Button>
           )}
         </DialogTrigger>
