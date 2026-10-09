@@ -1,0 +1,58 @@
+"use client";
+
+import { Camera, CircleDot, Video } from "lucide-react";
+
+interface CameraMenuProps {
+  onSelectVideo: () => void;
+  onSelectPhoto: () => void;
+  onSelectVideoNote: () => void;
+}
+
+export function CameraMenu({
+  onSelectVideo,
+  onSelectPhoto,
+  onSelectVideoNote,
+}: CameraMenuProps) {
+  return (
+    <div
+      role="menu"
+      aria-label="Camera options"
+      className="absolute bottom-full right-10 sm:right-14 mb-3 z-30 w-48 rounded-2xl border border-white/20 dark:border-white/10 bg-background/85 dark:bg-card/90 backdrop-blur-2xl p-1.5 shadow-2xl shadow-black/10 dark:shadow-black/40 animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-200"
+    >
+      <div className="space-y-0.5">
+        <button
+          type="button"
+          onClick={onSelectVideo}
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-semibold text-foreground hover:bg-muted/80 transition-colors cursor-pointer text-left"
+        >
+          <div className="grid size-7 place-items-center rounded-lg bg-red-500/10 text-red-500">
+            <Video className="size-4" />
+          </div>
+          <span>Video</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={onSelectPhoto}
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-semibold text-foreground hover:bg-muted/80 transition-colors cursor-pointer text-left"
+        >
+          <div className="grid size-7 place-items-center rounded-lg bg-blue-500/10 text-blue-500">
+            <Camera className="size-4" />
+          </div>
+          <span>Photo</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={onSelectVideoNote}
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-semibold text-foreground hover:bg-muted/80 transition-colors cursor-pointer text-left"
+        >
+          <div className="grid size-7 place-items-center rounded-lg bg-purple-500/10 text-purple-500">
+            <CircleDot className="size-4" />
+          </div>
+          <span>Video Note</span>
+        </button>
+      </div>
+    </div>
+  );
+}

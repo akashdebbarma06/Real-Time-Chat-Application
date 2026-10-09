@@ -668,97 +668,99 @@ export function MessagePanel({
         </div>
       )}
 
-      {/* MESSAGE LIST COMPONENT INLINED */}
-      <ScrollArea className={cn("min-h-0 flex-1 transition-colors duration-200", chatBgClass)}>
-        <div
-          className={cn(
-            "mx-auto max-w-6xl px-3 sm:px-5",
-            displayMessages.length > 0 ? "flex flex-col py-4" : "flex min-h-full flex-col items-center justify-center py-5"
-          )}
-        >
-          {loading ? (
-            <div className="space-y-4 py-4">
-              {Array.from({ length: 7 }).map((_, index) => (
-                <div key={index} className={index % 3 === 0 ? "flex justify-end" : "flex justify-start"}>
-                  <Skeleton className="h-14 w-[55%] rounded-2xl" />
-                </div>
-              ))}
-            </div>
-          ) : displayMessages.length ? (
-            <div className="space-y-5 sm:space-y-6">
-              {displayMessages.map((message, index) => {
-                const currentDateLabel = formatMessageDateSeparator(message.created_at);
-                const prevMessage = index > 0 ? displayMessages[index - 1] : null;
-                const prevDateLabel = prevMessage ? formatMessageDateSeparator(prevMessage.created_at) : null;
-                const showDateSeparator = currentDateLabel !== prevDateLabel;
-
-                return (
-                  <div key={message.id}>
-                    {showDateSeparator && (
-                      <div className="my-6 flex items-center justify-center">
-                        <span className="rounded-full bg-muted px-3.5 py-1 text-[11px] font-medium text-muted-foreground">
-                          {currentDateLabel}
-                        </span>
-                      </div>
-                    )}
-
-                    <MessageBubble
-                      message={message}
-                      currentUserId={profile.id}
-                      showSenderName={isGroup}
-                      showReceipt={message.id === lastOwnMessageId}
-                      reactions={reactionsByMessage[message.id] || {}}
-                      onToggleReaction={(emoji) => handleToggleReaction(message.id, emoji)}
-                      onProfileClick={(p) => handleOpenProfile(p)}
-                      onReply={(msg) => setReplyingToMessage(msg)}
-                      onEdit={handleEditMessage}
-                      onDelete={handleDeleteMessage}
-                    />
+      {/* MESSAGE LIST AND FLOATING COMPOSER OVER CHAT BACKGROUND */}
+      <div className={cn("relative flex-1 min-h-0 flex flex-col overflow-hidden transition-colors duration-200", chatBgClass)}>
+        <ScrollArea className="min-h-0 flex-1 bg-transparent">
+          <div
+            className={cn(
+              "mx-auto max-w-6xl px-3 sm:px-5",
+              displayMessages.length > 0 ? "flex flex-col py-4" : "flex min-h-full flex-col items-center justify-center py-5"
+            )}
+          >
+            {loading ? (
+              <div className="space-y-4 py-4">
+                {Array.from({ length: 7 }).map((_, index) => (
+                  <div key={index} className={index % 3 === 0 ? "flex justify-end" : "flex justify-start"}>
+                    <Skeleton className="h-14 w-[55%] rounded-2xl" />
                   </div>
-                );
-              })}
+                ))}
+              </div>
+            ) : displayMessages.length ? (
+              <div className="space-y-5 sm:space-y-6">
+                {displayMessages.map((message, index) => {
+                  const currentDateLabel = formatMessageDateSeparator(message.created_at);
+                  const prevMessage = index > 0 ? displayMessages[index - 1] : null;
+                  const prevDateLabel = prevMessage ? formatMessageDateSeparator(prevMessage.created_at) : null;
+                  const showDateSeparator = currentDateLabel !== prevDateLabel;
 
-              {typingLabel && (
-                <div className="flex items-end gap-2.5 my-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  <div className="flex items-center gap-3 rounded-2xl rounded-bl-sm bg-muted px-4 py-2.5 shadow-sm">
-                    <span className="text-xs font-medium text-muted-foreground">{typingLabel}</span>
-                    <div className="flex items-center gap-1.5 px-0.5">
-                      <span className="size-2 rounded-full bg-foreground/40 animate-bounce" />
-                      <span className="size-2 rounded-full bg-foreground/40 animate-bounce [animation-delay:0.2s]" />
-                      <span className="size-2 rounded-full bg-foreground/40 animate-bounce [animation-delay:0.4s]" />
+                  return (
+                    <div key={message.id}>
+                      {showDateSeparator && (
+                        <div className="my-6 flex items-center justify-center">
+                          <span className="rounded-full bg-muted px-3.5 py-1 text-[11px] font-medium text-muted-foreground">
+                            {currentDateLabel}
+                          </span>
+                        </div>
+                      )}
+
+                      <MessageBubble
+                        message={message}
+                        currentUserId={profile.id}
+                        showSenderName={isGroup}
+                        showReceipt={message.id === lastOwnMessageId}
+                        reactions={reactionsByMessage[message.id] || {}}
+                        onToggleReaction={(emoji) => handleToggleReaction(message.id, emoji)}
+                        onProfileClick={(p) => handleOpenProfile(p)}
+                        onReply={(msg) => setReplyingToMessage(msg)}
+                        onEdit={handleEditMessage}
+                        onDelete={handleDeleteMessage}
+                      />
+                    </div>
+                  );
+                })}
+
+                {typingLabel && (
+                  <div className="flex items-end gap-2.5 my-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div className="flex items-center gap-3 rounded-2xl rounded-bl-sm bg-muted px-4 py-2.5 shadow-sm">
+                      <span className="text-xs font-medium text-muted-foreground">{typingLabel}</span>
+                      <div className="flex items-center gap-1.5 px-0.5">
+                        <span className="size-2 rounded-full bg-foreground/40 animate-bounce" />
+                        <span className="size-2 rounded-full bg-foreground/40 animate-bounce [animation-delay:0.2s]" />
+                        <span className="size-2 rounded-full bg-foreground/40 animate-bounce [animation-delay:0.4s]" />
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="text-center py-12 animate-in fade-in zoom-in duration-300">
-              <div className="mx-auto grid size-20 place-items-center rounded-3xl border bg-muted text-muted-foreground shadow-sm">
-                <MessageCircleMore className="size-9" />
+                )}
               </div>
-              <h2 className="mt-5 text-xl font-bold text-foreground">
-                {inChatQuery ? "No matching messages" : "Start the conversation"}
-              </h2>
-              <p className="mt-2 text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
-                {inChatQuery
-                  ? `No messages match "${inChatQuery}". Try searching for another keyword.`
-                  : `Say hello or share a file to kick off your chat with ${title}! 👋`}
-              </p>
-            </div>
-          )}
-          <div ref={bottomRef} />
-        </div>
-      </ScrollArea>
+            ) : (
+              <div className="text-center py-12 animate-in fade-in zoom-in duration-300">
+                <div className="mx-auto grid size-20 place-items-center rounded-3xl border bg-muted text-muted-foreground shadow-sm">
+                  <MessageCircleMore className="size-9" />
+                </div>
+                <h2 className="mt-5 text-xl font-bold text-foreground">
+                  {inChatQuery ? "No matching messages" : "Start the conversation"}
+                </h2>
+                <p className="mt-2 text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
+                  {inChatQuery
+                    ? `No messages match "${inChatQuery}". Try searching for another keyword.`
+                    : `Say hello or share a file to kick off your chat with ${title}! 👋`}
+                </p>
+              </div>
+            )}
+            <div ref={bottomRef} />
+          </div>
+        </ScrollArea>
 
-      <MessageComposer
-        sending={sending}
-        disabled={!conversation}
-        replyToMessage={replyingToMessage}
-        onCancelReply={() => setReplyingToMessage(null)}
-        onSendText={sendText}
-        onSendFile={sendFile}
-        onTyping={broadcastTyping}
-      />
+        <MessageComposer
+          sending={sending}
+          disabled={!conversation}
+          replyToMessage={replyingToMessage}
+          onCancelReply={() => setReplyingToMessage(null)}
+          onSendText={sendText}
+          onSendFile={sendFile}
+          onTyping={broadcastTyping}
+        />
+      </div>
 
       {/* Fallback Sheets only when in-panel handler not supplied */}
       {!onOpenUserProfile && (

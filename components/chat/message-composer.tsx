@@ -1,31 +1,40 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import {
+  Camera,
   CornerUpLeft,
   FileIcon,
-  ImageIcon,
   Loader2,
   Mic,
   Paperclip,
+  Plus,
   SendHorizontal,
-  Smile,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
-import { ComingSoonDialog } from "@/components/ui/coming-soon-dialog";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { formatFileSize, validateUploadFile, MAX_FILE_SIZE } from "@/lib/utils";
+import { cn, formatFileSize, validateUploadFile } from "@/lib/utils";
 import type { ChatMessage } from "@/types/chat";
 
-const QUICK_EMOJIS = ["😊", "👍", "❤️", "😂", "😮", "😢", "🔥", "🎉", "🚀", "💡", "✨", "🙏", "👀", "💬"];
+import { AttachmentGridMenu } from "./composer/attachment-grid-menu";
+import { CameraMenu } from "./composer/camera-menu";
+import {
+  AddQuickMenu,
+  FullMediaDrawer,
+  type MediaTab,
+} from "./composer/add-menu-drawer";
+import { PollCreatorDialog } from "./composer/poll-creator-dialog";
+import { EventCreatorDialog } from "./composer/event-creator-dialog";
+import { ContactPickerDialog } from "./composer/contact-picker-dialog";
+import {
+  CameraCaptureDialog,
+  type CameraMode,
+} from "./composer/camera-capture-dialog";
+import { VoiceRecorder } from "./composer/voice-recorder";
+
+type OverlayMenu = "none" | "add" | "attachment" | "camera" | "media-drawer";
 
 interface MessageComposerProps {
   disabled?: boolean;
@@ -49,16 +58,68 @@ export function MessageComposer({
   const [content, setContent] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const imageInputRef = useRef<HTMLInputElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  function insertEmoji(emoji: string) {
-    setContent((prev) => prev + emoji);
-    onTyping(true);
-    textareaRef.current?.focus();
+  // Overlay state: mutually exclusive ('none' | 'add' | 'attachment' | 'camera' | 'media-drawer')
+  const [activeMenu, setActiveMenu] = useState<OverlayMenu>("none");
+  const [mediaDrawerTab, setMediaDrawerTab] = useState<MediaTab>("emoji");
+
+  // Dialog states for interactive modals
+  const [pollDialogOpen, setPollDialogOpen] = useState(false);
+  const [eventDialogOpen, setEventDialogOpen] = useState(false);
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
+  const [cameraDialogOpen, setCameraDialogOpen] = useState(false);
+  const [cameraMode, setCameraMode] = useState<CameraMode>("photo");
+
+  // Voice recording state
+  const [isRecordingVoice, setIsRecordingVoice] = useState(false);
+
+  // Refs for inputs and outside clicks
+  const composerRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const documentInputRef = useRef<HTMLInputElement>(null);
+
+  // Close overlays on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent | TouchEvent) {
+      if (
+        composerRef.current &&
+        !composerRef.current.contains(e.target as Node)
+      ) {
+        setActiveMenu("none");
+      }
+    }
+
+    if (activeMenu !== "none") {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("touchstart", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, [activeMenu]);
+
+  // Adjust textarea height dynamically (1 to 5 lines max)
+  function handleTextChange(val: string) {
+    setContent(val);
+    onTyping(Boolean(val.trim()));
+
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      const nextHeight = Math.min(textareaRef.current.scrollHeight, 128);
+      textareaRef.current.style.height = `${nextHeight}px`;
+    }
   }
 
+  function resetTextareaHeight() {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+    }
+  }
+
+  // 1. Submit message
   async function submit() {
     if (sending || disabled) return;
 
@@ -67,10 +128,9 @@ export function MessageComposer({
       setSelectedFile(null);
       setPreviewUrl(null);
       setContent("");
+      resetTextareaHeight();
       onTyping(false);
       await onSendFile(selectedFile, caption);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-      if (imageInputRef.current) imageInputRef.current.value = "";
       return;
     }
 
@@ -80,11 +140,14 @@ export function MessageComposer({
       toast.error("Message content exceeds 2,000 characters limit");
       return;
     }
+
     setContent("");
+    resetTextareaHeight();
     onTyping(false);
     await onSendText(trimmed);
   }
 
+  // 2. File Selection Handler
   function handleFileSelect(file?: File) {
     if (!file) return;
     const validation = validateUploadFile(file);
@@ -93,48 +156,137 @@ export function MessageComposer({
       return;
     }
     setSelectedFile(file);
-    setPreviewUrl(URL.createObjectURL(file));
+    if (file.type.startsWith("image/")) {
+      setPreviewUrl(URL.createObjectURL(file));
+    } else {
+      setPreviewUrl(null);
+    }
+    setActiveMenu("none");
   }
 
   function clearSelectedFile() {
-    setSelectedFile(null);
     if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setSelectedFile(null);
     setPreviewUrl(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-    if (imageInputRef.current) imageInputRef.current.value = "";
+    if (galleryInputRef.current) galleryInputRef.current.value = "";
+    if (documentInputRef.current) documentInputRef.current.value = "";
   }
 
-  const [comingSoonOpen, setComingSoonOpen] = useState(false);
+  // 3. Location sharing with GPS permission request
+  function handleRequestLocation() {
+    setActiveMenu("none");
+    if (!navigator.geolocation) {
+      toast.error("Geolocation is not supported by your browser");
+      return;
+    }
 
-  function toggleVoiceRecording() {
-    setComingSoonOpen(true);
+    toast.info("Requesting GPS coordinates...", { duration: 1500 });
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        const locationMessage = `📍 **Location Shared**\nLatitude: ${latitude.toFixed(5)}, Longitude: ${longitude.toFixed(5)}\nhttps://www.google.com/maps?q=${latitude},${longitude}`;
+        void onSendText(locationMessage);
+        toast.success("Location sent successfully!");
+      },
+      (err) => {
+        const msg =
+          err.code === err.PERMISSION_DENIED
+            ? "Location permission denied. Please enable location access in browser settings."
+            : "Could not retrieve location. Please check your GPS signal.";
+        toast.error("Location Error", { description: msg });
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
   }
+
+  // 4. Menu Toggle Handlers (Mutually Exclusive)
+  function toggleAddMenu() {
+    setActiveMenu((prev) => (prev === "add" ? "none" : "add"));
+  }
+
+  function toggleAttachmentMenu() {
+    setActiveMenu((prev) => (prev === "attachment" ? "none" : "attachment"));
+  }
+
+  function toggleCameraMenu() {
+    setActiveMenu((prev) => (prev === "camera" ? "none" : "camera"));
+  }
+
+  // 5. Add Menu Sub-actions
+  function openMediaDrawer(tab: MediaTab) {
+    setMediaDrawerTab(tab);
+    setActiveMenu("media-drawer");
+  }
+
+  function handleInsertEmoji(emoji: string) {
+    handleTextChange(content + emoji);
+    textareaRef.current?.focus();
+  }
+
+  function handleSendGif(gifUrl: string) {
+    setActiveMenu("none");
+    void onSendText(`![GIF](${gifUrl})`);
+  }
+
+  function handleSendSticker(stickerEmoji: string, label: string) {
+    setActiveMenu("none");
+    void onSendText(`${stickerEmoji} *(${label})*`);
+  }
+
+  // 6. Camera Actions
+  function openCamera(mode: CameraMode) {
+    setActiveMenu("none");
+    setCameraMode(mode);
+    setCameraDialogOpen(true);
+  }
+
+  // Determine dynamic Action Button state
+  const hasTextOrFile = Boolean(content.trim() || selectedFile);
 
   return (
-    <div className="border-t bg-background p-3 sm:p-4 space-y-3">
-      {/* 1. Reply Banner Preview */}
+    <div
+      ref={composerRef}
+      className="relative bg-transparent px-3 sm:px-6 pt-1 pb-3 sm:pb-4 space-y-2 select-none z-20"
+    >
+      {/* ── 1. Reply Banner Preview (Floating Glass) ── */}
       {replyToMessage && (
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 p-2.5 text-xs">
+        <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 rounded-2xl border border-white/20 dark:border-white/10 bg-background/80 dark:bg-card/80 backdrop-blur-2xl p-2.5 text-xs shadow-lg shadow-black/5 dark:shadow-black/25 animate-in fade-in duration-200">
           <div className="flex items-center gap-2 min-w-0">
             <CornerUpLeft className="size-4 text-primary shrink-0" />
             <div className="min-w-0">
-              <span className="font-semibold text-primary">Replying to {replyToMessage.sender.display_name}</span>
-              <p className="truncate text-muted-foreground">{replyToMessage.content || "Attachment"}</p>
+              <span className="font-semibold text-primary">
+                Replying to {replyToMessage.sender.display_name}
+              </span>
+              <p className="truncate text-muted-foreground">
+                {replyToMessage.content || "Attachment"}
+              </p>
             </div>
           </div>
-          <Button size="icon-sm" variant="ghost" onClick={onCancelReply} className="size-6 text-muted-foreground hover:text-foreground">
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            onClick={onCancelReply}
+            className="size-6 rounded-lg text-muted-foreground hover:text-foreground"
+          >
             <X className="size-3.5" />
           </Button>
         </div>
       )}
 
-      {/* 2. File Attachment Preview Card */}
+      {/* ── 2. File Attachment Preview Card (Floating Glass) ── */}
       {selectedFile && (
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 rounded-2xl border bg-muted/50 p-2.5 shadow-sm">
+        <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 rounded-2xl border border-white/20 dark:border-white/10 bg-background/80 dark:bg-card/80 backdrop-blur-2xl p-2.5 shadow-lg shadow-black/5 dark:shadow-black/25 animate-in fade-in duration-200">
           <div className="flex items-center gap-3 min-w-0">
             {previewUrl ? (
               <div className="relative size-12 overflow-hidden rounded-xl border shrink-0">
-                <Image src={previewUrl} alt="Preview" fill unoptimized className="object-cover" />
+                <Image
+                  src={previewUrl}
+                  alt="Preview"
+                  fill
+                  unoptimized
+                  className="object-cover"
+                />
               </div>
             ) : (
               <div className="grid size-12 place-items-center rounded-xl bg-primary/10 text-primary shrink-0">
@@ -142,138 +294,240 @@ export function MessageComposer({
               </div>
             )}
             <div className="min-w-0">
-              <p className="truncate text-xs font-semibold text-foreground">{selectedFile.name}</p>
-              <p className="text-[10px] text-muted-foreground">{formatFileSize(selectedFile.size)}</p>
+              <p className="truncate text-xs font-semibold text-foreground">
+                {selectedFile.name}
+              </p>
+              <p className="text-[10px] text-muted-foreground">
+                {formatFileSize(selectedFile.size)}
+              </p>
             </div>
           </div>
-          <Button size="icon-sm" variant="ghost" onClick={clearSelectedFile} className="text-muted-foreground hover:text-destructive">
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            onClick={clearSelectedFile}
+            className="text-muted-foreground hover:text-destructive rounded-xl"
+          >
             <X className="size-4" />
           </Button>
         </div>
       )}
 
-      {/* 3. Capsule Input Container (Figma pill style) */}
-      <div className="mx-auto max-w-6xl flex items-end gap-2">
-        {/* Input Capsule */}
-        <div className="flex-1 flex items-end rounded-2xl sm:rounded-full border border-border bg-muted/40 px-3.5 py-1 shadow-xs focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-          <Textarea
-            ref={textareaRef}
-            value={content}
-            disabled={disabled || sending}
-            onChange={(event) => {
-              setContent(event.target.value);
-              onTyping(Boolean(event.target.value.trim()));
-            }}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && !event.shiftKey) {
-                event.preventDefault();
-                void submit();
-              }
-            }}
-            rows={1}
-            placeholder={selectedFile ? "Add a caption…" : "Message..."}
-            className="max-h-32 min-h-9 flex-1 resize-none border-0 bg-transparent px-1.5 py-2 text-sm shadow-none focus-visible:ring-0 placeholder:text-muted-foreground"
+      {/* ── 3. Composer Controls & Overlays Floating Anchor ── */}
+      <div className="relative mx-auto max-w-4xl">
+        {/* Overlays (Mutually Exclusive) */}
+        {activeMenu === "add" && <AddQuickMenu onSelectTab={openMediaDrawer} />}
+
+        {activeMenu === "media-drawer" && (
+          <FullMediaDrawer
+            initialTab={mediaDrawerTab}
+            onSelectEmoji={handleInsertEmoji}
+            onSelectGif={handleSendGif}
+            onSelectSticker={handleSendSticker}
+            onClose={() => setActiveMenu("none")}
           />
+        )}
 
-          {/* Right-side action icons inside the capsule */}
-          <div className="flex items-center gap-0.5 shrink-0 pb-1">
-            {/* Mic */}
-            <button
-              type="button"
-              disabled={disabled || sending}
-              onClick={toggleVoiceRecording}
-              className="grid size-8 place-items-center rounded-full transition-all text-muted-foreground hover:text-foreground hover:bg-muted"
-              aria-label="Voice message"
-              title="Record voice note"
-            >
-              <Mic className="size-[18px]" />
-            </button>
+        {activeMenu === "attachment" && (
+          <AttachmentGridMenu
+            onSelectGallery={() => {
+              setActiveMenu("none");
+              galleryInputRef.current?.click();
+            }}
+            onSelectLocation={handleRequestLocation}
+            onSelectContact={() => {
+              setActiveMenu("none");
+              setContactDialogOpen(true);
+            }}
+            onSelectDocument={() => {
+              setActiveMenu("none");
+              documentInputRef.current?.click();
+            }}
+            onSelectPoll={() => {
+              setActiveMenu("none");
+              setPollDialogOpen(true);
+            }}
+            onSelectEvent={() => {
+              setActiveMenu("none");
+              setEventDialogOpen(true);
+            }}
+          />
+        )}
 
-            {/* Emoji Picker */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+        {activeMenu === "camera" && (
+          <CameraMenu
+            onSelectVideo={() => openCamera("video")}
+            onSelectPhoto={() => openCamera("photo")}
+            onSelectVideoNote={() => openCamera("video-note")}
+          />
+        )}
+
+        {/* Floating Input Row */}
+        <div className="flex items-center gap-2 sm:gap-2.5">
+          {/* Active Voice Recorder Mode */}
+          {isRecordingVoice ? (
+            <VoiceRecorder
+              onCancel={() => setIsRecordingVoice(false)}
+              onSendVoice={async (file) => {
+                setIsRecordingVoice(false);
+                await onSendFile(file, "Voice Note");
+              }}
+            />
+          ) : (
+            <>
+              {/* 3a. Add Button (+) on the left */}
+              <button
+                type="button"
+                disabled={disabled || sending}
+                onClick={toggleAddMenu}
+                aria-label="Add media, emojis, gifs or stickers"
+                title="Add emojis, GIFs, or stickers"
+                className={cn(
+                  "grid size-10 sm:size-11 place-items-center rounded-full shrink-0 cursor-pointer transition-all duration-200",
+                  "backdrop-blur-2xl shadow-lg",
+                  activeMenu === "add" || activeMenu === "media-drawer"
+                    ? "bg-primary text-primary-foreground border border-primary shadow-primary/25 scale-105"
+                    : "bg-background/80 dark:bg-card/80 text-muted-foreground hover:text-foreground hover:bg-background dark:hover:bg-card border border-white/20 dark:border-white/10 hover:border-primary/40 shadow-black/5 dark:shadow-black/25"
+                )}
+              >
+                <Plus
+                  className={cn(
+                    "size-5 transition-transform duration-200",
+                    activeMenu === "add" ? "rotate-45" : ""
+                  )}
+                />
+              </button>
+
+              {/* 3b. Text Input Field Capsule */}
+              <div className="flex-1 min-w-0 flex items-center rounded-full bg-background/80 dark:bg-card/80 backdrop-blur-2xl border border-white/20 dark:border-white/10 shadow-lg shadow-black/5 dark:shadow-black/25 px-3 py-1 sm:py-1.5 focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                <textarea
+                  ref={textareaRef}
+                  value={content}
+                  disabled={disabled || sending}
+                  rows={1}
+                  placeholder={selectedFile ? "Add a caption…" : "Message..."}
+                  onChange={(e) => handleTextChange(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      void submit();
+                    }
+                  }}
+                  className="max-h-32 min-h-6 flex-1 resize-none border-0 bg-transparent px-2 py-1 text-sm leading-relaxed shadow-none focus:outline-none placeholder:text-muted-foreground text-foreground"
+                />
+
+                {/* Grouped In-Capsule Icons: Attachment (📎) & Camera (📷) */}
+                <div className="flex items-center gap-0.5 sm:gap-1 shrink-0 self-center pr-0.5">
+                  <button
+                    type="button"
+                    disabled={disabled || sending}
+                    onClick={toggleAttachmentMenu}
+                    aria-label="Attachment options"
+                    title="Attach files, media, poll, event..."
+                    className={cn(
+                      "grid size-8 place-items-center rounded-full transition-all shrink-0 cursor-pointer",
+                      activeMenu === "attachment"
+                        ? "bg-primary/20 text-primary"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                    )}
+                  >
+                    <Paperclip className="size-4.5" />
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={disabled || sending}
+                    onClick={toggleCameraMenu}
+                    aria-label="Camera options"
+                    title="Camera & video notes"
+                    className={cn(
+                      "grid size-8 place-items-center rounded-full transition-all shrink-0 cursor-pointer",
+                      activeMenu === "camera"
+                        ? "bg-primary/20 text-primary"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                    )}
+                  >
+                    <Camera className="size-4.5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* 3c. Action Button (Dynamic Toggle: Mic <-> Send) */}
+              {hasTextOrFile ? (
+                <Button
+                  type="button"
+                  size="icon"
+                  disabled={disabled || sending}
+                  onClick={() => void submit()}
+                  aria-label="Send message"
+                  title="Send message"
+                  className="size-10 sm:size-11 shrink-0 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-lg shadow-primary/30 transition-all animate-in zoom-in-75 duration-150 cursor-pointer"
+                >
+                  {sending ? (
+                    <Loader2 className="size-5 animate-spin" />
+                  ) : (
+                    <SendHorizontal className="size-5" />
+                  )}
+                </Button>
+              ) : (
                 <button
                   type="button"
-                  className="grid size-8 place-items-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
-                  aria-label="Emoji picker"
-                  title="Emoji"
+                  disabled={disabled || sending}
+                  onClick={() => setIsRecordingVoice(true)}
+                  aria-label="Record voice note"
+                  title="Click to record voice note"
+                  className="grid size-10 sm:size-11 place-items-center rounded-full bg-background/80 dark:bg-card/80 backdrop-blur-2xl text-muted-foreground hover:text-primary hover:bg-background dark:hover:bg-card border border-white/20 dark:border-white/10 hover:border-primary/40 shadow-lg shadow-black/5 dark:shadow-black/25 transition-all shrink-0 cursor-pointer active:scale-95 animate-in zoom-in-75 duration-150"
                 >
-                  <Smile className="size-[18px]" />
+                  <Mic className="size-5" />
                 </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" side="top" className="p-2 rounded-2xl shadow-2xl grid grid-cols-7 gap-1">
-                {QUICK_EMOJIS.map((emoji) => (
-                  <button
-                    key={emoji}
-                    type="button"
-                    onClick={() => insertEmoji(emoji)}
-                    className="grid size-8 place-items-center rounded-xl text-lg hover:bg-muted hover:scale-125 transition-transform"
-                  >
-                    {emoji}
-                  </button>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* File Attach */}
-            <button
-              type="button"
-              disabled={disabled || sending}
-              onClick={() => fileInputRef.current?.click()}
-              className="grid size-8 place-items-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
-              aria-label="Attach document or file"
-              title="Attach document or file"
-            >
-              <Paperclip className="size-[18px]" />
-            </button>
-
-            {/* Image Attach */}
-            <input
-              ref={imageInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => void handleFileSelect(e.target.files?.[0])}
-            />
-            <button
-              type="button"
-              disabled={disabled || sending}
-              onClick={() => imageInputRef.current?.click()}
-              className="grid size-8 place-items-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
-              aria-label="Attach image"
-              title="Attach image"
-            >
-              <ImageIcon className="size-[18px]" />
-            </button>
-          </div>
+              )}
+            </>
+          )}
         </div>
-
-        {/* Hidden file input restricted to images */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => void handleFileSelect(e.target.files?.[0])}
-        />
-
-        {/* Send Button (circle) */}
-        <Button
-          type="button"
-          size="icon"
-          disabled={disabled || sending || (!content.trim() && !selectedFile)}
-          onClick={() => void submit()}
-          aria-label="Send message"
-          className="size-10 shrink-0 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-md shadow-primary/20 transition-all disabled:opacity-40 disabled:shadow-none"
-        >
-          {sending ? <Loader2 className="size-5 animate-spin" /> : <SendHorizontal className="size-5" />}
-        </Button>
       </div>
 
-      <ComingSoonDialog
-        open={comingSoonOpen}
-        onOpenChange={setComingSoonOpen}
-        featureName="Voice Messages & Audio Recording"
+      {/* Hidden File Inputs */}
+      <input
+        ref={galleryInputRef}
+        type="file"
+        accept="image/*,video/*"
+        className="hidden"
+        onChange={(e) => void handleFileSelect(e.target.files?.[0])}
+      />
+      <input
+        ref={documentInputRef}
+        type="file"
+        accept=".pdf,.doc,.docx,.txt,.xls,.xlsx,.zip"
+        className="hidden"
+        onChange={(e) => void handleFileSelect(e.target.files?.[0])}
+      />
+
+      {/* Interactive Modals */}
+      <PollCreatorDialog
+        open={pollDialogOpen}
+        onOpenChange={setPollDialogOpen}
+        onSubmitPoll={(pollText) => void onSendText(pollText)}
+      />
+
+      <EventCreatorDialog
+        open={eventDialogOpen}
+        onOpenChange={setEventDialogOpen}
+        onSubmitEvent={(eventText) => void onSendText(eventText)}
+      />
+
+      <ContactPickerDialog
+        open={contactDialogOpen}
+        onOpenChange={setContactDialogOpen}
+        onSubmitContact={(contactText) => void onSendText(contactText)}
+      />
+
+      <CameraCaptureDialog
+        open={cameraDialogOpen}
+        mode={cameraMode}
+        onOpenChange={setCameraDialogOpen}
+        onCaptureMedia={(file) => {
+          void onSendFile(file, cameraMode === "video-note" ? "Video Note" : "Camera Capture");
+        }}
       />
     </div>
   );

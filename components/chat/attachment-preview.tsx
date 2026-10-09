@@ -31,6 +31,27 @@ export function AttachmentPreview({ message }: { message: ChatMessage }) {
     );
   }
 
+  // Audio / Voice note preview
+  if (message.attachment_name?.match(/\.(webm|mp3|ogg|wav)$/i) && message.attachment_name?.includes("voice-note")) {
+    return (
+      <div className="mt-2 min-w-64 p-2 rounded-xl bg-background/80 border space-y-1">
+        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+          <span>🎙️ Voice Note</span>
+        </p>
+        <audio controls src={url} className="w-full h-8" />
+      </div>
+    );
+  }
+
+  // Video preview
+  if (message.attachment_name?.match(/\.(mp4|webm|mov)$/i)) {
+    return (
+      <div className="mt-2 max-w-sm rounded-xl overflow-hidden border bg-black">
+        <video controls src={url} playsInline className="w-full max-h-64 object-cover" />
+      </div>
+    );
+  }
+
   return (
     <a href={url} target="_blank" rel="noreferrer" className="mt-2 flex min-w-60 items-center gap-3 rounded-xl border bg-background/65 p-3 transition hover:bg-background">
       <span className="grid size-10 place-items-center rounded-lg bg-primary/10 text-primary"><FileText className="size-5" /></span>
