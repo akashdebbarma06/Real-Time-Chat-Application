@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Mail, MessageSquare, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,14 @@ export const metadata: Metadata = {
 export default function ContactPage() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 sm:py-16 text-slate-100">
+      <div className="mb-8 rounded-2xl border border-cyan-500/30 bg-cyan-950/30 p-3.5 text-center text-xs text-cyan-200">
+        Already have an account?{" "}
+        <Link href="/help/contact" className="font-bold underline text-white hover:text-cyan-300">
+          Open In-App Support
+        </Link>{" "}
+        to submit a priority ticket linked to your profile.
+      </div>
+
       <div className="text-center">
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">Contact Us</h1>
         <p className="mt-2 text-base text-slate-400 max-w-xl mx-auto">

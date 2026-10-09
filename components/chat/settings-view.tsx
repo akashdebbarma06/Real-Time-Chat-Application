@@ -478,10 +478,9 @@ export function SettingsView({ profile }: SettingsViewProps) {
                   {item.id === "help" && (
                     <div className="space-y-3 pt-2">
                       {/* Help Centre */}
-                      <button
-                        type="button"
-                        onClick={() => toast.info("Help Centre coming soon")}
-                        className="flex w-full items-center gap-3 rounded-xl border bg-muted/30 p-3 hover:bg-muted transition"
+                      <Link
+                        href="/help"
+                        className="flex items-center gap-3 rounded-xl border bg-muted/30 p-3 hover:bg-muted transition"
                       >
                         <HelpCircle className="size-5 text-primary" />
                         <div className="text-left flex-1">
@@ -489,30 +488,30 @@ export function SettingsView({ profile }: SettingsViewProps) {
                           <p className="text-xs text-muted-foreground">Browse FAQs & support articles</p>
                         </div>
                         <ChevronRight className="size-4 text-muted-foreground" />
-                      </button>
+                      </Link>
 
                       {/* Contact Us */}
                       <Link
-                        href="/contact"
+                        href="/help/contact"
                         className="flex items-center gap-3 rounded-xl border bg-muted/30 p-3 hover:bg-muted transition"
                       >
                         <MessageSquare className="size-5 text-primary" />
                         <div className="text-left flex-1">
                           <p className="text-sm font-medium text-foreground">Contact Us</p>
-                          <p className="text-xs text-muted-foreground">Reach our support team directly</p>
+                          <p className="text-xs text-muted-foreground">Reach our priority in-app support</p>
                         </div>
                         <ChevronRight className="size-4 text-muted-foreground" />
                       </Link>
 
                       {/* Privacy Policy */}
                       <Link
-                        href="/privacy"
+                        href="/help/privacy"
                         className="flex items-center gap-3 rounded-xl border bg-muted/30 p-3 hover:bg-muted transition"
                       >
                         <Shield className="size-5 text-primary" />
                         <div className="text-left flex-1">
                           <p className="text-sm font-medium text-foreground">Privacy Policy</p>
-                          <p className="text-xs text-muted-foreground">Data protection & usage terms</p>
+                          <p className="text-xs text-muted-foreground">Data protection & export controls</p>
                         </div>
                         <ChevronRight className="size-4 text-muted-foreground" />
                       </Link>

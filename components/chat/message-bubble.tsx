@@ -7,13 +7,16 @@ import {
   CornerUpLeft,
   Pencil,
   Smile,
+  Star,
   Trash2,
   X,
 } from "lucide-react";
+import { toast } from "sonner";
 import { AttachmentPreview } from "@/components/chat/attachment-preview";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { toggleMessageStar, useStarredIds } from "@/lib/starred-store";
 import { cn, formatMessageTime, getInitials } from "@/lib/utils";
 import type { ChatMessage, Profile } from "@/types/chat";
 
@@ -47,12 +50,32 @@ export function MessageBubble({
   const own = message.sender_id === currentUserId;
   const readBySomeoneElse = message.read_receipts?.some((receipt) => receipt.user_id !== currentUserId);
 
+  const starredIds = useStarredIds(currentUserId);
+  const isStarred = starredIds.has(message.id);
+
   const [localReactions, setLocalReactions] = useState<{ [emoji: string]: string[] }>({});
   const reactions = externalReactions || localReactions;
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content || "");
   const [showMobileActions, setShowMobileActions] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
+  async function handleToggleStar(e: React.MouseEvent) {
+    e.stopPropagation();
+    const res = await toggleMessageStar(currentUserId, message.id, message.conversation_id, {
+      content: message.content,
+      attachment_name: message.attachment_name,
+      attachment_path: message.attachment_path,
+      sender_name: message.sender.display_name,
+      sender_username: message.sender.username,
+      sender_avatar: message.sender.avatar_url,
+    });
+    if (res.isStarred) {
+      toast.success("Message starred");
+    } else {
+      toast.success("Message unstarred");
+    }
+  }
 
   function toggleReaction(emoji: string, e?: React.MouseEvent) {
     if (e) e.stopPropagation();
@@ -163,6 +186,15 @@ export function MessageBubble({
               own ? "text-primary-foreground/75" : "text-muted-foreground"
             )}
           >
+            {isStarred && (
+              <Star
+                className={cn(
+                  "size-2.5 shrink-0",
+                  own ? "fill-primary-foreground text-primary-foreground" : "fill-amber-400 text-amber-400"
+                )}
+                aria-label="Starred message"
+              />
+            )}
             <time>{formatMessageTime(message.created_at)}</time>
             {message.edited_at && <span>· edited</span>}
             {own && showReceipt && (
@@ -249,6 +281,27 @@ export function MessageBubble({
                   {emoji}
                 </button>
               ))}
+
+              {/* Star / Unstar */}
+              <button
+                type="button"
+                onClick={handleToggleStar}
+                title={isStarred ? "Unstar message" : "Star message"}
+                aria-label={isStarred ? "Unstar message" : "Star message"}
+                className={cn(
+                  "grid size-7 place-items-center rounded-full transition active:scale-95",
+                  isStarred
+                    ? "text-amber-500 hover:bg-amber-500/15"
+                    : "text-muted-foreground hover:bg-muted hover:text-amber-500"
+                )}
+              >
+                <Star
+                  className={cn(
+                    "size-3.5",
+                    isStarred && "fill-amber-400 text-amber-400"
+                  )}
+                />
+              </button>
 
               {/* Reply */}
               {onReply && (

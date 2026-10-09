@@ -98,7 +98,7 @@ export function NewChatDialog({
           {triggerVariant === "full" ? (
             <Button
               size="lg"
-              className="w-full flex items-center justify-center gap-2 rounded-2xl bg-primary text-primary-foreground font-semibold shadow-md shadow-primary/20 hover:bg-primary/90 hover:scale-[1.01] transition-all"
+              className="inline-flex min-w-[190px] items-center justify-center gap-2 rounded-xl bg-primary text-primary-foreground font-semibold shadow-md shadow-primary/20 hover:bg-primary/90 hover:shadow-lg transition-all"
             >
               <UserPlus className="size-4" />
               <span>New Chat</span>

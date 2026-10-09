@@ -9,7 +9,8 @@ import { redirectToLogin, redirectIfAuthenticated, setSessionCookie } from "./se
 export function handleAuthRedirects(request: NextRequest, isAuthenticatedUser: boolean): NextResponse | null {
   const path = request.nextUrl.pathname;
   const isAuthRoute = path.startsWith("/login") || path.startsWith("/signup");
-  const isProtectedRoute = path.startsWith("/chat") || path.startsWith("/profile");
+  const isProtectedRoute =
+    path.startsWith("/chat") || path.startsWith("/profile") || path.startsWith("/help");
 
   // Unauthenticated users attempting to reach a protected route are sent to login
   if (!isAuthenticatedUser && isProtectedRoute) {
@@ -19,6 +20,20 @@ export function handleAuthRedirects(request: NextRequest, isAuthenticatedUser: b
   // Authenticated users visiting login or signup pages are sent to the main chat
   if (isAuthenticatedUser && isAuthRoute) {
     return redirectIfAuthenticated(request, "/chat");
+  }
+
+  // Authenticated users accessing external contact or privacy are routed to dedicated in-app pages
+  if (isAuthenticatedUser && !request.nextUrl.searchParams.has("public")) {
+    if (path === "/contact") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/help/contact";
+      return NextResponse.redirect(url);
+    }
+    if (path === "/privacy") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/help/privacy";
+      return NextResponse.redirect(url);
+    }
   }
 
   return null;

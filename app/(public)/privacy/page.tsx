@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
@@ -8,6 +9,14 @@ export const metadata: Metadata = {
 export default function PrivacyPage() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 sm:py-16">
+      <div className="mb-8 rounded-2xl border border-cyan-500/30 bg-cyan-950/30 p-3.5 text-center text-xs text-cyan-200">
+        Logged in to Aether Chat?{" "}
+        <Link href="/help/privacy" className="font-bold underline text-white hover:text-cyan-300">
+          Open In-App Privacy Controls & Data Export
+        </Link>
+        .
+      </div>
+
       <div className="prose prose-neutral dark:prose-invert max-w-none space-y-6">
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Privacy Policy</h1>
         <p className="text-sm text-muted-foreground">Last updated: July 27, 2026</p>

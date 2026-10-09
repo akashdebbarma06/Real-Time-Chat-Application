@@ -1,6 +1,7 @@
 "use client";
 
-import { MessageCircleMore, Search, UsersRound } from "lucide-react";
+import { useState } from "react";
+import { ChevronRight, MessageCircleMore, Search, UsersRound } from "lucide-react";
 import { NewChatDialog } from "@/components/chat/new-chat-dialog";
 
 interface EmptyChatProps {
@@ -9,6 +10,8 @@ interface EmptyChatProps {
 }
 
 export function EmptyChat({ currentUserId, onCreated }: EmptyChatProps) {
+  const [dialogOpen, setDialogOpen] = useState(false);
+
   return (
     <section className="hidden h-svh min-h-0 flex-1 items-center justify-center bg-[radial-gradient(circle_at_center,color-mix(in_oklab,var(--primary)_12%,transparent),transparent_60%)] bg-background p-8 md:flex">
       <div className="max-w-md text-center">
@@ -23,29 +26,60 @@ export function EmptyChat({ currentUserId, onCreated }: EmptyChatProps) {
           Select a conversation from the sidebar or start a new chat to begin messaging.
         </p>
 
-        {/* Action Button */}
+        {/* Action Button - Issue 6: Proportional CTA */}
         {currentUserId && (
-          <div className="mt-8 flex items-center justify-center">
+          <div className="mt-6 flex items-center justify-center">
             <NewChatDialog
               currentUserId={currentUserId}
               onCreated={onCreated || (() => {})}
               triggerVariant="full"
+              open={dialogOpen}
+              onOpenChange={setDialogOpen}
             />
           </div>
         )}
 
-        {/* Feature Highlights */}
-        <div className="mt-10 grid grid-cols-2 gap-3 text-left text-xs">
-          <div className="rounded-2xl border bg-card/60 p-4 shadow-sm backdrop-blur-sm">
-            <Search className="mb-2.5 size-5 text-primary" />
-            <p className="font-semibold text-foreground">Find Contacts</p>
-            <p className="mt-1 text-[11px] text-muted-foreground leading-normal">Search friends & online users instantly.</p>
-          </div>
-          <div className="rounded-2xl border bg-card/60 p-4 shadow-sm backdrop-blur-sm">
-            <UsersRound className="mb-2.5 size-5 text-primary" />
-            <p className="font-semibold text-foreground">Group Chats</p>
-            <p className="mt-1 text-[11px] text-muted-foreground leading-normal">Bring your team together in Aether Chat.</p>
-          </div>
+        {/* Feature Highlights - Issues 2 & 4: Interactive Cards + Accessible Font Size */}
+        <div className="mt-8 grid grid-cols-2 gap-3 text-left">
+          {/* Find Contacts Card */}
+          <button
+            type="button"
+            onClick={() => setDialogOpen(true)}
+            className="group flex flex-col justify-between rounded-2xl border border-border/80 bg-card/60 p-4 shadow-xs transition-all hover:border-primary/50 hover:bg-muted/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring text-left cursor-pointer"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-2.5">
+                <div className="grid size-9 place-items-center rounded-xl bg-primary/10 text-primary group-hover:scale-105 transition-transform">
+                  <Search className="size-4" />
+                </div>
+                <ChevronRight className="size-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+              </div>
+              <p className="font-semibold text-sm text-foreground">Find Contacts</p>
+              <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                Search friends & online users instantly.
+              </p>
+            </div>
+          </button>
+
+          {/* Group Chats Card */}
+          <button
+            type="button"
+            onClick={() => setDialogOpen(true)}
+            className="group flex flex-col justify-between rounded-2xl border border-border/80 bg-card/60 p-4 shadow-xs transition-all hover:border-primary/50 hover:bg-muted/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring text-left cursor-pointer"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-2.5">
+                <div className="grid size-9 place-items-center rounded-xl bg-primary/10 text-primary group-hover:scale-105 transition-transform">
+                  <UsersRound className="size-4" />
+                </div>
+                <ChevronRight className="size-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+              </div>
+              <p className="font-semibold text-sm text-foreground">Group Chats</p>
+              <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                Bring your team together in Aether Chat.
+              </p>
+            </div>
+          </button>
         </div>
       </div>
     </section>

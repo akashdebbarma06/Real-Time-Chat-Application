@@ -6,6 +6,7 @@ import { ConversationSidebar } from "@/components/chat/conversation-sidebar";
 import { EmptyChat } from "@/components/chat/empty-chat";
 import { KeyboardShortcutsDialog } from "@/components/chat/keyboard-shortcuts-dialog";
 import { MessagePanel } from "@/components/chat/message-panel";
+import { NavigationRail, type RailTab } from "@/components/chat/navigation-rail";
 import { NewChatDialog } from "@/components/chat/new-chat-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePresence } from "@/hooks/use-presence";
@@ -23,6 +24,7 @@ export function ChatWorkspace({ profile, selectedConversationId }: ChatWorkspace
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [newChatOpen, setNewChatOpen] = useState(false);
+  const [railTab, setRailTab] = useState<RailTab>("chats");
   const onlineUserIds = usePresence(profile.id);
 
   const loadConversations = useCallback(async (showLoading = false) => {
@@ -116,22 +118,77 @@ export function ChatWorkspace({ profile, selectedConversationId }: ChatWorkspace
     });
   }, [conversations, profile.id, query]);
 
+  const totalUnread = useMemo(
+    () => conversations.reduce((acc, c) => acc + (c.unread_count || 0), 0),
+    [conversations]
+  );
+
   const selectedConversation = conversations.find((conversation) => conversation.id === selectedConversationId);
 
   if (loading) {
-    return <div className="grid h-svh md:grid-cols-[360px_1fr]"><div className="border-r p-4"><Skeleton className="h-12 w-full" /><div className="mt-6 space-y-3">{Array.from({ length: 8 }).map((_, index) => <Skeleton key={index} className="h-16 w-full rounded-xl" />)}</div></div><div className="hidden items-center justify-center md:flex"><Skeleton className="h-48 w-80 rounded-3xl" /></div></div>;
+    return (
+      <div className="flex h-svh w-full bg-background">
+        <div className="hidden md:flex w-20 shrink-0 border-r p-3 flex-col items-center gap-3">
+          <Skeleton className="size-11 rounded-2xl" />
+          <Skeleton className="size-12 rounded-xl mt-4" />
+          <Skeleton className="size-12 rounded-xl" />
+          <Skeleton className="size-12 rounded-xl" />
+        </div>
+        <div className="w-full md:w-[340px] shrink-0 border-r p-4">
+          <Skeleton className="h-12 w-full rounded-xl" />
+          <div className="mt-6 space-y-3">
+            {Array.from({ length: 8 }).map((_, index) => (
+              <Skeleton key={index} className="h-16 w-full rounded-xl" />
+            ))}
+          </div>
+        </div>
+        <div className="hidden flex-1 items-center justify-center md:flex">
+          <Skeleton className="h-48 w-80 rounded-3xl" />
+        </div>
+      </div>
+    );
   }
 
   return (
-    <main className="grid h-svh min-h-0 overflow-hidden md:grid-cols-[360px_minmax(0,1fr)]">
-      <div className={selectedConversationId ? "hidden md:block h-full min-h-0" : "block h-full min-h-0"}>
-        <ConversationSidebar profile={profile} conversations={filtered} selectedConversationId={selectedConversationId} onlineUserIds={onlineUserIds} query={query} onQueryChange={setQuery} onConversationCreated={() => void loadConversations()} />
+    <main className="flex h-svh min-h-0 overflow-hidden bg-background text-foreground">
+      {/* 1. Desktop Fixed Left Navigation Rail: 80px */}
+      <NavigationRail
+        profile={profile}
+        activeTab={railTab}
+        onTabChange={setRailTab}
+        unreadChatsCount={totalUnread}
+      />
+
+      {/* 2. Conversation Sidebar: 340px */}
+      <div className={selectedConversationId ? "hidden md:block w-full md:w-[340px] shrink-0 h-full min-h-0" : "block w-full md:w-[340px] shrink-0 h-full min-h-0"}>
+        <ConversationSidebar
+          profile={profile}
+          conversations={filtered}
+          selectedConversationId={selectedConversationId}
+          onlineUserIds={onlineUserIds}
+          query={query}
+          onQueryChange={setQuery}
+          onConversationCreated={() => void loadConversations()}
+          activeTab={railTab}
+          onTabChange={setRailTab}
+        />
       </div>
-      {selectedConversationId ? (
-        <MessagePanel key={selectedConversationId} profile={profile} conversation={selectedConversation} conversationId={selectedConversationId} onlineUserIds={onlineUserIds} onConversationActivity={handleConversationActivity} />
-      ) : (
-        <EmptyChat currentUserId={profile.id} onCreated={() => void loadConversations()} />
-      )}
+
+      {/* 3. Chat Content: remaining width flex-1 */}
+      <div className="flex-1 min-w-0 h-full min-h-0">
+        {selectedConversationId ? (
+          <MessagePanel
+            key={selectedConversationId}
+            profile={profile}
+            conversation={selectedConversation}
+            conversationId={selectedConversationId}
+            onlineUserIds={onlineUserIds}
+            onConversationActivity={handleConversationActivity}
+          />
+        ) : (
+          <EmptyChat currentUserId={profile.id} onCreated={() => void loadConversations()} />
+        )}
+      </div>
 
       {/* Global Desktop Keyboard Shortcuts Help Modal */}
       <KeyboardShortcutsDialog />

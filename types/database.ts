@@ -139,6 +139,24 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["blocked_users"]["Insert"]>;
         Relationships: [];
       };
+      starred_messages: {
+        Row: {
+          id: string;
+          user_id: string;
+          message_id: string;
+          conversation_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          message_id: string;
+          conversation_id: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["starred_messages"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
