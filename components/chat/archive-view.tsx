@@ -58,8 +58,11 @@ export function ArchiveView({
         </div>
       </div>
 
-      <ScrollArea className="flex-1 px-3 mt-2">
-        <div className="space-y-1 py-1">
+      <ScrollArea className="flex-1 w-full overflow-x-hidden mt-2">
+        <div
+          className="w-full space-y-1 py-1 box-border overflow-x-hidden"
+          style={{ padding: "0 12px", boxSizing: "border-box" }}
+        >
           {archivedConversations.length === 0 ? (
             <div className="p-10 text-center text-xs text-muted-foreground">
               <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-muted/60 text-muted-foreground mb-3">
@@ -78,21 +81,26 @@ export function ArchiveView({
               return (
                 <div
                   key={conversation.id}
+                  style={{ width: "100%", boxSizing: "border-box", borderRadius: "14px" }}
                   className={cn(
-                    "group relative flex items-center justify-between gap-3 rounded-2xl p-3 transition-all",
+                    "group relative flex items-center justify-between gap-3 w-full overflow-hidden box-border rounded-[14px] p-3 transition-all",
                     isSelected ? "bg-muted shadow-xs" : "hover:bg-muted/60"
                   )}
                 >
-                  <Link href={`/chat/${conversation.id}`} className="flex items-center gap-3 min-w-0 flex-1">
-                    <Avatar className="size-11 border border-border">
+                  <Link href={`/chat/${conversation.id}`} className="flex items-center gap-3 min-w-0 flex-1 overflow-hidden">
+                    <Avatar className="size-11 border border-border shrink-0 flex-shrink-0">
                       <AvatarImage src={conversation.avatar_url || undefined} />
                       <AvatarFallback className="text-xs">{getInitials(title)}</AvatarFallback>
                     </Avatar>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-foreground">{title}</p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {conversation.last_message?.content || "Conversation archived"}
-                      </p>
+                    <div className="sidebar-item-content chat-info flex-1 min-w-0 flex flex-col justify-center gap-0.5 overflow-hidden">
+                      <div className="flex items-center justify-between gap-2 w-full min-w-0">
+                        <span className="user-name text-sm font-semibold truncate block min-w-0">{title}</span>
+                      </div>
+                      <div className="chat-preview flex items-center gap-1.5 w-full min-w-0">
+                        <p className="sidebar-last-message sidebar-message-preview preview-text text-xs text-muted-foreground truncate block w-full min-w-0">
+                          {conversation.last_message?.content || "Conversation archived"}
+                        </p>
+                      </div>
                     </div>
                   </Link>
 

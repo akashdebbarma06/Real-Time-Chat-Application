@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { CheckCircle2, KeyRound, Loader2, Phone, ShieldCheck } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

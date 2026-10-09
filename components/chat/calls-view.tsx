@@ -15,7 +15,7 @@ import {
   Sparkles,
   Video,
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -119,8 +119,11 @@ export function CallsView({ conversations, profile, onlineUserIds }: CallsViewPr
       )}
 
       {/* Contacts Available to Call */}
-      <ScrollArea className="flex-1 px-3 mt-2">
-        <div className="space-y-1 py-1">
+      <ScrollArea className="flex-1 w-full overflow-x-hidden mt-2">
+        <div
+          className="w-full space-y-1 py-1 box-border overflow-x-hidden"
+          style={{ padding: "0 12px", boxSizing: "border-box" }}
+        >
           <p className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
             Contacts ({peers.length})
           </p>
@@ -138,7 +141,8 @@ export function CallsView({ conversations, profile, onlineUserIds }: CallsViewPr
               return (
                 <div
                   key={peer.id}
-                  className="flex items-center justify-between rounded-xl p-2.5 transition hover:bg-muted/50 border border-transparent hover:border-border/40"
+                  style={{ width: "100%", boxSizing: "border-box", borderRadius: "14px" }}
+                  className="flex w-full box-border items-center justify-between rounded-[14px] p-2.5 transition hover:bg-muted/50 border border-transparent hover:border-border/40"
                 >
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     <div className="relative">

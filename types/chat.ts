@@ -46,6 +46,7 @@ export interface ChatMessage {
   sender_id: string;
   content: string;
   message_type: MessageType;
+  type?: string;
   attachment_path: string | null;
   attachment_name: string | null;
   attachment_size: number | null;

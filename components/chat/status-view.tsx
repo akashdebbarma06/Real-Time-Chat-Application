@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { CircleDot, Clock, Info, Plus, Sparkles, User } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {

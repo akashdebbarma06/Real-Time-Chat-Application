@@ -1,7 +1,5 @@
 "use client";
 
-import { toast } from "sonner";
-
 declare global {
   interface Window {
     webkitAudioContext?: typeof AudioContext;
@@ -56,7 +54,8 @@ export async function requestNotificationPermission(): Promise<boolean> {
 }
 
 /**
- * Show a browser push notification and in-app toast for incoming messages.
+ * Show a browser push notification for incoming messages.
+ * In-app toast notifications for chat messages are disabled per user request.
  */
 export function notifyIncomingMessage({
   senderName,
@@ -71,16 +70,10 @@ export function notifyIncomingMessage({
 }) {
   if (muted) return;
 
-  // 1. Play sound
+  // 1. Play sound chime
   playNotificationSound();
 
-  // 2. In-App Toast
-  toast(`New message from ${senderName}`, {
-    description: content || "Sent an attachment",
-    icon: "💬",
-  });
-
-  // 3. Browser Desktop / Mobile Push Notification
+  // 2. Browser Desktop / Mobile Push Notification
   if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
     try {
       new Notification(`Message from ${senderName}`, {

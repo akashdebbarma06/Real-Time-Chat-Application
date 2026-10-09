@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { ConversationSidebar } from "@/components/chat/conversation-sidebar";
 import { EmptyChat } from "@/components/chat/empty-chat";
 import { KeyboardShortcutsDialog } from "@/components/chat/keyboard-shortcuts-dialog";
@@ -146,7 +146,7 @@ export function ChatWorkspace({ profile, selectedConversationId }: ChatWorkspace
           <Skeleton className="size-12 rounded-xl" />
           <Skeleton className="size-12 rounded-xl" />
         </div>
-        <div className="w-full md:w-[340px] shrink-0 border-r p-4">
+        <div className="w-full md:w-[460px] md:min-w-[460px] shrink-0 border-r p-4">
           <Skeleton className="h-12 w-full rounded-xl" />
           <div className="mt-6 space-y-3">
             {Array.from({ length: 8 }).map((_, index) => (
@@ -154,7 +154,7 @@ export function ChatWorkspace({ profile, selectedConversationId }: ChatWorkspace
             ))}
           </div>
         </div>
-        <div className="hidden flex-1 items-center justify-center md:flex">
+        <div className="hidden flex-1 items-center justify-center md:flex min-w-0">
           <Skeleton className="h-48 w-80 rounded-3xl" />
         </div>
       </div>
@@ -171,14 +171,14 @@ export function ChatWorkspace({ profile, selectedConversationId }: ChatWorkspace
         unreadChatsCount={totalUnread}
       />
 
-      {/* 2. Side Panel (Conversation Sidebar / In-Panel Detail): 340px */}
+      {/* 2. Side Panel (Conversation Sidebar / In-Panel Detail): 460px */}
       <div
         className={
           sideDetailView
-            ? "block w-full md:w-[340px] shrink-0 h-full min-h-0 z-20"
+            ? "sidebar block w-full md:w-[460px] md:min-w-[460px] shrink-0 h-full min-h-0 z-20 overflow-hidden min-w-0"
             : selectedConversationId
-              ? "hidden md:block w-full md:w-[340px] shrink-0 h-full min-h-0"
-              : "block w-full md:w-[340px] shrink-0 h-full min-h-0"
+              ? "sidebar hidden md:block w-full md:w-[460px] md:min-w-[460px] shrink-0 h-full min-h-0 overflow-hidden min-w-0"
+              : "sidebar block w-full md:w-[460px] md:min-w-[460px] shrink-0 h-full min-h-0 overflow-hidden min-w-0"
         }
       >
         {sideDetailView?.type === "user-profile" ? (

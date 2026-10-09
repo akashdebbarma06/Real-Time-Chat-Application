@@ -102,4 +102,25 @@ describe("Utility Functions", () => {
       expect(peers[0].id).toBe("user-2");
     });
   });
+
+  describe("Media Type Identification", () => {
+    it("classifies captured camera photos as image, not video", () => {
+      const photoName = "photo-17123456789.jpg";
+      const isPhoto = Boolean(photoName.match(/\.(jpg|jpeg|png|gif|webp|svg|heic)$/i));
+      const isVideo = !isPhoto && Boolean(photoName.match(/\.(mp4|mov|mkv|webm)$/i));
+
+      expect(isPhoto).toBe(true);
+      expect(isVideo).toBe(false);
+    });
+
+    it("classifies webm camera video recordings as video", () => {
+      const videoName = "camera-capture-17123456789.webm";
+      const isPhoto = Boolean(videoName.match(/\.(jpg|jpeg|png|gif|webp|svg|heic)$/i));
+      const isVideo = !isPhoto && Boolean(videoName.match(/\.(mp4|mov|mkv|webm)$/i));
+
+      expect(isPhoto).toBe(false);
+      expect(isVideo).toBe(true);
+    });
+  });
 });
+

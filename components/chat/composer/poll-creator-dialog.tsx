@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { BarChart2, Plus, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { notifyIncomingMessage, requestNotificationPermission } from "@/lib/notifications";
 import { MessageComposer } from "@/components/chat/message-composer";
@@ -108,6 +108,28 @@ export function MessagePanel({
   const [inChatQuery, setInChatQuery] = useState("");
   const [isMuted, setIsMuted] = useState(false);
 
+  // Single active message menu ID across the entire chat
+  const [activeMenuMessageId, setActiveMenuMessageId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target?.closest(".message-context-menu")) {
+        setActiveMenuMessageId(null);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setActiveMenuMessageId(null);
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
+
   // Real-time broadcasted reactions state: { [messageId]: { [emoji]: userIds[] } }
   const [reactionsByMessage, setReactionsByMessage] = useState<Record<string, Record<string, string[]>>>({});
 
@@ -115,6 +137,8 @@ export function MessagePanel({
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const lastMarkedRef = useRef<string | null>(null);
+  const sentMessageIds = useRef<Set<string>>(new Set());
+  const notifiedMessageKeys = useRef<Set<string>>(new Set());
 
   const loadMessages = useCallback(async () => {
     const { data, error } = await createClient()
@@ -126,7 +150,38 @@ export function MessagePanel({
       .limit(100);
 
     if (error) toast.error(error.message);
-    else setMessages(((data || []) as unknown as ChatMessage[]).reverse());
+    else {
+      const rawMessages = (data || []) as unknown as ChatMessage[];
+      const formatted = rawMessages.map((msg) => {
+        let type = msg.type;
+        const isImage =
+          msg.message_type === "image" ||
+          msg.type === "image" ||
+          msg.type === "photo" ||
+          Boolean(msg.attachment_name?.match(/\.(jpg|jpeg|png|gif|webp|svg|heic)$/i));
+
+        if (!type) {
+          if (isImage) {
+            type = "image";
+          } else if (
+            msg.attachment_name?.includes("video-note") ||
+            (msg.attachment_path && msg.content?.toLowerCase() === "video note")
+          ) {
+            type = "video_note";
+          } else if (
+            msg.attachment_name?.startsWith("video-") ||
+            msg.attachment_name?.includes("camera-capture") ||
+            (msg.content?.toLowerCase() === "camera capture" && !isImage) ||
+            msg.attachment_name?.match(/\.(mp4|mov|mkv)$/i) ||
+            (msg.attachment_name?.endsWith(".webm") && !msg.attachment_name.includes("voice-note") && msg.content?.toLowerCase() !== "voice note")
+          ) {
+            type = "video";
+          }
+        }
+        return type ? { ...msg, type } : msg;
+      });
+      setMessages(formatted.reverse());
+    }
     setLoading(false);
   }, [conversationId]);
 
@@ -161,14 +216,27 @@ export function MessagePanel({
           void loadMessages();
           onConversationActivity();
 
-          const newMsg = payload?.payload as { sender_id?: string; content?: string; sender_name?: string } | undefined;
-          if (newMsg?.sender_id !== profile.id) {
-            notifyIncomingMessage({
-              senderName: newMsg?.sender_name || "Contact",
-              content: newMsg?.content || "Sent a message",
-              muted: isMuted,
-            });
-          }
+          const raw = (payload?.payload || payload) as {
+            id?: string;
+            sender_id?: string;
+            content?: string;
+            sender_name?: string;
+          } | undefined;
+          const senderId = raw?.sender_id;
+
+          // Never notify on self message or missing sender_id
+          if (!senderId || senderId === profile.id) return;
+          if (raw?.id && sentMessageIds.current.has(raw.id)) return;
+
+          const key = raw?.id || `${senderId}-${raw?.content}`;
+          if (notifiedMessageKeys.current.has(key)) return;
+          notifiedMessageKeys.current.add(key);
+
+          notifyIncomingMessage({
+            senderName: raw?.sender_name || "Contact",
+            content: raw?.content || "Sent a message",
+            muted: isMuted,
+          });
         })
         .on("broadcast", { event: "UPDATE" }, () => {
           void loadMessages();
@@ -204,14 +272,22 @@ export function MessagePanel({
             void loadMessages();
             onConversationActivity();
             if (payload.eventType === "INSERT") {
-              const newRow = payload.new as { sender_id?: string; content?: string } | undefined;
-              if (newRow?.sender_id !== profile.id) {
-                notifyIncomingMessage({
-                  senderName: "New Message",
-                  content: newRow?.content || "Sent an attachment",
-                  muted: isMuted,
-                });
-              }
+              const newRow = payload.new as { id?: string; sender_id?: string; content?: string } | undefined;
+              const senderId = newRow?.sender_id;
+
+              // Never notify on self message or missing sender_id
+              if (!senderId || senderId === profile.id) return;
+              if (newRow?.id && sentMessageIds.current.has(newRow.id)) return;
+
+              const key = newRow?.id || `${senderId}-${newRow?.content}`;
+              if (notifiedMessageKeys.current.has(key)) return;
+              notifiedMessageKeys.current.add(key);
+
+              notifyIncomingMessage({
+                senderName: "New Message",
+                content: newRow?.content || "Sent an attachment",
+                muted: isMuted,
+              });
             }
           }
         )
@@ -337,18 +413,22 @@ export function MessagePanel({
       setReplyingToMessage(null);
     }
 
-    const { error } = await createClient()
+    const { data: insertedMsg, error } = await createClient()
       .from("messages")
-      .insert({ conversation_id: conversationId, sender_id: profile.id, content: finalContent, message_type: "text" });
+      .insert({ conversation_id: conversationId, sender_id: profile.id, content: finalContent, message_type: "text" })
+      .select("id")
+      .single();
 
     setSending(false);
     if (error) {
       toast.error(error.message);
     } else {
+      if (insertedMsg?.id) sentMessageIds.current.add(insertedMsg.id);
       void channelRef.current?.send({
         type: "broadcast",
         event: "INSERT",
         payload: {
+          id: insertedMsg?.id,
           sender_id: profile.id,
           sender_name: profile.display_name,
           content: finalContent,
@@ -359,7 +439,7 @@ export function MessagePanel({
     }
   }
 
-  async function sendFile(file: File, caption: string) {
+  async function sendFile(file: File, caption: string, explicitType?: string) {
     setSending(true);
     const supabase = createClient();
     const path = `${conversationId}/${profile.id}/${crypto.randomUUID()}-${sanitizeFilename(file.name)}`;
@@ -373,27 +453,61 @@ export function MessagePanel({
       return;
     }
 
-    const { error } = await supabase.from("messages").insert({
+    const isImage =
+      explicitType === "image" ||
+      explicitType === "photo" ||
+      file.type.startsWith("image/") ||
+      Boolean(file.name.match(/\.(jpg|jpeg|png|gif|webp|svg|heic)$/i));
+
+    const isVideoNote =
+      !isImage &&
+      (explicitType === "video_note" ||
+        file.name.includes("video-note") ||
+        caption === "Video Note");
+
+    const isVideo =
+      !isImage &&
+      !isVideoNote &&
+      (explicitType === "video" ||
+        explicitType === "camera_capture" ||
+        file.type.startsWith("video/") ||
+        file.name.startsWith("video-") ||
+        file.name.includes("camera-capture") ||
+        caption === "Camera Capture" ||
+        Boolean(file.name.match(/\.(mp4|mov|mkv|webm)$/i)));
+
+    const { data: insertedFileMsg, error } = await supabase.from("messages").insert({
       conversation_id: conversationId,
       sender_id: profile.id,
       content: caption,
-      message_type: file.type.startsWith("image/") ? "image" : "file",
+      message_type: isImage ? "image" : "file",
       attachment_path: path,
       attachment_name: file.name,
       attachment_size: file.size,
-    });
+    }).select("id").single();
 
     setSending(false);
     if (error) {
       toast.error(error.message);
     } else {
+      if (insertedFileMsg?.id) sentMessageIds.current.add(insertedFileMsg.id);
+      const dispatchType = isVideoNote
+        ? "video_note"
+        : isImage
+          ? "image"
+          : isVideo
+            ? "video"
+            : "file";
+
       void channelRef.current?.send({
         type: "broadcast",
         event: "INSERT",
         payload: {
+          id: insertedFileMsg?.id,
           sender_id: profile.id,
           sender_name: profile.display_name,
           content: caption || file.name,
+          type: dispatchType,
         },
       });
       void loadMessages();
@@ -694,7 +808,14 @@ export function MessagePanel({
                   const showDateSeparator = currentDateLabel !== prevDateLabel;
 
                   return (
-                    <div key={message.id}>
+                    <div
+                      key={message.id}
+                      className={cn(
+                        "transition-all",
+                        activeMenuMessageId === message.id ? "relative z-50" : "relative z-1"
+                      )}
+                      style={{ zIndex: activeMenuMessageId === message.id ? 50 : 1 }}
+                    >
                       {showDateSeparator && (
                         <div className="my-6 flex items-center justify-center">
                           <span className="rounded-full bg-muted px-3.5 py-1 text-[11px] font-medium text-muted-foreground">
@@ -714,6 +835,10 @@ export function MessagePanel({
                         onReply={(msg) => setReplyingToMessage(msg)}
                         onEdit={handleEditMessage}
                         onDelete={handleDeleteMessage}
+                        onForward={(msg) => setReplyingToMessage(msg)}
+                        isMenuOpen={activeMenuMessageId === message.id}
+                        onOpenMenu={() => setActiveMenuMessageId(message.id)}
+                        onCloseMenu={() => setActiveMenuMessageId(null)}
                       />
                     </div>
                   );

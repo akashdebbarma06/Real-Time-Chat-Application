@@ -75,10 +75,10 @@ export const BUBBLE_STYLES: {
   ownClass: string;
   peerClass: string;
 }[] = [
-  { id: "rounded", label: "Modern Rounded", description: "Balanced curved corners with soft subtle tail", ownClass: "rounded-2xl rounded-br-xs", peerClass: "rounded-2xl rounded-bl-xs" },
-  { id: "classic", label: "Classic Chat", description: "Traditional chat bubble with distinct notched tails", ownClass: "rounded-2xl rounded-br-none", peerClass: "rounded-2xl rounded-bl-none" },
-  { id: "minimal", label: "Sharp Minimal", description: "Subtle rounded corners, sleek technical look", ownClass: "rounded-lg rounded-br-none", peerClass: "rounded-lg rounded-bl-none" },
-  { id: "pill", label: "Smooth Pill", description: "Ultra-rounded pill shape with maximum curvature", ownClass: "rounded-3xl rounded-br-sm", peerClass: "rounded-3xl rounded-bl-sm" },
+  { id: "rounded", label: "Modern Rounded", description: "Balanced 12px curved corners with soft subtle tail", ownClass: "rounded-xl rounded-br-xs", peerClass: "rounded-xl rounded-bl-xs" },
+  { id: "classic", label: "Classic Chat", description: "Traditional 12px chat bubble with subtle tail", ownClass: "rounded-xl rounded-br-none", peerClass: "rounded-xl rounded-bl-none" },
+  { id: "minimal", label: "Sharp Minimal", description: "Subtle 8px rounded corners, sleek technical look", ownClass: "rounded-lg rounded-br-none", peerClass: "rounded-lg rounded-bl-none" },
+  { id: "pill", label: "Smooth Pill", description: "Soft 12px curvature with slim profile", ownClass: "rounded-xl rounded-br-sm", peerClass: "rounded-xl rounded-bl-sm" },
 ];
 
 export function getStoredAppearance(): AppearancePreferences {

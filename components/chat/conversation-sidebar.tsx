@@ -27,7 +27,7 @@ import {
   UsersRound,
   X,
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { useTheme } from "next-themes";
 import { CallsView } from "@/components/chat/calls-view";
 import { ContactsView } from "@/components/chat/contacts-view";
@@ -294,7 +294,7 @@ export function ConversationSidebar({
   // In-Panel subview rendering for chats tab
   if (currentTab === "chats" && sidebarView === "new-direct") {
     return (
-      <aside className="flex h-full min-h-0 flex-col border-r bg-background text-foreground">
+      <aside className="sidebar flex h-full min-h-0 w-full flex-col border-r bg-background text-foreground shrink-0 overflow-hidden min-w-0">
         <InPanelDirectChat
           currentUserId={profile.id}
           onBack={() => setSidebarView("chats")}
@@ -306,7 +306,7 @@ export function ConversationSidebar({
 
   if (currentTab === "chats" && sidebarView === "new-group") {
     return (
-      <aside className="flex h-full min-h-0 flex-col border-r bg-background text-foreground">
+      <aside className="sidebar flex h-full min-h-0 w-full flex-col border-r bg-background text-foreground shrink-0 overflow-hidden min-w-0">
         <InPanelNewGroup
           currentUserId={profile.id}
           onBack={() => setSidebarView("chats")}
@@ -318,7 +318,7 @@ export function ConversationSidebar({
 
   if (currentTab === "chats" && sidebarView === "starred") {
     return (
-      <aside className="flex h-full min-h-0 flex-col border-r bg-background text-foreground">
+      <aside className="sidebar flex h-full min-h-0 w-full flex-col border-r bg-background text-foreground shrink-0 overflow-hidden min-w-0">
         <InPanelStarredMessages
           currentUserId={profile.id}
           onBack={() => setSidebarView("chats")}
@@ -328,7 +328,7 @@ export function ConversationSidebar({
   }
 
   return (
-    <aside className="flex h-full min-h-0 flex-col border-r bg-background text-foreground">
+    <aside className="sidebar flex h-full min-h-0 w-full flex-col border-r bg-background text-foreground shrink-0 overflow-hidden min-w-0">
       {/* Top Header */}
       {isSelectionMode ? (
         <div className="flex h-16 items-center justify-between border-b px-4 sm:px-5 shrink-0 bg-muted/40">
@@ -508,8 +508,11 @@ export function ConversationSidebar({
             </div>
 
             {/* Active Chats List */}
-            <ScrollArea className="flex-1 px-3">
-              <div className="space-y-1 pb-4 pt-1">
+            <ScrollArea className="flex-1 w-full min-w-0 overflow-x-hidden">
+              <div
+                className="w-full min-w-0 space-y-1 pb-4 pt-1 box-border overflow-hidden"
+                style={{ padding: "0 12px", boxSizing: "border-box" }}
+              >
                 {filteredConversations.map((conversation) => {
                   const title = getConversationTitle(conversation, profile.id);
                   const peers = getConversationPeers(conversation, profile.id);
@@ -518,10 +521,17 @@ export function ConversationSidebar({
                   const ownLastMessage = lastMessage?.sender_id === profile.id;
                   const readBySomeoneElse = lastMessage?.read_receipts?.some((r: { user_id: string }) => r.user_id !== profile.id);
 
+                  const rawContent = lastMessage?.content || "";
                   const preview = lastMessage
                     ? lastMessage.message_type === "image"
                       ? "📷 Photo"
-                      : lastMessage.content
+                      : rawContent.startsWith("![GIF]")
+                        ? "🎬 GIF"
+                        : rawContent.includes("**POLL:")
+                          ? `📊 Poll: ${rawContent.match(/\*\*POLL:\s*([^*]+)\*\*/)?.[1]?.trim() || "Question"}`
+                          : rawContent.match(/^(\S+)\s*\*\((.*?)\)\*$/)
+                            ? `${rawContent.match(/^(\S+)\s*\*\((.*?)\)\*$/)?.[1]} Sticker`
+                            : rawContent || "Attachment"
                     : "No messages yet";
 
                   const isSelected = conversation.id === selectedConversationId;
@@ -543,8 +553,9 @@ export function ConversationSidebar({
                             toggleSelectChat(conversation.id);
                           }
                         }}
+                        style={{ width: "100%", boxSizing: "border-box", borderRadius: "14px" }}
                         className={cn(
-                          "group relative flex items-center gap-3 rounded-2xl p-3 transition-all cursor-pointer select-none",
+                          "group relative flex items-center gap-3 w-full overflow-hidden box-border rounded-[14px] p-3 transition-all cursor-pointer select-none",
                           isSelectedInBatch
                             ? "bg-purple-500/15 border border-purple-500/30 shadow-xs"
                             : "hover:bg-muted/60 text-foreground"
@@ -553,7 +564,7 @@ export function ConversationSidebar({
                         {/* Checkbox */}
                         <div
                           className={cn(
-                            "grid size-5 place-items-center rounded-md border text-white transition-colors shrink-0",
+                            "grid size-5 place-items-center rounded-md border text-white transition-colors shrink-0 flex-shrink-0",
                             isSelectedInBatch
                               ? "bg-purple-600 border-purple-600"
                               : "border-muted-foreground/30 bg-background"
@@ -562,8 +573,8 @@ export function ConversationSidebar({
                           {isSelectedInBatch && <Check className="size-3.5 stroke-[3]" />}
                         </div>
 
-                        {/* Avatar */}
-                        <div className="relative shrink-0">
+                        {/* 1. Avatar (Fixed size, never shrinks) */}
+                        <div className="relative shrink-0 flex-shrink-0">
                           <ConversationAvatar
                             conversation={conversation}
                             userId={profile.id}
@@ -576,17 +587,29 @@ export function ConversationSidebar({
                           )}
                         </div>
 
-                        {/* Content */}
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center justify-between gap-2">
-                            <p className="truncate text-sm font-semibold text-foreground leading-snug">{title}</p>
-                            <time className="shrink-0 text-xs text-muted-foreground font-medium">
+                        {/* 2. Middle Content Area (Takes remaining width, must have min-w-0 and overflow-hidden) */}
+                        <div className="sidebar-item-content chat-info flex-1 min-w-0 flex flex-col justify-center gap-0.5 overflow-hidden">
+                          {/* Top Row: Name + Badges + Timestamp */}
+                          <div className="flex items-center justify-between gap-2 w-full min-w-0">
+                            <div className="flex items-center gap-1 min-w-0">
+                              <span className="user-name text-sm font-semibold truncate block">
+                                {title}
+                              </span>
+                              {isPinned && (
+                                <Pin className="size-3 text-primary shrink-0 flex-shrink-0 rotate-45" />
+                              )}
+                            </div>
+                            <span className="chat-time text-[11px] text-muted-foreground shrink-0 flex-shrink-0 font-medium">
                               {formatConversationTime(lastMessage?.created_at || conversation.updated_at)}
-                            </time>
+                            </span>
                           </div>
-                          <p className="truncate text-xs text-muted-foreground mt-1">
-                            {preview}
-                          </p>
+
+                          {/* Bottom Row: Checkmark / Icon + Truncated Preview Text */}
+                          <div className="chat-preview flex items-center gap-1.5 w-full min-w-0">
+                            <p className="sidebar-last-message sidebar-message-preview preview-text text-xs text-muted-foreground truncate block w-full min-w-0">
+                              {preview}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     );
@@ -596,15 +619,16 @@ export function ConversationSidebar({
                     <Link
                       key={conversation.id}
                       href={`/chat/${conversation.id}`}
+                      style={{ width: "100%", boxSizing: "border-box", borderRadius: "14px" }}
                       className={cn(
-                        "group relative flex items-center gap-3.5 rounded-2xl p-3 transition-all",
+                        "group relative flex items-center gap-3 p-3 w-full overflow-hidden box-border rounded-[14px] transition-all cursor-pointer",
                         isSelected
                           ? "bg-muted shadow-xs"
                           : "hover:bg-muted/60 text-foreground"
                       )}
                     >
-                      {/* Avatar */}
-                      <div className="relative shrink-0">
+                      {/* 1. Avatar (Fixed size, never shrinks) */}
+                      <div className="relative shrink-0 flex-shrink-0">
                         <ConversationAvatar
                           conversation={conversation}
                           userId={profile.id}
@@ -617,45 +641,46 @@ export function ConversationSidebar({
                         )}
                       </div>
 
-                      {/* Content */}
-                      <div className="min-w-0 flex-1">
-                        {/* Row 1: Title + Pin + Relative Time */}
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                            <p className="truncate text-sm font-semibold text-foreground leading-snug">{title}</p>
-                            {isPinned && <Pin className="size-3 text-primary shrink-0 rotate-45" />}
+                      {/* 2. Middle Content Area (Takes remaining width, must have min-w-0 and overflow-hidden) */}
+                      <div className="sidebar-item-content chat-info flex-1 min-w-0 flex flex-col justify-center gap-0.5 overflow-hidden">
+                        {/* Top Row: Name + Badges + Timestamp */}
+                        <div className="flex items-center justify-between gap-2 w-full min-w-0">
+                          <div className="flex items-center gap-1 min-w-0">
+                            <span className="user-name text-sm font-semibold truncate block">
+                              {title}
+                            </span>
+                            {isPinned && (
+                              <Pin className="size-3 text-primary shrink-0 flex-shrink-0 rotate-45" />
+                            )}
                           </div>
-                          <time className="shrink-0 text-xs text-muted-foreground font-medium">
+                          <span className="chat-time text-[11px] text-muted-foreground shrink-0 flex-shrink-0 font-medium">
                             {formatConversationTime(lastMessage?.created_at || conversation.updated_at)}
-                          </time>
+                          </span>
                         </div>
 
-                        {/* Row 2: Activity subtitle + read checkmarks + unread badge */}
-                        <div className="mt-1.5 flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-1 min-w-0 flex-1">
-                            {/* Read Status Checkmarks for Own Sent Messages */}
-                            {ownLastMessage && (
-                              <span className="shrink-0">
-                                {readBySomeoneElse ? (
-                                  <CheckCheck className="size-3.5 text-primary" aria-label="Read" />
-                                ) : (
-                                  <Check className="size-3.5 text-muted-foreground" aria-label="Sent" />
-                                )}
-                              </span>
-                            )}
-
-                            <p
-                              className={cn(
-                                "min-w-0 flex-1 truncate text-xs text-muted-foreground",
-                                conversation.unread_count > 0 && "font-semibold text-foreground"
+                        {/* Bottom Row: Checkmark / Icon + Truncated Preview Text */}
+                        <div className="chat-preview flex items-center gap-1.5 w-full min-w-0">
+                          {ownLastMessage && (
+                            <span className="text-xs text-muted-foreground shrink-0 flex-shrink-0 flex items-center">
+                              {readBySomeoneElse ? (
+                                <CheckCheck className="size-3.5 text-primary" aria-label="Read" />
+                              ) : (
+                                <Check className="size-3.5 text-muted-foreground" aria-label="Sent" />
                               )}
-                            >
-                              {preview}
-                            </p>
-                          </div>
+                            </span>
+                          )}
+
+                          <p
+                            className={cn(
+                              "sidebar-last-message sidebar-message-preview preview-text text-xs text-muted-foreground truncate block w-full min-w-0 flex-1",
+                              conversation.unread_count > 0 && "font-semibold text-foreground"
+                            )}
+                          >
+                            {preview}
+                          </p>
 
                           {conversation.unread_count > 0 && (
-                            <span className="ml-1 flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground shadow-sm">
+                            <span className="shrink-0 flex-shrink-0 ml-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground shadow-sm">
                               {conversation.unread_count}
                             </span>
                           )}
@@ -663,7 +688,7 @@ export function ConversationSidebar({
                       </div>
 
                       {/* Hover Actions: Pin & Archive */}
-                      <div className="absolute right-2 top-2 hidden group-hover:flex items-center gap-1 bg-background/90 backdrop-blur-md rounded-full border p-1 shadow-md">
+                      <div className="absolute right-2 top-2 hidden group-hover:flex items-center gap-1 bg-background/90 backdrop-blur-md rounded-full border p-1 shadow-md z-10">
                         <button
                           onClick={(e) => togglePin(conversation.id, e)}
                           title={isPinned ? "Unpin chat" : "Pin chat"}

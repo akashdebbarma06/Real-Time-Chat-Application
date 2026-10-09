@@ -13,7 +13,7 @@ import {
   SendHorizontal,
   X,
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import { cn, formatFileSize, validateUploadFile } from "@/lib/utils";
 import type { ChatMessage } from "@/types/chat";
@@ -42,7 +42,7 @@ interface MessageComposerProps {
   replyToMessage?: ChatMessage | null;
   onCancelReply?: () => void;
   onSendText: (content: string) => Promise<void>;
-  onSendFile: (file: File, caption: string) => Promise<void>;
+  onSendFile: (file: File, caption: string, messageType?: string) => Promise<void>;
   onTyping: (isTyping: boolean) => void;
 }
 
@@ -130,7 +130,9 @@ export function MessageComposer({
       setContent("");
       resetTextareaHeight();
       onTyping(false);
-      await onSendFile(selectedFile, caption);
+      const isImage = selectedFile.type.startsWith("image/") || Boolean(selectedFile.name.match(/\.(jpg|jpeg|png|gif|webp|svg|heic)$/i));
+      const isVideo = !isImage && (selectedFile.type.startsWith("video/") || selectedFile.name.includes("camera-capture") || Boolean(selectedFile.name.match(/\.(mp4|mov|mkv|webm)$/i)));
+      await onSendFile(selectedFile, caption, isImage ? "image" : isVideo ? "video" : undefined);
       return;
     }
 
@@ -156,7 +158,7 @@ export function MessageComposer({
       return;
     }
     setSelectedFile(file);
-    if (file.type.startsWith("image/")) {
+    if (file.type.startsWith("image/") || file.type.startsWith("video/")) {
       setPreviewUrl(URL.createObjectURL(file));
     } else {
       setPreviewUrl(null);
@@ -278,7 +280,26 @@ export function MessageComposer({
       {selectedFile && (
         <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 rounded-2xl border border-white/20 dark:border-white/10 bg-background/80 dark:bg-card/80 backdrop-blur-2xl p-2.5 shadow-lg shadow-black/5 dark:shadow-black/25 animate-in fade-in duration-200">
           <div className="flex items-center gap-3 min-w-0">
-            {previewUrl ? (
+            {previewUrl && selectedFile.type.startsWith("video/") ? (
+              <div
+                className={cn(
+                  "relative size-12 overflow-hidden border shrink-0 bg-black",
+                  selectedFile.name.includes("video-note")
+                    ? "rounded-full aspect-square border-primary/50"
+                    : "rounded-xl"
+                )}
+              >
+                <video
+                  src={previewUrl}
+                  muted
+                  playsInline
+                  className={cn(
+                    "size-full object-cover",
+                    selectedFile.name.includes("video-note") && "-scale-x-100"
+                  )}
+                />
+              </div>
+            ) : previewUrl ? (
               <div className="relative size-12 overflow-hidden rounded-xl border shrink-0">
                 <Image
                   src={previewUrl}
@@ -526,7 +547,13 @@ export function MessageComposer({
         mode={cameraMode}
         onOpenChange={setCameraDialogOpen}
         onCaptureMedia={(file) => {
-          void onSendFile(file, cameraMode === "video-note" ? "Video Note" : "Camera Capture");
+          const isPhoto = cameraMode === "photo" || file.type.startsWith("image/");
+          const isVideoNote = cameraMode === "video-note";
+          void onSendFile(
+            file,
+            isVideoNote ? "Video Note" : isPhoto ? "Photo" : "Camera Capture",
+            isVideoNote ? "video_note" : isPhoto ? "image" : "video"
+          );
         }}
       />
     </div>

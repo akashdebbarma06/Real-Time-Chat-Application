@@ -10,7 +10,7 @@ import {
   Video,
   X,
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -58,14 +58,29 @@ export function CameraCaptureDialog({
       setPermissionError(null);
 
       try {
-        const constraints: MediaStreamConstraints = {
-          video: {
-            facingMode: mode === "video-note" ? "user" : "environment",
-            width: { ideal: mode === "video-note" ? 480 : 1280 },
-            height: { ideal: mode === "video-note" ? 480 : 720 },
-          },
-          audio: mode !== "photo",
-        };
+        const constraints: MediaStreamConstraints =
+          mode === "video-note"
+            ? {
+                video: {
+                  facingMode: "user",
+                  width: { ideal: 480 },
+                  height: { ideal: 480 },
+                },
+                audio: true,
+              }
+            : mode === "photo"
+              ? {
+                  video: {
+                    facingMode: "environment",
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 },
+                  },
+                  audio: false,
+                }
+              : {
+                  video: true,
+                  audio: true,
+                };
 
         const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
         setStream(mediaStream);
@@ -154,13 +169,13 @@ export function CameraCaptureDialog({
 
       recorder.onstop = () => {
         const blob = new Blob(recordedChunksRef.current, { type: "video/webm" });
-        const prefix = mode === "video-note" ? "video-note" : "video";
+        const prefix = mode === "video-note" ? "video-note" : "camera-capture";
         const file = new File([blob], `${prefix}-${Date.now()}.webm`, {
           type: "video/webm",
         });
         onCaptureMedia(file);
         onOpenChange(false);
-        toast.success(`${mode === "video-note" ? "Video Note" : "Video"} attached!`);
+        toast.success(`${mode === "video-note" ? "Video Note" : "Camera Capture"} attached!`);
       };
 
       recorder.start(250);
@@ -216,44 +231,96 @@ export function CameraCaptureDialog({
         </DialogHeader>
 
         {/* Viewfinder Area */}
-        <div className="relative aspect-square sm:aspect-video w-full overflow-hidden rounded-2xl bg-black flex items-center justify-center">
-          {loading && (
-            <div className="flex flex-col items-center gap-2 text-white/80">
-              <Loader2 className="size-8 animate-spin text-primary" />
-              <p className="text-xs">Accessing camera device...</p>
+        {mode === "video-note" ? (
+          <div className="py-2 flex items-center justify-center">
+            <div
+              style={{
+                width: "240px",
+                height: "240px",
+                aspectRatio: "1 / 1",
+                borderRadius: "50%",
+                overflow: "hidden",
+                margin: "0 auto",
+              }}
+              className="relative bg-black flex items-center justify-center border-4 border-primary/70 shadow-2xl shrink-0"
+            >
+              {loading && (
+                <div className="flex flex-col items-center gap-2 text-white/80">
+                  <Loader2 className="size-8 animate-spin text-primary" />
+                  <p className="text-xs">Accessing camera device...</p>
+                </div>
+              )}
+
+              {permissionError && (
+                <div className="p-4 text-center space-y-2 text-white">
+                  <AlertCircle className="size-8 text-rose-500 mx-auto" />
+                  <p className="text-xs text-rose-300 font-semibold">{permissionError}</p>
+                </div>
+              )}
+
+              {/* Live Video Stream (Mirrored, Object Cover, 100% W/H) */}
+              <video
+                ref={videoRef}
+                playsInline
+                muted
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  transform: "scaleX(-1)",
+                }}
+              />
+
+              {/* Recording Timer Badge */}
+              {recording && (
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-full bg-black/75 px-3 py-1 text-xs font-mono font-bold text-white border border-red-500/50 backdrop-blur-md">
+                  <span className="size-2 rounded-full bg-red-500 animate-pulse" />
+                  <span>{formatTimer(recordSeconds)}</span>
+                </div>
+              )}
             </div>
-          )}
+          </div>
+        ) : (
+          <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-black flex items-center justify-center">
+            {loading && (
+              <div className="flex flex-col items-center gap-2 text-white/80">
+                <Loader2 className="size-8 animate-spin text-primary" />
+                <p className="text-xs">Accessing camera device...</p>
+              </div>
+            )}
 
-          {permissionError && (
-            <div className="p-4 text-center space-y-2 text-white">
-              <AlertCircle className="size-8 text-rose-500 mx-auto" />
-              <p className="text-xs text-rose-300 font-semibold">{permissionError}</p>
-            </div>
-          )}
+            {permissionError && (
+              <div className="p-4 text-center space-y-2 text-white">
+                <AlertCircle className="size-8 text-rose-500 mx-auto" />
+                <p className="text-xs text-rose-300 font-semibold">{permissionError}</p>
+              </div>
+            )}
 
-          {/* Live Video Stream */}
-          <video
-            ref={videoRef}
-            playsInline
-            muted
-            className={`w-full h-full object-cover ${
-              mode === "video-note"
-                ? "rounded-full aspect-square scale-90 border-4 border-primary/60 shadow-2xl"
-                : ""
-            }`}
-          />
+            {/* Live Video Stream */}
+            <video
+              ref={videoRef}
+              playsInline
+              muted
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                transform: mode === "photo" ? "scaleX(-1)" : "none",
+              }}
+            />
 
-          {/* Hidden Canvas for Photo Snap */}
-          <canvas ref={canvasRef} className="hidden" />
+            {/* Recording Timer Badge */}
+            {recording && (
+              <div className="absolute top-3 left-3 flex items-center gap-2 rounded-full bg-black/70 px-3 py-1 text-xs font-mono font-bold text-white border border-red-500/40">
+                <span className="size-2 rounded-full bg-red-500 animate-pulse" />
+                <span>{formatTimer(recordSeconds)}</span>
+              </div>
+            )}
+          </div>
+        )}
 
-          {/* Recording Timer Badge */}
-          {recording && (
-            <div className="absolute top-3 left-3 flex items-center gap-2 rounded-full bg-black/70 px-3 py-1 text-xs font-mono font-bold text-white border border-red-500/40">
-              <span className="size-2 rounded-full bg-red-500 animate-pulse" />
-              <span>{formatTimer(recordSeconds)}</span>
-            </div>
-          )}
-        </div>
+        {/* Hidden Canvas for Photo Snap */}
+        <canvas ref={canvasRef} className="hidden" />
 
         {/* Controls */}
         <div className="flex items-center justify-center gap-4 pt-3">

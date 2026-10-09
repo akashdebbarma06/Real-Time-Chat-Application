@@ -1,27 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Check,
   CheckCheck,
-  CornerUpLeft,
-  Pencil,
-  Smile,
+  Pin,
   Star,
-  Trash2,
   X,
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { AttachmentPreview } from "@/components/chat/attachment-preview";
+import { MessageContextMenu } from "@/components/chat/message-context-menu";
+import { GifMediaCard } from "@/components/chat/media/gif-media-card";
+import { StickerBubble } from "@/components/chat/media/sticker-bubble";
+import { PollCard, parsePollContent } from "@/components/chat/media/poll-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toggleMessageStar, useStarredIds } from "@/lib/starred-store";
+import { toggleMessagePin, usePinnedMessageIds } from "@/lib/pinned-store";
+import { createClient } from "@/lib/supabase/client";
 import { cn, formatMessageTime, getInitials } from "@/lib/utils";
 import { BUBBLE_STYLES, useAppearance } from "@/lib/appearance-store";
 import type { ChatMessage, Profile } from "@/types/chat";
-
-const EMOJI_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🔥"];
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -34,6 +35,10 @@ interface MessageBubbleProps {
   onReply?: (message: ChatMessage) => void;
   onEdit?: (messageId: string, newContent: string) => void;
   onDelete?: (messageId: string) => void;
+  onForward?: (message: ChatMessage) => void;
+  isMenuOpen?: boolean;
+  onOpenMenu?: () => void;
+  onCloseMenu?: () => void;
 }
 
 export function MessageBubble({
@@ -47,6 +52,10 @@ export function MessageBubble({
   onReply,
   onEdit,
   onDelete,
+  onForward,
+  isMenuOpen: isMenuOpenProp,
+  onOpenMenu,
+  onCloseMenu,
 }: MessageBubbleProps) {
   const own = message.sender_id === currentUserId;
   const readBySomeoneElse = message.read_receipts?.some((receipt) => receipt.user_id !== currentUserId);
@@ -57,15 +66,87 @@ export function MessageBubble({
   const starredIds = useStarredIds(currentUserId);
   const isStarred = starredIds.has(message.id);
 
+  const pinnedIds = usePinnedMessageIds(message.conversation_id);
+  const isPinned = pinnedIds.has(message.id);
+
   const [localReactions, setLocalReactions] = useState<{ [emoji: string]: string[] }>({});
   const reactions = externalReactions || localReactions;
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content || "");
-  const [showMobileActions, setShowMobileActions] = useState(false);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [localMenuOpen, setLocalMenuOpen] = useState(false);
+  const [menuPlacement, setMenuPlacement] = useState<"top" | "bottom">("top");
 
-  async function handleToggleStar(e: React.MouseEvent) {
-    e.stopPropagation();
+  const menuOpen = isMenuOpenProp !== undefined ? isMenuOpenProp : localMenuOpen;
+
+  const bubbleRef = useRef<HTMLDivElement>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleOpen = useCallback(() => {
+    if (bubbleRef.current) {
+      const rect = bubbleRef.current.getBoundingClientRect();
+      if (rect.top < 320) {
+        setMenuPlacement("bottom");
+      } else {
+        setMenuPlacement("top");
+      }
+    }
+    if (onOpenMenu) {
+      onOpenMenu();
+    } else {
+      setLocalMenuOpen(true);
+    }
+  }, [onOpenMenu]);
+
+  const handleClose = useCallback(() => {
+    if (onCloseMenu) {
+      onCloseMenu();
+    } else {
+      setLocalMenuOpen(false);
+    }
+  }, [onCloseMenu]);
+
+  // Listen to Escape key if running in standalone uncontrolled mode
+  useEffect(() => {
+    if (!menuOpen) return;
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        handleClose();
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [menuOpen, handleClose]);
+
+  // Long-press event handlers (~500ms trigger on hold or right-click)
+  const startLongPress = useCallback(
+    (e: React.MouseEvent | React.TouchEvent) => {
+      if ("button" in e && e.button !== 0) return;
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      timeoutRef.current = setTimeout(() => {
+        handleOpen();
+      }, 500);
+    },
+    [handleOpen]
+  );
+
+  const clearLongPress = useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+  }, []);
+
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      clearLongPress();
+      handleOpen();
+    },
+    [clearLongPress, handleOpen]
+  );
+
+  async function handleToggleStar() {
     const res = await toggleMessageStar(currentUserId, message.id, message.conversation_id, {
       content: message.content,
       attachment_name: message.attachment_name,
@@ -81,8 +162,73 @@ export function MessageBubble({
     }
   }
 
-  function toggleReaction(emoji: string, e?: React.MouseEvent) {
-    if (e) e.stopPropagation();
+  function handleTogglePin() {
+    const res = toggleMessagePin(message.conversation_id, message.id);
+    if (res.isPinned) {
+      toast.success("Message pinned");
+    } else {
+      toast.success("Message unpinned");
+    }
+  }
+
+  async function handleCopyText(text: string) {
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Copied to clipboard");
+    } catch {
+      toast.error("Failed to copy");
+    }
+  }
+
+  async function handleDownloadAttachment() {
+    if (!message.attachment_path) return;
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase.storage
+        .from("chat-files")
+        .createSignedUrl(message.attachment_path, 3600);
+
+      if (error || !data?.signedUrl) {
+        toast.error("Failed to generate download link");
+        return;
+      }
+
+      const response = await fetch(data.signedUrl);
+      if (!response.ok) throw new Error("Fetch failed");
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = message.attachment_name || "download";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+      toast.success("Download started");
+    } catch {
+      try {
+        const supabase = createClient();
+        const { data } = await supabase.storage
+          .from("chat-files")
+          .createSignedUrl(message.attachment_path, 3600);
+        if (data?.signedUrl) {
+          const link = document.createElement("a");
+          link.href = data.signedUrl;
+          link.download = message.attachment_name || "download";
+          link.target = "_blank";
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          toast.success("Opening file download");
+        }
+      } catch {
+        toast.error("Download failed");
+      }
+    }
+  }
+
+  function toggleReaction(emoji: string) {
     if (onToggleReaction) {
       onToggleReaction(emoji);
     } else {
@@ -95,7 +241,6 @@ export function MessageBubble({
         return { ...prev, [emoji]: next };
       });
     }
-    setShowEmojiPicker(false);
   }
 
   function handleSaveEdit(e?: React.MouseEvent) {
@@ -105,9 +250,89 @@ export function MessageBubble({
     setIsEditing(false);
   }
 
+  const fileName = message.attachment_name || "";
+  const isPhoto = Boolean(
+    message.message_type === "image" ||
+    (message as { type?: string }).type === "image" ||
+    (message as { type?: string }).type === "photo" ||
+    Boolean(fileName.match(/\.(jpg|jpeg|png|gif|webp|svg|heic)$/i))
+  );
+
+  const isVideoNote = Boolean(
+    !isPhoto &&
+    ((message as { type?: string }).type === "video_note" ||
+     (message as { message_type?: string }).message_type === "video_note" ||
+     fileName.includes("video-note") ||
+     (message.attachment_path && message.content?.toLowerCase() === "video note"))
+  );
+
+  const isVideo = Boolean(
+    !isPhoto &&
+    !isVideoNote &&
+    ((message as { type?: string }).type === "video" ||
+     (message as { type?: string }).type === "camera_capture" ||
+     (message as { message_type?: string }).message_type === "video" ||
+     (message as { message_type?: string }).message_type === "camera_capture" ||
+     fileName.startsWith("video-") ||
+     fileName.includes("camera-capture") ||
+     fileName.match(/\.(mp4|mov|mkv|avi)$/i) ||
+     (fileName.endsWith(".webm") && !fileName.includes("voice-note") && message.content?.toLowerCase() !== "voice note"))
+  );
+  // Check for Markdown GIF: ![GIF](url)
+  const gifMatch = message.content?.match(/^!\[(.*?)\]\((https?:\/\/[^\s)]+)\)$/i);
+  const isGif = Boolean(gifMatch);
+  const gifUrl = gifMatch ? gifMatch[2] : null;
+
+  // Check for Sticker: e.g. 🚀 *(To The Moon)*
+  const stickerMatch = message.content?.match(/^(\S+)\s*\*\((.*?)\)\*$/);
+  const isSticker = Boolean(stickerMatch && !isGif);
+  const stickerEmoji = stickerMatch ? stickerMatch[1] : undefined;
+  const stickerLabel = stickerMatch ? stickerMatch[2] : undefined;
+
+  // Check for Poll: **POLL: Question**
+  const parsedPoll = parsePollContent(message.content || "");
+  const isPoll = Boolean(parsedPoll);
+
+  const isCustomRichCard = Boolean(isGif || isSticker || isPoll);
+  const isMedia = Boolean(isVideoNote || isVideo || isPhoto || isCustomRichCard);
+
+  const isVoiceNote = Boolean(
+    !isVideo &&
+    !isVideoNote &&
+    ((message as { type?: string }).type === "voice_note" ||
+     (message as { type?: string }).type === "audio" ||
+     message.attachment_name?.includes("voice-note") ||
+     (message.attachment_path && message.content?.toLowerCase() === "voice note"))
+  );
+
+  const contentLower = message.content?.trim().toLowerCase();
+  const isGenericMediaLabel = Boolean(
+    contentLower === "photo" ||
+    contentLower === "camera capture" ||
+    contentLower === "video" ||
+    contentLower === "video note" ||
+    contentLower === "voice note"
+  );
+
+  const showTextContent = Boolean(
+    message.content &&
+    !isCustomRichCard &&
+    !(isMedia && isGenericMediaLabel) &&
+    !(isVoiceNote && contentLower === "voice note")
+  );
+
+  function handleForwardMessage() {
+    if (onForward) {
+      onForward(message);
+    } else if (onReply) {
+      onReply(message);
+    } else {
+      toast.info("Forwarding message...");
+    }
+  }
+
   return (
     <div
-      onClick={() => setShowMobileActions((prev) => !prev)}
       className={cn(
         "group relative flex items-end gap-2.5 my-1.5 sm:my-2 transition-all animate-message-appear",
         own ? "justify-end" : "justify-start"
@@ -130,8 +355,27 @@ export function MessageBubble({
         </button>
       )}
 
-      {/* Bubble Container */}
-      <div className={cn("relative flex flex-col max-w-[76%] sm:max-w-[68%]", own && "items-end")}>
+      {/* Bubble Container with Stacking Context Elevation (z-index 50 when menu open, 1 when inactive) */}
+      <div
+        ref={bubbleRef}
+        onMouseDown={startLongPress}
+        onMouseUp={clearLongPress}
+        onMouseLeave={clearLongPress}
+        onTouchStart={startLongPress}
+        onTouchEnd={clearLongPress}
+        onTouchMove={clearLongPress}
+        onContextMenu={handleContextMenu}
+        className={cn(
+          "relative flex flex-col w-fit max-w-[70%]",
+          menuOpen ? "z-50" : "z-1",
+          own && "items-end"
+        )}
+        style={{
+          maxWidth: "70%",
+          position: "relative",
+          zIndex: menuOpen ? 50 : 1,
+        }}
+      >
         {showSenderName && !own && (
           <button
             type="button"
@@ -148,11 +392,28 @@ export function MessageBubble({
         {/* Bubble */}
         <div
           className={cn(
-            "relative px-4 py-2.5 sm:px-5 sm:py-3 transition-all select-text shadow-xs",
-            own
-              ? cn(bubbleConf.ownClass, "bg-primary text-primary-foreground shadow-primary/20")
-              : cn(bubbleConf.peerClass, "bg-muted text-foreground")
+            "chat-bubble message-bubble relative transition-all select-text w-fit max-w-[70%] break-words [word-break:break-word] [overflow-wrap:break-word]",
+            (isMedia && !showTextContent) || isCustomRichCard
+              ? "!bg-transparent !p-0 !border-0 !shadow-none"
+              : cn(
+                  isVoiceNote && !showTextContent ? "!p-0 shadow-xs" : "shadow-xs",
+                  own
+                    ? cn(bubbleConf.ownClass, "bg-primary text-primary-foreground shadow-primary/20")
+                    : cn(bubbleConf.peerClass, "bg-muted text-foreground")
+                )
           )}
+          style={{
+            width: "fit-content",
+            maxWidth: "70%",
+            wordBreak: "break-word",
+            overflowWrap: "break-word",
+            borderRadius: isVideoNote && !showTextContent ? "50%" : "12px",
+            ...((isMedia && !showTextContent) || isCustomRichCard
+              ? { background: "transparent", padding: 0, border: "none", boxShadow: "none" }
+              : isVoiceNote && !showTextContent
+                ? { padding: 0 }
+                : { padding: "6px 10px" }),
+          }}
         >
           {/* Content / Edit mode */}
           {isEditing ? (
@@ -172,43 +433,99 @@ export function MessageBubble({
                 </Button>
               </div>
             </div>
+          ) : isGif && gifUrl ? (
+            <GifMediaCard
+              url={gifUrl}
+              alt="GIF"
+              timestamp={formatMessageTime(message.created_at)}
+              showReceipt={own}
+              readBySomeoneElse={readBySomeoneElse}
+              own={own}
+              onForward={handleForwardMessage}
+            />
+          ) : isSticker ? (
+            <StickerBubble
+              emoji={stickerEmoji}
+              label={stickerLabel}
+              timestamp={formatMessageTime(message.created_at)}
+              showReceipt={own}
+              readBySomeoneElse={readBySomeoneElse}
+              own={own}
+            />
+          ) : isPoll && parsedPoll ? (
+            <PollCard
+              messageId={message.id}
+              poll={parsedPoll}
+              timestamp={formatMessageTime(message.created_at)}
+              showReceipt={own}
+              readBySomeoneElse={readBySomeoneElse}
+              own={own}
+            />
           ) : (
             <>
-              {message.content && (
-                <p className="whitespace-pre-wrap break-words text-sm leading-relaxed sm:text-[15px] sm:leading-relaxed">
+              {showTextContent && (
+                <p
+                  style={{
+                    fontSize: "14px",
+                    lineHeight: 1.45,
+                    wordBreak: "break-word",
+                    overflowWrap: "break-word",
+                  }}
+                  className="whitespace-pre-wrap break-words [word-break:break-word] [overflow-wrap:break-word] text-[14px] leading-[1.45]"
+                >
                   {message.content}
                 </p>
               )}
-              {message.attachment_path && <AttachmentPreview message={message} />}
+              {message.attachment_path && (
+                <AttachmentPreview
+                  message={message}
+                  own={own}
+                  onForward={handleForwardMessage}
+                />
+              )}
             </>
           )}
 
-          {/* Time & Read Receipts */}
-          <div
-            className={cn(
-              "mt-1.5 flex items-center justify-end gap-1 text-[10px]",
-              own ? "text-primary-foreground/75" : "text-muted-foreground"
-            )}
-          >
-            {isStarred && (
-              <Star
-                className={cn(
-                  "size-2.5 shrink-0",
-                  own ? "fill-primary-foreground text-primary-foreground" : "fill-amber-400 text-amber-400"
-                )}
-                aria-label="Starred message"
-              />
-            )}
-            <time>{formatMessageTime(message.created_at)}</time>
-            {message.edited_at && <span>· edited</span>}
-            {own && showReceipt && (
-              readBySomeoneElse ? (
-                <CheckCheck className="size-3.5 text-primary-foreground/90" aria-label="Read" />
-              ) : (
-                <Check className="size-3.5 text-primary-foreground/60" aria-label="Sent" />
-              )
-            )}
-          </div>
+          {/* Time, Read Receipts, Star & Pin Badges */}
+          {(!isMedia || showTextContent) && !isCustomRichCard && (
+            <div
+              className={cn(
+                "mt-1 flex items-center justify-end gap-1 text-[10px]",
+                isVoiceNote && !showTextContent
+                  ? "px-2.5 pb-1.5 -mt-0.5"
+                  : "pt-0.5",
+                own ? "text-primary-foreground/75" : "text-muted-foreground"
+              )}
+            >
+              {isPinned && (
+                <Pin
+                  className={cn(
+                    "size-2.5 shrink-0 rotate-45",
+                    own && !isMedia ? "fill-primary-foreground text-primary-foreground" : "fill-primary text-primary"
+                  )}
+                  aria-label="Pinned message"
+                />
+              )}
+              {isStarred && (
+                <Star
+                  className={cn(
+                    "size-2.5 shrink-0",
+                    own && !isMedia ? "fill-primary-foreground text-primary-foreground" : "fill-amber-400 text-amber-400"
+                  )}
+                  aria-label="Starred message"
+                />
+              )}
+              <time>{formatMessageTime(message.created_at)}</time>
+              {message.edited_at && <span>· edited</span>}
+              {own && showReceipt && (
+                readBySomeoneElse ? (
+                  <CheckCheck className={cn("size-3.5", own && !isMedia ? "text-primary-foreground/90" : "text-primary")} aria-label="Read" />
+                ) : (
+                  <Check className={cn("size-3.5", own && !isMedia ? "text-primary-foreground/60" : "text-muted-foreground")} aria-label="Sent" />
+                )
+              )}
+            </div>
+          )}
 
           {/* Reaction Pills below message */}
           {Object.entries(reactions).some(([, users]) => users.length > 0) && (
@@ -219,7 +536,7 @@ export function MessageBubble({
                 return (
                   <button
                     key={emoji}
-                    onClick={(e) => toggleReaction(emoji, e)}
+                    onClick={() => toggleReaction(emoji)}
                     className={cn(
                       "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold border transition-all shadow-sm active:scale-95",
                       active
@@ -236,112 +553,26 @@ export function MessageBubble({
           )}
         </div>
 
-        {/* Hover & Touch Action Menu Bar */}
-        <div
-          onClick={(e) => e.stopPropagation()}
-          className={cn(
-            "absolute -top-5 z-20 items-center gap-1 rounded-full border bg-card/95 backdrop-blur-md p-1 shadow-2xl transition-all",
-            showMobileActions ? "flex" : "hidden group-hover:flex",
-            own ? "right-3" : "left-3"
-          )}
-        >
-          {/* Quick Reaction Bar */}
-          {showEmojiPicker ? (
-            <div className="flex items-center gap-1.5 px-1 animate-in fade-in zoom-in duration-150">
-              {EMOJI_REACTIONS.map((emoji) => (
-                <button
-                  key={emoji}
-                  onClick={(e) => toggleReaction(emoji, e)}
-                  className="grid size-8 place-items-center rounded-full text-lg hover:bg-muted active:scale-125 transition-transform"
-                >
-                  {emoji}
-                </button>
-              ))}
-              <button
-                onClick={(e) => { e.stopPropagation(); setShowEmojiPicker(false); }}
-                className="grid size-7 place-items-center rounded-full text-muted-foreground hover:bg-muted"
-              >
-                <X className="size-3.5" />
-              </button>
-            </div>
-          ) : (
-            <>
-              {/* Smile Icon to Open Quick Emoji Bar */}
-              <button
-                onClick={(e) => { e.stopPropagation(); setShowEmojiPicker(true); }}
-                title="Add Reaction"
-                className="grid size-7 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-primary transition active:scale-95"
-              >
-                <Smile className="size-3.5" />
-              </button>
-
-              {/* Direct Quick Emojis (Top 3) */}
-              {EMOJI_REACTIONS.slice(0, 3).map((emoji) => (
-                <button
-                  key={emoji}
-                  onClick={(e) => toggleReaction(emoji, e)}
-                  className="grid size-7 place-items-center rounded-full text-sm hover:bg-muted hover:scale-125 transition-transform active:scale-125"
-                >
-                  {emoji}
-                </button>
-              ))}
-
-              {/* Star / Unstar */}
-              <button
-                type="button"
-                onClick={handleToggleStar}
-                title={isStarred ? "Unstar message" : "Star message"}
-                aria-label={isStarred ? "Unstar message" : "Star message"}
-                className={cn(
-                  "grid size-7 place-items-center rounded-full transition active:scale-95",
-                  isStarred
-                    ? "text-amber-500 hover:bg-amber-500/15"
-                    : "text-muted-foreground hover:bg-muted hover:text-amber-500"
-                )}
-              >
-                <Star
-                  className={cn(
-                    "size-3.5",
-                    isStarred && "fill-amber-400 text-amber-400"
-                  )}
-                />
-              </button>
-
-              {/* Reply */}
-              {onReply && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); onReply(message); }}
-                  title="Reply"
-                  className="grid size-7 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-primary transition active:scale-95"
-                >
-                  <CornerUpLeft className="size-3.5" />
-                </button>
-              )}
-
-              {/* Edit (Own messages only) */}
-              {own && onEdit && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
-                  title="Edit message"
-                  className="grid size-7 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-primary transition active:scale-95"
-                >
-                  <Pencil className="size-3.5" />
-                </button>
-              )}
-
-              {/* Delete (Own messages only) */}
-              {own && onDelete && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); onDelete(message.id); }}
-                  title="Delete message"
-                  className="grid size-7 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-destructive transition active:scale-95"
-                >
-                  <Trash2 className="size-3.5" />
-                </button>
-              )}
-            </>
-          )}
-        </div>
+        {/* Separated Frosted Glass Message Context Menu */}
+        {menuOpen && (
+          <MessageContextMenu
+            message={message}
+            own={own}
+            placement={menuPlacement}
+            isStarred={isStarred}
+            isPinned={isPinned}
+            onClose={handleClose}
+            onReact={toggleReaction}
+            onReply={onReply}
+            onCopy={handleCopyText}
+            onDownload={handleDownloadAttachment}
+            onForward={handleForwardMessage}
+            onPin={handleTogglePin}
+            onStar={handleToggleStar}
+            onEdit={own && onEdit && showTextContent ? () => setIsEditing(true) : undefined}
+            onDelete={onDelete}
+          />
+        )}
       </div>
     </div>
   );

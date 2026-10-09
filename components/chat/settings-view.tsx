@@ -8,15 +8,18 @@ import {
   Check,
   ChevronRight,
   Download,
+  Edit2,
   Globe,
   HelpCircle,
   Key,
+  KeyRound,
   Lock,
   LogOut,
   Mail,
   MessageSquare,
   Palette,
   Phone,
+  Search,
   Share2,
   Shield,
   ShieldCheck,
@@ -24,9 +27,10 @@ import {
   UserPlus,
   UserX,
   Volume2,
+  X,
 } from "lucide-react";
 import { playNotificationSound, requestNotificationPermission } from "@/lib/notifications";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { ComingSoonDialog } from "@/components/ui/coming-soon-dialog";
 import { ChangePasswordDialog } from "@/components/settings/change-password-dialog";
 import { ChangeEmailDialog } from "@/components/settings/change-email-dialog";
@@ -34,6 +38,7 @@ import { BlockedContactsDialog } from "@/components/settings/blocked-contacts-di
 import { TwoFactorDialog } from "@/components/settings/two-factor-dialog";
 import { PhoneVerificationDialog } from "@/components/settings/phone-verification-dialog";
 import { AppearancePanel } from "@/components/settings/appearance-panel";
+import { NotificationSettings } from "@/components/settings/notification-settings";
 import { FaqSection } from "@/components/help/faq-section";
 import { InAppContactForm } from "@/components/help/in-app-contact-form";
 import { InAppPrivacyView } from "@/components/help/in-app-privacy-view";
@@ -107,20 +112,68 @@ export function SettingsView({ profile }: SettingsViewProps) {
     window.location.href = "/login";
   }
 
-  const settingsMenu = [
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const settingsItems = [
+    {
+      id: "account",
+      title: "Account",
+      subtitle: "Email, passkey, password & security",
+      icon: KeyRound,
+      action: () => setSelectedSection("account"),
+    },
+    {
+      id: "privacy",
+      title: "Privacy & Security",
+      subtitle: "Visibility controls & blocked contacts",
+      icon: ShieldCheck,
+      action: () => setSelectedSection("privacy"),
+    },
     {
       id: "appearance",
-      icon: Palette,
       title: "Appearance",
-      desc: `${preferences.accentColor.charAt(0).toUpperCase() + preferences.accentColor.slice(1)} · ${preferences.bubbleStyle} bubbles · ${preferences.chatBackground} bg`,
+      subtitle: `${preferences.accentColor.charAt(0).toUpperCase() + preferences.accentColor.slice(1)} · ${preferences.bubbleStyle} bubbles · ${preferences.chatBackground} bg`,
+      icon: Palette,
+      action: () => setSelectedSection("appearance"),
     },
-    { id: "account", icon: Shield, title: "Account", desc: "Email, passkey, password & security" },
-    { id: "privacy", icon: Lock, title: "Privacy & Security", desc: "Visibility controls & blocked contacts" },
-    { id: "notifications", icon: Bell, title: "Notifications", desc: "Alerts, tone & vibration" },
-    { id: "language", icon: Globe, title: "Language", desc: selectedLanguage },
-    { id: "help", icon: HelpCircle, title: "Help & Feedback", desc: "Help centre, contact us & policies" },
-    { id: "invite", icon: Share2, title: "Invite a Friend", desc: "Share Aether Chat with friends" },
+    {
+      id: "notifications",
+      title: "Notifications",
+      subtitle: "Alerts, tone & vibration",
+      icon: Bell,
+      action: () => setSelectedSection("notifications"),
+    },
+    {
+      id: "language",
+      title: "Language",
+      subtitle: selectedLanguage,
+      icon: Globe,
+      action: () => setSelectedSection("language"),
+    },
+    {
+      id: "invite",
+      title: "Invite a Friend",
+      subtitle: "Share Aether Chat with friends",
+      icon: UserPlus,
+      action: () => {
+        setComingSoonFeature("Invite Friends & QR Code Sharing");
+        setComingSoonOpen(true);
+      },
+    },
+    {
+      id: "help",
+      title: "Help & Feedback",
+      subtitle: "Help centre, contact us & policies",
+      icon: HelpCircle,
+      action: () => setSelectedSection("help"),
+    },
   ];
+
+  const filteredItems = settingsItems.filter(
+    (item) =>
+      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.subtitle.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   function VisibilitySelector({
     label,
@@ -137,8 +190,8 @@ export function SettingsView({ profile }: SettingsViewProps) {
       { id: "nobody", label: "Nobody" },
     ];
     return (
-      <div className="space-y-2 rounded-2xl border bg-muted/40 p-3">
-        <p className="text-xs font-semibold text-foreground">{label}</p>
+      <div className="space-y-2 rounded-2xl border border-[#222e35] bg-[#202c33]/60 p-3">
+        <p className="text-xs font-semibold text-[#e9edef]">{label}</p>
         <div className="grid grid-cols-3 gap-1.5">
           {options.map((opt) => (
             <button
@@ -147,8 +200,8 @@ export function SettingsView({ profile }: SettingsViewProps) {
               onClick={() => onChange(opt.id)}
               className={`rounded-xl py-2 text-[11px] font-semibold transition-all cursor-pointer ${
                 value === opt.id
-                  ? "bg-primary text-primary-foreground shadow-xs"
-                  : "bg-muted text-muted-foreground hover:text-foreground hover:bg-accent"
+                  ? "bg-[#00a884] text-white shadow-xs"
+                  : "bg-[#111b21] text-[#8696a0] hover:text-[#e9edef] hover:bg-[#202c33]"
               }`}
             >
               {opt.label}
@@ -360,100 +413,9 @@ export function SettingsView({ profile }: SettingsViewProps) {
     );
   }
 
-  // 4. Notifications Sub-panel
+  // 4. Notifications Sub-panel (Modern Nested UI)
   if (selectedSection === "notifications") {
-    return (
-      <div className="flex h-full flex-col bg-background text-foreground min-h-0 select-none">
-        <div className="flex items-center gap-2 p-3.5 border-b border-border/80 shrink-0 bg-background/80 backdrop-blur-md">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            onClick={() => setSelectedSection(null)}
-            className="rounded-xl size-8 shrink-0 hover:bg-muted"
-            aria-label="Back to settings"
-          >
-            <ArrowLeft className="size-4" />
-          </Button>
-          <div className="min-w-0">
-            <h3 className="text-sm font-semibold text-foreground truncate">Notifications</h3>
-            <p className="text-[11px] text-muted-foreground truncate">Alerts, tones & vibration</p>
-          </div>
-        </div>
-
-        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-3.5 space-y-4">
-          {/* Notifications toggle */}
-          <div className="flex items-center justify-between rounded-2xl border bg-card/60 p-3">
-            <div className="flex items-center gap-3">
-              <div className="grid size-9 place-items-center rounded-xl bg-primary/10 text-primary shrink-0">
-                <Bell className="size-4" />
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-foreground">Message Alerts</p>
-                <p className="text-[11px] text-muted-foreground">Show alerts for new messages</p>
-              </div>
-            </div>
-            <Switch
-              checked={notificationsEnabled}
-              onCheckedChange={(checked) => {
-                setNotificationsEnabled(checked);
-                if (checked) {
-                  void requestNotificationPermission();
-                  playNotificationSound();
-                  toast.success("Notifications enabled!");
-                } else {
-                  toast.info("Notifications disabled");
-                }
-              }}
-            />
-          </div>
-
-          {/* Notification Tone */}
-          <div className="rounded-2xl border bg-card/60 p-3 space-y-2.5">
-            <div className="flex items-center gap-2.5">
-              <div className="grid size-8 place-items-center rounded-xl bg-primary/10 text-primary shrink-0">
-                <Volume2 className="size-4" />
-              </div>
-              <p className="text-xs font-semibold text-foreground">Notification Tone</p>
-            </div>
-            <div className="grid grid-cols-3 gap-1.5">
-              {["Default", "Chime", "Bell", "Pop", "Ping", "Silent"].map((tone) => (
-                <button
-                  key={tone}
-                  type="button"
-                  onClick={() => {
-                    setNotificationTone(tone);
-                    if (tone !== "Silent") playNotificationSound();
-                    toast.success(`Tone set to ${tone}`);
-                  }}
-                  className={`rounded-xl py-2 text-[11px] font-semibold transition-all cursor-pointer ${
-                    notificationTone === tone
-                      ? "bg-primary text-primary-foreground shadow-xs"
-                      : "bg-muted text-muted-foreground hover:text-foreground hover:bg-accent"
-                  }`}
-                >
-                  {tone}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Vibrate */}
-          <div className="flex items-center justify-between rounded-2xl border bg-card/60 p-3">
-            <div className="flex items-center gap-3">
-              <div className="grid size-9 place-items-center rounded-xl bg-primary/10 text-primary shrink-0">
-                <Phone className="size-4" />
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-foreground">Vibrate</p>
-                <p className="text-[11px] text-muted-foreground">Vibrate on message delivery</p>
-              </div>
-            </div>
-            <Switch checked={vibrateEnabled} onCheckedChange={setVibrateEnabled} />
-          </div>
-        </div>
-      </div>
-    );
+    return <NotificationSettings onBack={() => setSelectedSection(null)} />;
   }
 
   // 5. Language Sub-panel
@@ -703,88 +665,108 @@ export function SettingsView({ profile }: SettingsViewProps) {
 
   // ═══════════ MAIN SETTINGS MENU LIST ═══════════
   return (
-    <div className="flex h-full flex-col bg-background text-foreground min-h-0 select-none">
-      {/* Circular Avatar Profile Header */}
-      <Link href="/profile" className="flex flex-col items-center gap-2 py-5 border-b border-border transition hover:bg-muted/40 shrink-0">
-        <Avatar className="size-20 rounded-full border-2 border-primary/30 shadow-lg shadow-primary/10">
-          <AvatarImage src={profile.avatar_url || undefined} alt={profile.display_name} />
-          <AvatarFallback className="rounded-full text-xl font-bold bg-primary/10 text-primary">
-            {getInitials(profile.display_name)}
-          </AvatarFallback>
-        </Avatar>
-        <div className="text-center">
-          <h3 className="text-base font-semibold text-foreground">{profile.display_name}</h3>
-          <p className="text-xs text-muted-foreground">@{profile.username}</p>
+    <div className="flex h-full flex-col bg-[#111b21] text-[#e9edef] min-h-0 select-none overflow-hidden">
+      {/* Top Header */}
+      <div className="px-6 pt-5 pb-3 flex items-center justify-between shrink-0">
+        <h1 className="text-xl font-bold tracking-tight text-white">Settings</h1>
+      </div>
+
+      {/* WhatsApp-style Search Input */}
+      <div className="px-4 pb-3 shrink-0">
+        <div className="flex items-center gap-3 bg-[#202c33] rounded-lg px-3 py-2 border border-transparent focus-within:border-[#00a884]/50 focus-within:ring-1 focus-within:ring-[#00a884]">
+          <Search className="text-[#8696a0] size-4 shrink-0" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search settings"
+            className="w-full bg-transparent text-sm text-[#e9edef] placeholder-[#8696a0] outline-none"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="text-[#8696a0] hover:text-[#e9edef] cursor-pointer"
+              aria-label="Clear search"
+            >
+              <X className="size-3.5" />
+            </button>
+          )}
         </div>
-        <span className="text-xs font-semibold text-primary hover:underline transition">Edit Profile</span>
+      </div>
+
+      {/* User Profile Header (WhatsApp Style) */}
+      <Link
+        href="/profile"
+        className="px-6 py-4 flex items-center gap-4 hover:bg-[#202c33] cursor-pointer transition-colors border-b border-[#222e35] shrink-0 group"
+      >
+        <div className="relative group shrink-0">
+          <Avatar className="size-16 rounded-full border border-[#222e35]">
+            <AvatarImage src={profile.avatar_url || undefined} alt={profile.display_name} />
+            <AvatarFallback className="rounded-full text-lg font-bold bg-[#202c33] text-[#e9edef]">
+              {getInitials(profile.display_name)}
+            </AvatarFallback>
+          </Avatar>
+          <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+            <Edit2 className="text-white size-4" />
+          </div>
+        </div>
+
+        <div className="flex flex-col flex-1 min-w-0">
+          <span className="text-base font-semibold text-white truncate">
+            {profile.display_name || "admin"}
+          </span>
+          <span className="text-xs text-[#8696a0] truncate mt-0.5">
+            {profile.bio || `@${profile.username}` || "Available"}
+          </span>
+        </div>
       </Link>
 
-      {/* Settings Menu List */}
-      <ScrollArea className="flex-1 px-3">
-        <div className="space-y-2 py-3">
-          {settingsMenu.map((item) => {
+      {/* Settings Navigation List (Flat, borderless WhatsApp items) */}
+      <ScrollArea className="flex-1">
+        <div className="flex flex-col py-2">
+          {filteredItems.map((item) => {
             const Icon = item.icon;
-
-            // Invite a Friend — coming soon action
-            if (item.id === "invite") {
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    setComingSoonFeature("Invite Friends & QR Code Sharing");
-                    setComingSoonOpen(true);
-                  }}
-                  className="flex w-full items-center justify-between rounded-2xl border bg-card/60 p-3.5 text-left transition-all hover:bg-muted hover:border-primary/40 shadow-xs cursor-pointer"
-                >
-                  <div className="flex items-center gap-3.5 min-w-0">
-                    <div className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary shrink-0">
-                      <Icon className="size-5" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-foreground">{item.title}</p>
-                      <p className="truncate text-xs text-muted-foreground">{item.desc}</p>
-                    </div>
-                  </div>
-                  <ChevronRight className="size-4 text-muted-foreground shrink-0" />
-                </button>
-              );
-            }
-
-            // In-panel navigation
             return (
               <button
                 key={item.id}
-                onClick={() => setSelectedSection(item.id)}
-                className="flex w-full items-center justify-between rounded-2xl border bg-card/60 p-3.5 text-left transition-all hover:bg-muted hover:border-primary/40 shadow-xs cursor-pointer"
+                type="button"
+                onClick={item.action}
+                className="flex items-center gap-6 px-6 py-3.5 hover:bg-[#202c33] transition-colors w-full text-left group cursor-pointer"
               >
-                <div className="flex items-center gap-3.5 min-w-0">
-                  <div className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary shrink-0">
-                    <Icon className="size-5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-foreground">{item.title}</p>
-                    <p className="truncate text-xs text-muted-foreground">{item.desc}</p>
-                  </div>
+                <Icon className="text-[#8696a0] group-hover:text-[#d1d7db] shrink-0 size-5" />
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[15px] font-normal text-[#e9edef] leading-snug">
+                    {item.title}
+                  </span>
+                  <span className="text-xs text-[#8696a0] truncate mt-0.5">
+                    {item.subtitle}
+                  </span>
                 </div>
-                <ChevronRight className="size-4 text-muted-foreground shrink-0" />
               </button>
             );
           })}
+
+          {filteredItems.length === 0 && (
+            <div className="py-8 text-center text-xs text-[#8696a0]">
+              No settings found for &ldquo;{searchQuery}&rdquo;
+            </div>
+          )}
+
+          {/* Divider line */}
+          <div className="h-px bg-[#222e35] my-2 mx-6" />
+
+          {/* Log Out Row */}
+          <button
+            type="button"
+            onClick={() => void logout()}
+            className="flex items-center gap-6 px-6 py-3.5 hover:bg-[#202c33] text-[#ea4335] hover:text-red-400 transition-colors w-full text-left group cursor-pointer"
+          >
+            <LogOut className="shrink-0 size-5 text-[#ea4335] group-hover:text-red-400" />
+            <span className="text-[15px] font-medium">Log out</span>
+          </button>
         </div>
       </ScrollArea>
-
-      {/* Logout Button */}
-      <div className="p-3 shrink-0">
-        <Button
-          variant="destructive"
-          size="lg"
-          onClick={() => void logout()}
-          className="w-full flex items-center justify-center gap-2 rounded-2xl text-xs font-bold shadow-md cursor-pointer"
-        >
-          <LogOut className="size-4" />
-          <span>Logout</span>
-        </Button>
-      </div>
 
       <ComingSoonDialog
         open={comingSoonOpen}

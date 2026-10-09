@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MessageSquare, Search, UserCheck, Users, Zap } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -167,8 +167,11 @@ export function ContactsView({ currentUserId, onlineUserIds, onConversationCreat
       </div>
 
       {/* Contacts List */}
-      <ScrollArea className="flex-1 px-3">
-        <div className="space-y-1 py-1">
+      <ScrollArea className="flex-1 w-full overflow-x-hidden">
+        <div
+          className="w-full space-y-1 py-1 box-border overflow-x-hidden"
+          style={{ padding: "0 12px", boxSizing: "border-box" }}
+        >
           {filteredUsers.map((user) => {
             const isOnline = onlineUserIds.has(user.id);
             return (
@@ -177,7 +180,8 @@ export function ContactsView({ currentUserId, onlineUserIds, onConversationCreat
                 type="button"
                 disabled={loading}
                 onClick={() => void startChat(user.id)}
-                className="group flex w-full items-center justify-between gap-3 rounded-xl border border-transparent p-2 text-left transition-all hover:bg-muted/60 hover:border-sidebar-border/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer disabled:pointer-events-none disabled:opacity-50"
+                style={{ width: "100%", boxSizing: "border-box", borderRadius: "14px" }}
+                className="group flex w-full box-border items-center justify-between gap-3 rounded-[14px] border border-transparent p-2.5 text-left transition-all hover:bg-muted/60 hover:border-sidebar-border/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer disabled:pointer-events-none disabled:opacity-50"
               >
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   <div className="relative shrink-0">

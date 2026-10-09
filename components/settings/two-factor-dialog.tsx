@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { CheckCircle2, Copy, KeyRound, Loader2, QrCode, Shield, ShieldAlert, ShieldCheck } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
