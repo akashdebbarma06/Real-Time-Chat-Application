@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -41,6 +41,9 @@ import { StarredMessagesDialog } from "@/components/chat/starred-messages-dialog
 import { ConfirmActionDialog } from "@/components/chat/confirm-action-dialog";
 import { SettingsView } from "@/components/chat/settings-view";
 import { StatusView } from "@/components/chat/status-view";
+import { InPanelDirectChat } from "@/components/chat/in-panel-direct-chat";
+import { InPanelNewGroup } from "@/components/chat/in-panel-new-group";
+import { InPanelStarredMessages } from "@/components/chat/in-panel-starred-messages";
 import type { RailTab } from "@/components/chat/navigation-rail";
 import { Button } from "@/components/ui/button";
 import { ComingSoonDialog } from "@/components/ui/coming-soon-dialog";
@@ -89,6 +92,15 @@ export function ConversationSidebar({
   const [internalTab, setInternalTab] = useState<RailTab>("chats");
   const currentTab = activeTabProp ?? internalTab;
   const setTab = onTabChangeProp ?? setInternalTab;
+
+  // In-panel subviews for chats tab: "chats" | "new-direct" | "new-group" | "starred"
+  const [sidebarView, setSidebarView] = useState<"chats" | "new-direct" | "new-group" | "starred">("chats");
+
+  useEffect(() => {
+    if (currentTab !== "chats") {
+      setSidebarView("chats");
+    }
+  }, [currentTab]);
 
   // Header Dialog states
   const [newDirectOpen, setNewDirectOpen] = useState(false);
@@ -279,6 +291,42 @@ export function ConversationSidebar({
 
   const totalUnreadCount = conversations.reduce((acc, c) => acc + (c.unread_count || 0), 0);
 
+  // In-Panel subview rendering for chats tab
+  if (currentTab === "chats" && sidebarView === "new-direct") {
+    return (
+      <aside className="flex h-full min-h-0 flex-col border-r bg-background text-foreground">
+        <InPanelDirectChat
+          currentUserId={profile.id}
+          onBack={() => setSidebarView("chats")}
+          onCreated={onConversationCreated}
+        />
+      </aside>
+    );
+  }
+
+  if (currentTab === "chats" && sidebarView === "new-group") {
+    return (
+      <aside className="flex h-full min-h-0 flex-col border-r bg-background text-foreground">
+        <InPanelNewGroup
+          currentUserId={profile.id}
+          onBack={() => setSidebarView("chats")}
+          onCreated={onConversationCreated}
+        />
+      </aside>
+    );
+  }
+
+  if (currentTab === "chats" && sidebarView === "starred") {
+    return (
+      <aside className="flex h-full min-h-0 flex-col border-r bg-background text-foreground">
+        <InPanelStarredMessages
+          currentUserId={profile.id}
+          onBack={() => setSidebarView("chats")}
+        />
+      </aside>
+    );
+  }
+
   return (
     <aside className="flex h-full min-h-0 flex-col border-r bg-background text-foreground">
       {/* Top Header */}
@@ -327,7 +375,7 @@ export function ConversationSidebar({
                   size="icon-sm"
                   aria-label="New conversation"
                   title="New conversation"
-                  onClick={() => setNewDirectOpen(true)}
+                  onClick={() => setSidebarView("new-direct")}
                   className="rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors"
                 >
                   <MessageSquarePlus className="size-4" />
@@ -349,7 +397,7 @@ export function ConversationSidebar({
 
                   <DropdownMenuContent align="end" side="bottom" className="w-56 p-1.5 rounded-2xl shadow-xl">
                     <DropdownMenuItem
-                      onSelect={() => setNewGroupOpen(true)}
+                      onSelect={() => setSidebarView("new-group")}
                       className="flex items-center gap-2.5 text-xs rounded-xl cursor-pointer p-2 hover:bg-muted font-medium"
                     >
                       <Users className="size-4 text-purple-600 dark:text-purple-400" />
@@ -357,7 +405,7 @@ export function ConversationSidebar({
                     </DropdownMenuItem>
 
                     <DropdownMenuItem
-                      onSelect={() => setStarredOpen(true)}
+                      onSelect={() => setSidebarView("starred")}
                       className="flex items-center gap-2.5 text-xs rounded-xl cursor-pointer p-2 hover:bg-muted font-medium"
                     >
                       <Star className="size-4 text-amber-500 fill-amber-500/20" />

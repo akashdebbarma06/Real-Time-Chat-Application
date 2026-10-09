@@ -18,12 +18,13 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import type { Profile } from "@/types/chat";
 
-interface InAppPrivacyViewProps {
+export interface InAppPrivacyViewProps {
   profile: Profile;
   userEmail?: string;
+  compact?: boolean;
 }
 
-export function InAppPrivacyView({ profile, userEmail }: InAppPrivacyViewProps) {
+export function InAppPrivacyView({ profile, userEmail, compact = false }: InAppPrivacyViewProps) {
   const [exporting, setExporting] = useState(false);
 
   function exportUserData() {
@@ -71,6 +72,83 @@ export function InAppPrivacyView({ profile, userEmail }: InAppPrivacyViewProps) 
     } finally {
       setExporting(false);
     }
+  }
+
+  if (compact) {
+    return (
+      <div className="space-y-4">
+        {/* Security Summary Cards */}
+        <div className="space-y-2">
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+            Security Safeguards
+          </p>
+          <div className="space-y-2">
+            <div className="rounded-xl border bg-card p-3 space-y-1">
+              <div className="flex items-center gap-2 text-primary font-semibold text-xs">
+                <Database className="size-3.5" />
+                <span>Row-Level Security</span>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                PostgreSQL policies enforce that only conversation members can query messages or access presence.
+              </p>
+            </div>
+
+            <div className="rounded-xl border bg-card p-3 space-y-1">
+              <div className="flex items-center gap-2 text-primary font-semibold text-xs">
+                <Lock className="size-3.5" />
+                <span>Cookie Rotation</span>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Session tokens use HttpOnly secure cookies with automatic periodic renewal every 30 minutes.
+              </p>
+            </div>
+
+            <div className="rounded-xl border bg-card p-3 space-y-1">
+              <div className="flex items-center gap-2 text-primary font-semibold text-xs">
+                <UserCheck className="size-3.5" />
+                <span>Zero Third-Party Ads</span>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                No third-party ad networks or tracking trackers. Your conversation content remains strictly yours.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Data Export Box */}
+        <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 space-y-2.5">
+          <div className="space-y-1">
+            <h4 className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+              <Download className="size-3.5 text-primary" />
+              <span>Export Account Data</span>
+            </h4>
+            <p className="text-[11px] text-muted-foreground">
+              Download a complete JSON snapshot of your profile, active settings, and telemetry policies.
+            </p>
+          </div>
+          <Button
+            type="button"
+            onClick={exportUserData}
+            disabled={exporting}
+            size="sm"
+            className="w-full rounded-xl text-xs font-semibold h-9 shadow-sm gap-2 cursor-pointer"
+          >
+            <Download className="size-3.5" />
+            <span>{exporting ? "Generating..." : "Download Data (JSON)"}</span>
+          </Button>
+        </div>
+
+        {/* Privacy Terms Summary */}
+        <div className="rounded-xl border bg-card p-3.5 space-y-2 text-xs">
+          <h4 className="font-semibold text-foreground text-xs">Policy Commitments</h4>
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
+            • <strong>Scope:</strong> We collect only your display name, username, bio, and avatar.<br />
+            • <strong>Attachments:</strong> Media uploads undergo strict size and type validation.<br />
+            • <strong>Deletion:</strong> Under GDPR, submit a deletion ticket anytime to purge your data.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (

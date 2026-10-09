@@ -20,15 +20,16 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { Profile } from "@/types/chat";
 
-interface InAppContactFormProps {
+export interface InAppContactFormProps {
   profile: Profile;
   userEmail?: string;
+  compact?: boolean;
 }
 
 type TicketCategory = "bug" | "feature" | "security" | "general";
 type TicketPriority = "low" | "normal" | "high" | "urgent";
 
-export function InAppContactForm({ profile, userEmail }: InAppContactFormProps) {
+export function InAppContactForm({ profile, userEmail, compact = false }: InAppContactFormProps) {
   const [category, setCategory] = useState<TicketCategory>("bug");
   const [priority, setPriority] = useState<TicketPriority>("normal");
   const [subject, setSubject] = useState("");
@@ -69,6 +70,146 @@ export function InAppContactForm({ profile, userEmail }: InAppContactFormProps) 
     setMessage("");
     setCategory("bug");
     setPriority("normal");
+  }
+
+  if (compact) {
+    return (
+      <div className="space-y-4">
+        {ticketReference ? (
+          <div className="rounded-2xl border bg-card p-5 text-center space-y-4 shadow-sm">
+            <div className="mx-auto grid size-12 place-items-center rounded-xl bg-emerald-500/15 text-emerald-500">
+              <CheckCircle2 className="size-6" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-sm font-bold text-foreground">Query Submitted!</h3>
+              <p className="text-xs text-muted-foreground">
+                Our support desk has received your ticket.
+              </p>
+            </div>
+            <div className="rounded-xl border bg-muted/40 p-2.5 text-xs font-mono">
+              Ref: <span className="font-bold text-primary">{ticketReference}</span>
+            </div>
+            <Button
+              type="button"
+              onClick={handleReset}
+              variant="outline"
+              className="w-full rounded-xl text-xs font-semibold h-9"
+            >
+              Send Another Query
+            </Button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Account Info Bar */}
+            <div className="p-3 rounded-xl bg-muted/40 border border-border/60 text-[11px] space-y-0.5">
+              <p className="font-semibold text-foreground truncate">{profile.display_name} (@{profile.username})</p>
+              <p className="text-muted-foreground truncate">{contactEmail}</p>
+            </div>
+
+            {/* Category */}
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                Category
+              </label>
+              <div className="grid grid-cols-2 gap-1.5">
+                {(
+                  [
+                    { id: "bug", label: "Bug Report" },
+                    { id: "feature", label: "Feature Request" },
+                    { id: "security", label: "Security & 2FA" },
+                    { id: "general", label: "General Query" },
+                  ] as const
+                ).map((cat) => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setCategory(cat.id)}
+                    className={`p-2 rounded-xl border text-xs font-medium text-left transition cursor-pointer ${
+                      category === cat.id
+                        ? "border-primary bg-primary/10 text-primary font-semibold"
+                        : "border-border/80 bg-card hover:bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Subject */}
+            <div className="space-y-1.5">
+              <label htmlFor="compact-subject" className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                Subject
+              </label>
+              <Input
+                id="compact-subject"
+                placeholder="Brief summary..."
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                className="rounded-xl text-xs h-9 bg-card"
+                maxLength={80}
+              />
+            </div>
+
+            {/* Message */}
+            <div className="space-y-1.5">
+              <label htmlFor="compact-message" className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                Message / Query
+              </label>
+              <Textarea
+                id="compact-message"
+                placeholder="Describe your issue or feedback in detail (min 10 chars)..."
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                rows={4}
+                className="rounded-xl text-xs bg-card resize-none"
+              />
+            </div>
+
+            {/* Priority */}
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                Priority
+              </label>
+              <div className="flex gap-1.5">
+                {(["low", "normal", "high", "urgent"] as const).map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setPriority(p)}
+                    className={`flex-1 py-1.5 rounded-lg border text-[11px] capitalize font-medium transition cursor-pointer ${
+                      priority === p
+                        ? "border-primary bg-primary text-primary-foreground font-semibold"
+                        : "border-border/80 bg-card hover:bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <Button
+              type="submit"
+              disabled={submitting}
+              className="w-full rounded-xl text-xs font-semibold h-10 shadow-md gap-2"
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="size-3.5 animate-spin" />
+                  <span>Submitting...</span>
+                </>
+              ) : (
+                <>
+                  <Send className="size-3.5" />
+                  <span>Send Support Query</span>
+                </>
+              )}
+            </Button>
+          </form>
+        )}
+      </div>
+    );
   }
 
   return (

@@ -111,7 +111,12 @@ const CATEGORIES = [
   { id: "basics", label: "Getting Started" },
 ];
 
-export function FaqSection() {
+export interface FaqSectionProps {
+  compact?: boolean;
+  onNavigate?: (tab: "contact" | "privacy") => void;
+}
+
+export function FaqSection({ compact = false, onNavigate }: FaqSectionProps = {}) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [expandedId, setExpandedId] = useState<string | null>("2fa-setup");
@@ -137,51 +142,95 @@ export function FaqSection() {
   }
 
   return (
-    <div className="space-y-8">
-      {/* Search Header Banner */}
-      <div className="relative rounded-3xl border bg-gradient-to-br from-card via-card to-primary/5 p-6 sm:p-10 shadow-xl overflow-hidden">
-        <div className="absolute -right-12 -top-12 size-56 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
-        <div className="relative max-w-2xl space-y-3">
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-            <Sparkles className="size-3.5" />
-            <span>Support Knowledgebase</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-            How can we assist you today?
-          </h1>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            Find answers to common questions about your account, security settings, privacy controls, and real-time messaging.
-          </p>
-
-          {/* Search Box */}
-          <div className="relative pt-2">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+    <div className={compact ? "space-y-4" : "space-y-8"}>
+      {compact ? (
+        /* Compact In-Panel Search & Categories */
+        <div className="space-y-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
             <Input
               type="search"
-              placeholder="Search topics (e.g. 2FA, password, block user, file limit)..."
+              placeholder="Search FAQs (e.g. 2FA, block, privacy)..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-12 pl-10 pr-4 rounded-2xl border-border bg-background/80 shadow-xs text-sm focus-visible:ring-primary/40"
+              className="h-9 pl-8 pr-12 rounded-xl text-xs bg-card border-border/80"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-medium text-muted-foreground hover:text-foreground"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-muted-foreground hover:text-foreground"
               >
                 Clear
               </button>
             )}
           </div>
-        </div>
-      </div>
 
-      {/* Quick Action Tiles */}
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Link
-          href="/help/contact"
-          className="group flex flex-col justify-between rounded-2xl border bg-card p-4 transition-all hover:border-primary/40 hover:bg-muted/40 shadow-xs"
-        >
+          {/* Compact Category Pills */}
+          <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+            {CATEGORIES.map((category) => (
+              <button
+                key={category.id}
+                type="button"
+                onClick={() => setSelectedCategory(category.id)}
+                className={`whitespace-nowrap px-2.5 py-1 rounded-lg text-[11px] font-medium transition cursor-pointer shrink-0 ${
+                  selectedCategory === category.id
+                    ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+                    : "bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground"
+                }`}
+              >
+                {category.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        /* Search Header Banner */
+        <div className="relative rounded-3xl border bg-gradient-to-br from-card via-card to-primary/5 p-6 sm:p-10 shadow-xl overflow-hidden">
+          <div className="absolute -right-12 -top-12 size-56 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
+          <div className="relative max-w-2xl space-y-3">
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+              <Sparkles className="size-3.5" />
+              <span>Support Knowledgebase</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+              How can we assist you today?
+            </h1>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Find answers to common questions about your account, security settings, privacy controls, and real-time messaging.
+            </p>
+
+            {/* Search Box */}
+            <div className="relative pt-2">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+              <Input
+                type="search"
+                placeholder="Search topics (e.g. 2FA, password, block user, file limit)..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="h-12 pl-10 pr-4 rounded-2xl border-border bg-background/80 shadow-xs text-sm focus-visible:ring-primary/40"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-medium text-muted-foreground hover:text-foreground"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Quick Action Tiles for Full Page Mode Only */}
+      {!compact && (
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Link
+            href="/help/contact"
+            className="group flex flex-col justify-between rounded-2xl border bg-card p-4 transition-all hover:border-primary/40 hover:bg-muted/40 shadow-xs"
+          >
           <div className="space-y-1.5">
             <div className="grid size-9 place-items-center rounded-xl bg-primary/10 text-primary group-hover:scale-105 transition-transform">
               <Mail className="size-4" />
@@ -232,24 +281,27 @@ export function FaqSection() {
           </span>
         </Link>
       </div>
+      )}
 
-      {/* Category Filter Pills */}
-      <div className="flex flex-wrap items-center gap-1.5">
-        {CATEGORIES.map((cat) => (
-          <button
-            key={cat.id}
-            type="button"
-            onClick={() => setSelectedCategory(cat.id)}
-            className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all ${
-              selectedCategory === cat.id
-                ? "bg-primary text-primary-foreground shadow-xs"
-                : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
-            }`}
-          >
-            {cat.label}
-          </button>
-        ))}
-      </div>
+      {/* Category Filter Pills (Full page mode) */}
+      {!compact && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          {CATEGORIES.map((cat) => (
+            <button
+              key={cat.id}
+              type="button"
+              onClick={() => setSelectedCategory(cat.id)}
+              className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all ${
+                selectedCategory === cat.id
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+              }`}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* FAQ Accordion List */}
       <div className="space-y-3">
@@ -342,16 +394,26 @@ export function FaqSection() {
       </div>
 
       {/* Still need help footer box */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 rounded-2xl border border-primary/20 bg-primary/5 p-5">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-4">
         <div className="space-y-1 text-center sm:text-left">
-          <p className="text-sm font-semibold text-foreground">Still have questions?</p>
-          <p className="text-xs text-muted-foreground">
-            Our support desk is online to assist with any technical issues or feature questions.
+          <p className="text-xs font-semibold text-foreground">Still have questions?</p>
+          <p className="text-[11px] text-muted-foreground">
+            Our support desk is online to assist with any questions.
           </p>
         </div>
-        <Button asChild className="rounded-xl font-semibold text-xs shrink-0 shadow-md">
-          <Link href="/help/contact">Contact Support</Link>
-        </Button>
+        {onNavigate ? (
+          <Button
+            type="button"
+            onClick={() => onNavigate("contact")}
+            className="rounded-xl font-semibold text-xs shrink-0 shadow-md cursor-pointer"
+          >
+            Contact Support
+          </Button>
+        ) : (
+          <Button asChild className="rounded-xl font-semibold text-xs shrink-0 shadow-md">
+            <Link href="/help/contact">Contact Support</Link>
+          </Button>
+        )}
       </div>
     </div>
   );

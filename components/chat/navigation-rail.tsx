@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn, getInitials } from "@/lib/utils";
+import { APP_ICONS, useAppearance } from "@/lib/appearance-store";
 import type { Profile } from "@/types/chat";
 
 export type RailTab = "chats" | "calls" | "status" | "archive" | "media" | "settings";
@@ -31,6 +32,8 @@ export function NavigationRail({
   onTabChange,
   unreadChatsCount = 0,
 }: NavigationRailProps) {
+  const { preferences } = useAppearance();
+  const activeAppIcon = APP_ICONS.find((i) => i.id === preferences.appIcon) || APP_ICONS[0];
   const topNavItems: Array<{
     id: RailTab;
     label: string;
@@ -97,7 +100,15 @@ export function NavigationRail({
         aria-label="Aether Chat Home"
         className="group relative mb-4 flex flex-col items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-2xl"
       >
-        <div className="grid size-11 place-items-center rounded-2xl bg-gradient-to-br from-purple-600 via-indigo-600 to-cyan-500 text-white shadow-md shadow-purple-500/20 group-hover:scale-105 transition-all">
+        <div
+          className={cn(
+            "grid size-11 place-items-center rounded-2xl bg-gradient-to-br text-white shadow-md transition-all group-hover:scale-105",
+            activeAppIcon.gradient,
+            preferences.appIcon === "midnight"
+              ? "border border-white/20 text-zinc-100 shadow-zinc-900/50"
+              : "shadow-primary/25"
+          )}
+        >
           <MessageCircleMore className="size-6" />
         </div>
       </Link>

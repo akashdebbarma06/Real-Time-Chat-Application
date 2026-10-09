@@ -12,6 +12,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { usePresence } from "@/hooks/use-presence";
 import { createClient } from "@/lib/supabase/client";
 import { getConversationTitle } from "@/lib/utils";
+import { InPanelUserProfile } from "@/components/chat/in-panel-user-profile";
+import { InPanelGroupInfo } from "@/components/chat/in-panel-group-info";
 import type { ConversationSummary, Profile } from "@/types/chat";
 
 interface ChatWorkspaceProps {
@@ -25,7 +27,17 @@ export function ChatWorkspace({ profile, selectedConversationId }: ChatWorkspace
   const [query, setQuery] = useState("");
   const [newChatOpen, setNewChatOpen] = useState(false);
   const [railTab, setRailTab] = useState<RailTab>("chats");
+  const [sideDetailView, setSideDetailView] = useState<
+    | { type: "user-profile"; profile: Profile; isOnline?: boolean; returnToGroup?: boolean }
+    | { type: "group-info"; conversation: ConversationSummary }
+    | null
+  >(null);
   const onlineUserIds = usePresence(profile.id);
+
+  const handleTabChange = useCallback((tab: RailTab) => {
+    setRailTab(tab);
+    setSideDetailView(null);
+  }, []);
 
   const loadConversations = useCallback(async (showLoading = false) => {
     if (showLoading) setLoading(true);
@@ -155,27 +167,70 @@ export function ChatWorkspace({ profile, selectedConversationId }: ChatWorkspace
       <NavigationRail
         profile={profile}
         activeTab={railTab}
-        onTabChange={setRailTab}
+        onTabChange={handleTabChange}
         unreadChatsCount={totalUnread}
       />
 
-      {/* 2. Conversation Sidebar: 340px */}
-      <div className={selectedConversationId ? "hidden md:block w-full md:w-[340px] shrink-0 h-full min-h-0" : "block w-full md:w-[340px] shrink-0 h-full min-h-0"}>
-        <ConversationSidebar
-          profile={profile}
-          conversations={filtered}
-          selectedConversationId={selectedConversationId}
-          onlineUserIds={onlineUserIds}
-          query={query}
-          onQueryChange={setQuery}
-          onConversationCreated={() => void loadConversations()}
-          activeTab={railTab}
-          onTabChange={setRailTab}
-        />
+      {/* 2. Side Panel (Conversation Sidebar / In-Panel Detail): 340px */}
+      <div
+        className={
+          sideDetailView
+            ? "block w-full md:w-[340px] shrink-0 h-full min-h-0 z-20"
+            : selectedConversationId
+              ? "hidden md:block w-full md:w-[340px] shrink-0 h-full min-h-0"
+              : "block w-full md:w-[340px] shrink-0 h-full min-h-0"
+        }
+      >
+        {sideDetailView?.type === "user-profile" ? (
+          <InPanelUserProfile
+            peerProfile={sideDetailView.profile}
+            currentUserId={profile.id}
+            conversationId={selectedConversationId}
+            isOnline={sideDetailView.isOnline ?? onlineUserIds.has(sideDetailView.profile.id)}
+            onBack={() => {
+              if (sideDetailView.returnToGroup && selectedConversation) {
+                setSideDetailView({
+                  type: "group-info",
+                  conversation: selectedConversation,
+                });
+              } else {
+                setSideDetailView(null);
+              }
+            }}
+          />
+        ) : sideDetailView?.type === "group-info" ? (
+          <InPanelGroupInfo
+            conversation={sideDetailView.conversation}
+            currentUserId={profile.id}
+            onlineUserIds={onlineUserIds}
+            onSelectMember={(p) => {
+              setSideDetailView({
+                type: "user-profile",
+                profile: p,
+                isOnline: onlineUserIds.has(p.id),
+                returnToGroup: true,
+              });
+            }}
+            onConversationActivity={handleConversationActivity}
+            onBack={() => setSideDetailView(null)}
+          />
+        ) : (
+          <ConversationSidebar
+            profile={profile}
+            conversations={filtered}
+            selectedConversationId={selectedConversationId}
+            onlineUserIds={onlineUserIds}
+            query={query}
+            onQueryChange={setQuery}
+            onConversationCreated={() => void loadConversations()}
+            activeTab={railTab}
+            onTabChange={handleTabChange}
+          />
+        )}
       </div>
 
       {/* 3. Chat Content: remaining width flex-1 */}
-      <div className="flex-1 min-w-0 h-full min-h-0">
+      <div className={sideDetailView ? "hidden md:block flex-1 min-w-0 h-full min-h-0" : "flex-1 min-w-0 h-full min-h-0"}>
         {selectedConversationId ? (
           <MessagePanel
             key={selectedConversationId}
@@ -184,6 +239,21 @@ export function ChatWorkspace({ profile, selectedConversationId }: ChatWorkspace
             conversationId={selectedConversationId}
             onlineUserIds={onlineUserIds}
             onConversationActivity={handleConversationActivity}
+            onOpenUserProfile={(peer) => {
+              setSideDetailView({
+                type: "user-profile",
+                profile: peer,
+                isOnline: onlineUserIds.has(peer.id),
+              });
+            }}
+            onOpenGroupInfo={() => {
+              if (selectedConversation) {
+                setSideDetailView({
+                  type: "group-info",
+                  conversation: selectedConversation,
+                });
+              }
+            }}
           />
         ) : (
           <EmptyChat currentUserId={profile.id} onCreated={() => void loadConversations()} />

@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toggleMessageStar, useStarredIds } from "@/lib/starred-store";
 import { cn, formatMessageTime, getInitials } from "@/lib/utils";
+import { BUBBLE_STYLES, useAppearance } from "@/lib/appearance-store";
 import type { ChatMessage, Profile } from "@/types/chat";
 
 const EMOJI_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🔥"];
@@ -49,6 +50,9 @@ export function MessageBubble({
 }: MessageBubbleProps) {
   const own = message.sender_id === currentUserId;
   const readBySomeoneElse = message.read_receipts?.some((receipt) => receipt.user_id !== currentUserId);
+
+  const { preferences } = useAppearance();
+  const bubbleConf = BUBBLE_STYLES.find((b) => b.id === preferences.bubbleStyle) || BUBBLE_STYLES[0];
 
   const starredIds = useStarredIds(currentUserId);
   const isStarred = starredIds.has(message.id);
@@ -144,10 +148,10 @@ export function MessageBubble({
         {/* Bubble */}
         <div
           className={cn(
-            "relative rounded-2xl px-4 py-2.5 sm:px-5 sm:py-3 transition-all select-text",
+            "relative px-4 py-2.5 sm:px-5 sm:py-3 transition-all select-text shadow-xs",
             own
-              ? "rounded-br-sm bg-primary text-primary-foreground shadow-sm shadow-primary/20"
-              : "rounded-bl-sm bg-muted text-foreground shadow-sm"
+              ? cn(bubbleConf.ownClass, "bg-primary text-primary-foreground shadow-primary/20")
+              : cn(bubbleConf.peerClass, "bg-muted text-foreground")
           )}
         >
           {/* Content / Edit mode */}

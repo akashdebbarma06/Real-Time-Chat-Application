@@ -88,6 +88,126 @@
   --sidebar-border: oklch(1 0 0 / 9%);
 }
 
+/* ═══════════ ACCENT PALETTES ═══════════ */
+[data-accent="blue"] {
+  --primary: oklch(0.56 0.22 250);
+  --primary-foreground: oklch(0.99 0 0);
+  --ring: oklch(0.62 0.2 250);
+  --accent: oklch(0.93 0.04 250);
+  --accent-foreground: oklch(0.34 0.16 250);
+}
+.dark[data-accent="blue"],
+.dark [data-accent="blue"],
+html.dark[data-accent="blue"] {
+  --primary: oklch(0.66 0.2 250);
+  --primary-foreground: oklch(0.15 0.03 250);
+  --ring: oklch(0.66 0.2 250);
+  --accent: oklch(0.28 0.08 250);
+  --accent-foreground: oklch(0.9 0.06 250);
+}
+
+[data-accent="emerald"] {
+  --primary: oklch(0.55 0.19 155);
+  --primary-foreground: oklch(0.99 0 0);
+  --ring: oklch(0.62 0.17 155);
+  --accent: oklch(0.93 0.04 155);
+  --accent-foreground: oklch(0.32 0.15 155);
+}
+.dark[data-accent="emerald"],
+.dark [data-accent="emerald"],
+html.dark[data-accent="emerald"] {
+  --primary: oklch(0.68 0.18 155);
+  --primary-foreground: oklch(0.15 0.03 155);
+  --ring: oklch(0.65 0.18 155);
+  --accent: oklch(0.28 0.07 155);
+  --accent-foreground: oklch(0.9 0.06 155);
+}
+
+[data-accent="rose"] {
+  --primary: oklch(0.58 0.22 15);
+  --primary-foreground: oklch(0.99 0 0);
+  --ring: oklch(0.65 0.19 15);
+  --accent: oklch(0.94 0.035 15);
+  --accent-foreground: oklch(0.36 0.15 15);
+}
+.dark[data-accent="rose"],
+.dark [data-accent="rose"],
+html.dark[data-accent="rose"] {
+  --primary: oklch(0.68 0.21 15);
+  --primary-foreground: oklch(0.16 0.03 15);
+  --ring: oklch(0.66 0.2 15);
+  --accent: oklch(0.29 0.07 15);
+  --accent-foreground: oklch(0.9 0.06 15);
+}
+
+[data-accent="amber"] {
+  --primary: oklch(0.62 0.19 65);
+  --primary-foreground: oklch(0.16 0.03 65);
+  --ring: oklch(0.68 0.18 65);
+  --accent: oklch(0.94 0.04 65);
+  --accent-foreground: oklch(0.38 0.15 65);
+}
+.dark[data-accent="amber"],
+.dark [data-accent="amber"],
+html.dark[data-accent="amber"] {
+  --primary: oklch(0.72 0.18 65);
+  --primary-foreground: oklch(0.16 0.03 65);
+  --ring: oklch(0.70 0.17 65);
+  --accent: oklch(0.30 0.07 65);
+  --accent-foreground: oklch(0.92 0.06 65);
+}
+
+[data-accent="cyan"] {
+  --primary: oklch(0.58 0.17 210);
+  --primary-foreground: oklch(0.99 0 0);
+  --ring: oklch(0.66 0.15 210);
+  --accent: oklch(0.93 0.04 210);
+  --accent-foreground: oklch(0.34 0.14 210);
+}
+.dark[data-accent="cyan"],
+.dark [data-accent="cyan"],
+html.dark[data-accent="cyan"] {
+  --primary: oklch(0.70 0.16 210);
+  --primary-foreground: oklch(0.15 0.03 210);
+  --ring: oklch(0.68 0.15 210);
+  --accent: oklch(0.28 0.07 210);
+  --accent-foreground: oklch(0.92 0.05 210);
+}
+
+/* ═══════════ CHAT BACKGROUNDS ═══════════ */
+.chat-bg-default {
+  background-color: var(--background);
+}
+
+.chat-bg-dots {
+  background-color: var(--background);
+  background-image: radial-gradient(color-mix(in oklab, var(--foreground) 12%, transparent) 1.2px, transparent 1.2px);
+  background-size: 18px 18px;
+}
+
+.chat-bg-grid {
+  background-color: var(--background);
+  background-image: linear-gradient(to right, color-mix(in oklab, var(--foreground) 7%, transparent) 1px, transparent 1px),
+                    linear-gradient(to bottom, color-mix(in oklab, var(--foreground) 7%, transparent) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.chat-bg-stars {
+  background-color: var(--background);
+  background-image: radial-gradient(1px 1px at 20px 30px, color-mix(in oklab, var(--foreground) 30%, transparent), transparent),
+                    radial-gradient(1.5px 1.5px at 70px 90px, color-mix(in oklab, var(--foreground) 25%, transparent), transparent),
+                    radial-gradient(1px 1px at 130px 40px, color-mix(in oklab, var(--foreground) 35%, transparent), transparent),
+                    radial-gradient(1.5px 1.5px at 180px 140px, color-mix(in oklab, var(--foreground) 20%, transparent), transparent);
+  background-repeat: repeat;
+  background-size: 220px 220px;
+}
+
+.chat-bg-mesh {
+  background-color: var(--background);
+  background-image: radial-gradient(at 0% 0%, color-mix(in oklab, var(--primary) 14%, transparent) 0px, transparent 55%),
+                    radial-gradient(at 100% 100%, color-mix(in oklab, var(--accent-foreground) 10%, transparent) 0px, transparent 55%);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

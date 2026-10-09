@@ -34,6 +34,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ConversationAvatar } from "@/components/chat/conversation-avatar";
 import { MessageBubble } from "@/components/chat/message-bubble";
+import { CHAT_BACKGROUNDS, useAppearance } from "@/lib/appearance-store";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,6 +49,8 @@ interface MessagePanelProps {
   conversationId: string;
   onlineUserIds: Set<string>;
   onConversationActivity: () => void;
+  onOpenUserProfile?: (peer: Profile) => void;
+  onOpenGroupInfo?: () => void;
 }
 
 interface TypingPayload {
@@ -83,8 +86,12 @@ export function MessagePanel({
   conversationId,
   onlineUserIds,
   onConversationActivity,
+  onOpenUserProfile,
+  onOpenGroupInfo,
 }: MessagePanelProps) {
   const router = useRouter();
+  const { preferences } = useAppearance();
+  const chatBgClass = CHAT_BACKGROUNDS.find((b) => b.id === preferences.chatBackground)?.className || "chat-bg-default";
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -454,6 +461,32 @@ export function MessagePanel({
 
   const isGroup = conversation?.type === "group";
 
+  function handleOpenProfile(target: Profile) {
+    if (onOpenUserProfile) {
+      onOpenUserProfile(target);
+    } else {
+      setSelectedProfile(target);
+      setUserProfileSheetOpen(true);
+    }
+  }
+
+  function handleOpenGroup() {
+    if (onOpenGroupInfo) {
+      onOpenGroupInfo();
+    } else {
+      setGroupInfoSheetOpen(true);
+    }
+  }
+
+  function handleOpenInfo() {
+    if (isGroup) {
+      handleOpenGroup();
+    } else {
+      const peer = peers[0] || null;
+      if (peer) handleOpenProfile(peer);
+    }
+  }
+
   return (
     <section className="flex h-svh min-h-0 flex-col bg-background">
       {/* HEADER COMPONENT INLINED */}
@@ -467,14 +500,7 @@ export function MessagePanel({
 
           <button
             type="button"
-            onClick={() => {
-              if (isGroup) {
-                setGroupInfoSheetOpen(true);
-              } else {
-                setSelectedProfile(peers[0] || null);
-                setUserProfileSheetOpen(true);
-              }
-            }}
+            onClick={handleOpenInfo}
             aria-label={isGroup ? "View group info" : "View contact profile"}
             title={isGroup ? "View group info" : "View contact profile"}
             className="flex items-center gap-3 min-w-0 text-left hover:opacity-80 transition cursor-pointer"
@@ -542,7 +568,7 @@ export function MessagePanel({
             <Button
               variant="ghost"
               size="icon-sm"
-              onClick={() => setGroupInfoSheetOpen(true)}
+              onClick={handleOpenGroup}
               aria-label="View group info"
               title="Group Info"
               className="rounded-full"
@@ -559,14 +585,7 @@ export function MessagePanel({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" side="bottom" className="w-56 p-1 rounded-2xl shadow-xl">
               <DropdownMenuItem
-                onClick={() => {
-                  if (isGroup) {
-                    setGroupInfoSheetOpen(true);
-                  } else {
-                    setSelectedProfile(peers[0] || null);
-                    setUserProfileSheetOpen(true);
-                  }
-                }}
+                onClick={handleOpenInfo}
                 className="flex items-center gap-2 text-xs rounded-xl cursor-pointer"
               >
                 {isGroup ? (
@@ -650,7 +669,7 @@ export function MessagePanel({
       )}
 
       {/* MESSAGE LIST COMPONENT INLINED */}
-      <ScrollArea className="min-h-0 flex-1">
+      <ScrollArea className={cn("min-h-0 flex-1 transition-colors duration-200", chatBgClass)}>
         <div
           className={cn(
             "mx-auto max-w-6xl px-3 sm:px-5",
@@ -690,10 +709,7 @@ export function MessagePanel({
                       showReceipt={message.id === lastOwnMessageId}
                       reactions={reactionsByMessage[message.id] || {}}
                       onToggleReaction={(emoji) => handleToggleReaction(message.id, emoji)}
-                      onProfileClick={(p) => {
-                        setSelectedProfile(p);
-                        setUserProfileSheetOpen(true);
-                      }}
+                      onProfileClick={(p) => handleOpenProfile(p)}
                       onReply={(msg) => setReplyingToMessage(msg)}
                       onEdit={handleEditMessage}
                       onDelete={handleDeleteMessage}
@@ -744,18 +760,21 @@ export function MessagePanel({
         onTyping={broadcastTyping}
       />
 
-      <UserProfileSheet
-        open={userProfileSheetOpen}
-        onOpenChange={setUserProfileSheetOpen}
-        peerProfile={selectedProfile || peers[0] || null}
-        currentUserId={profile.id}
-        conversationId={conversationId}
-        isOnline={selectedProfile ? onlineUserIds.has(selectedProfile.id) : isPeerOnline}
-        isMuted={isMuted}
-        onToggleMute={() => setIsMuted(!isMuted)}
-      />
+      {/* Fallback Sheets only when in-panel handler not supplied */}
+      {!onOpenUserProfile && (
+        <UserProfileSheet
+          open={userProfileSheetOpen}
+          onOpenChange={setUserProfileSheetOpen}
+          peerProfile={selectedProfile || peers[0] || null}
+          currentUserId={profile.id}
+          conversationId={conversationId}
+          isOnline={selectedProfile ? onlineUserIds.has(selectedProfile.id) : isPeerOnline}
+          isMuted={isMuted}
+          onToggleMute={() => setIsMuted(!isMuted)}
+        />
+      )}
 
-      {conversation && isGroup && (
+      {!onOpenGroupInfo && conversation && isGroup && (
         <GroupInfoSheet
           open={groupInfoSheetOpen}
           onOpenChange={setGroupInfoSheetOpen}
@@ -764,10 +783,7 @@ export function MessagePanel({
           onlineUserIds={onlineUserIds}
           isMuted={isMuted}
           onToggleMute={() => setIsMuted(!isMuted)}
-          onSelectMember={(p) => {
-            setSelectedProfile(p);
-            setUserProfileSheetOpen(true);
-          }}
+          onSelectMember={(p) => handleOpenProfile(p)}
           onConversationActivity={onConversationActivity}
         />
       )}
