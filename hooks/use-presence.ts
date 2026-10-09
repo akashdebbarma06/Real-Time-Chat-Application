@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { getPresenceChannel } from "@/lib/realtime";
 
 interface PresencePayload {
   user_id?: string;
   online_at?: string;
 }
 
-export function usePresence(userId: string) {
+export function usePresence(userId: string, roomId = "global") {
   const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set([userId]));
 
   useEffect(() => {
@@ -18,10 +19,8 @@ export function usePresence(userId: string) {
     let cancelled = false;
     let heartbeat: ReturnType<typeof setInterval> | undefined;
 
-    // Use private online-users channel permitted by RLS policy
-    const channel = supabase.channel("online-users", {
-      config: { private: true, presence: { key: userId } },
-    });
+    // Use standardized presence:room:{roomId} channel
+    const channel = getPresenceChannel(roomId, userId);
 
     async function syncPresence() {
       const state = channel.presenceState() as Record<string, PresencePayload[]>;
@@ -80,22 +79,34 @@ export function usePresence(userId: string) {
       if (document.visibilityState === "visible" && channel) {
         void channel.track({ user_id: userId, online_at: new Date().toISOString() });
         void supabase.from("profiles").update({ last_seen_at: new Date().toISOString() }).eq("id", userId);
+      } else if (document.visibilityState === "hidden" && channel) {
+        void channel.untrack();
+        void supabase.from("profiles").update({ last_seen_at: new Date().toISOString() }).eq("id", userId);
+      }
+    }
+
+    function handleOnline() {
+      if (channel) {
+        void channel.track({ user_id: userId, online_at: new Date().toISOString() });
       }
     }
 
     window.addEventListener("visibilitychange", handleVisibilityChange);
     window.addEventListener("focus", handleVisibilityChange);
+    window.addEventListener("online", handleOnline);
 
     return () => {
       cancelled = true;
       if (heartbeat) clearInterval(heartbeat);
       window.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("focus", handleVisibilityChange);
+      window.removeEventListener("online", handleOnline);
       void supabase.from("profiles").update({ last_seen_at: new Date().toISOString() }).eq("id", userId);
       void channel.untrack();
       void supabase.removeChannel(channel);
     };
-  }, [userId]);
+  }, [userId, roomId]);
 
   return onlineUserIds;
 }
+

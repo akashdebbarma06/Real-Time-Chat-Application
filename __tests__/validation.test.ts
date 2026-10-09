@@ -1,18 +1,5 @@
 import { describe, expect, it } from "vitest";
-
-const MAX_FILE_SIZE = 6 * 1024 * 1024;
-const FORBIDDEN_EXTENSIONS = [".exe", ".bat", ".cmd", ".sh", ".msi", ".vbs", ".ps1"];
-
-function validateFile(file: { name: string; size: number }) {
-  const ext = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
-  if (FORBIDDEN_EXTENSIONS.includes(ext)) {
-    return { valid: false, error: "Executable files are not permitted for security" };
-  }
-  if (file.size > MAX_FILE_SIZE) {
-    return { valid: false, error: "Files must be 6 MB or smaller" };
-  }
-  return { valid: true };
-}
+import { validateUploadFile, MAX_FILE_SIZE } from "@/lib/utils";
 
 function validateMessageText(text: string) {
   const trimmed = text.trim();
@@ -26,25 +13,32 @@ function validateMessageText(text: string) {
 }
 
 describe("Input & File Validation Logic", () => {
-  describe("validateFile", () => {
-    it("accepts valid files within 6MB size limit", () => {
-      const validFile = { name: "document.pdf", size: 2 * 1024 * 1024 };
-      expect(validateFile(validFile)).toEqual({ valid: true });
+  describe("validateUploadFile (Images Only & Security)", () => {
+    it("accepts valid image files within 6MB size limit", () => {
+      const validImage = { name: "avatar.png", size: 2 * 1024 * 1024, type: "image/png" };
+      expect(validateUploadFile(validImage)).toEqual({ valid: true });
+    });
+
+    it("rejects non-image files per security policy", () => {
+      const pdfFile = { name: "document.pdf", size: 1024 * 1024, type: "application/pdf" };
+      const res = validateUploadFile(pdfFile);
+      expect(res.valid).toBe(false);
+      expect(res.error).toBe("Only image files are permitted");
     });
 
     it("rejects files larger than 6MB", () => {
-      const largeFile = { name: "video.mp4", size: 10 * 1024 * 1024 };
-      const res = validateFile(largeFile);
+      const largeImage = { name: "photo.jpg", size: 10 * 1024 * 1024, type: "image/jpeg" };
+      const res = validateUploadFile(largeImage);
       expect(res.valid).toBe(false);
       expect(res.error).toBe("Files must be 6 MB or smaller");
     });
 
     it("rejects executable or script files for security", () => {
-      const exeFile = { name: "malware.exe", size: 1024 };
-      const shFile = { name: "script.sh", size: 1024 };
+      const exeFile = { name: "malware.exe", size: 1024, type: "application/x-msdownload" };
+      const shFile = { name: "script.sh", size: 1024, type: "text/x-sh" };
 
-      expect(validateFile(exeFile).valid).toBe(false);
-      expect(validateFile(shFile).valid).toBe(false);
+      expect(validateUploadFile(exeFile).valid).toBe(false);
+      expect(validateUploadFile(shFile).valid).toBe(false);
     });
   });
 
@@ -63,3 +57,4 @@ describe("Input & File Validation Logic", () => {
     });
   });
 });
+

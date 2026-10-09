@@ -435,13 +435,14 @@ on public.message_reads for update to authenticated
 using (user_id = (select auth.uid()))
 with check (user_id = (select auth.uid()));
 
--- Private Realtime channels: conversation:<uuid> and online-users.
+-- Private Realtime channels: conversation:<uuid>, presence:room:<roomId>, and online-users.
 create policy "Authenticated users can receive presence"
 on realtime.messages for select to authenticated
 using (
   extension = 'presence'
   and (
     (select realtime.topic()) = 'online-users'
+    or (select realtime.topic()) like 'presence:room:%'
     or public.is_conversation_member(public.realtime_conversation_id((select realtime.topic())), (select auth.uid()))
   )
 );
@@ -452,6 +453,7 @@ with check (
   extension = 'presence'
   and (
     (select realtime.topic()) = 'online-users'
+    or (select realtime.topic()) like 'presence:room:%'
     or public.is_conversation_member(public.realtime_conversation_id((select realtime.topic())), (select auth.uid()))
   )
 );

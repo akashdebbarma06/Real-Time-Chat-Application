@@ -125,6 +125,20 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["message_reads"]["Insert"]>;
         Relationships: [];
       };
+      blocked_users: {
+        Row: {
+          blocker_id: string;
+          blocked_id: string;
+          created_at: string;
+        };
+        Insert: {
+          blocker_id: string;
+          blocked_id: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["blocked_users"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -152,6 +166,10 @@ export interface Database {
           last_message: Json | null;
           unread_count: number;
         }>;
+      };
+      is_user_blocked: {
+        Args: { p_blocker_id: string; p_blocked_id: string };
+        Returns: boolean;
       };
     };
     Enums: {

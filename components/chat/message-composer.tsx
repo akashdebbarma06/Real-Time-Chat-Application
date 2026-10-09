@@ -22,10 +22,9 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { formatFileSize } from "@/lib/utils";
+import { formatFileSize, validateUploadFile, MAX_FILE_SIZE } from "@/lib/utils";
 import type { ChatMessage } from "@/types/chat";
 
-const MAX_FILE_SIZE = 6 * 1024 * 1024;
 const QUICK_EMOJIS = ["😊", "👍", "❤️", "😂", "😮", "😢", "🔥", "🎉", "🚀", "💡", "✨", "🙏", "👀", "💬"];
 
 interface MessageComposerProps {
@@ -88,22 +87,13 @@ export function MessageComposer({
 
   function handleFileSelect(file?: File) {
     if (!file) return;
-    const forbiddenExts = [".exe", ".bat", ".cmd", ".sh", ".msi", ".vbs", ".ps1"];
-    const ext = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
-    if (forbiddenExts.includes(ext)) {
-      toast.error("Executable files are not permitted for security");
-      return;
-    }
-    if (file.size > MAX_FILE_SIZE) {
-      toast.error("Files must be 6 MB or smaller");
+    const validation = validateUploadFile(file);
+    if (!validation.valid) {
+      toast.error(validation.error || "Invalid file selection");
       return;
     }
     setSelectedFile(file);
-    if (file.type.startsWith("image/")) {
-      setPreviewUrl(URL.createObjectURL(file));
-    } else {
-      setPreviewUrl(null);
-    }
+    setPreviewUrl(URL.createObjectURL(file));
   }
 
   function clearSelectedFile() {
@@ -258,10 +248,11 @@ export function MessageComposer({
           </div>
         </div>
 
-        {/* Hidden file input */}
+        {/* Hidden file input restricted to images */}
         <input
           ref={fileInputRef}
           type="file"
+          accept="image/*"
           className="hidden"
           onChange={(e) => void handleFileSelect(e.target.files?.[0])}
         />

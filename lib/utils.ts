@@ -52,6 +52,24 @@ export function getConversationPeers(conversation: ConversationSummary, userId: 
   return conversation.members.filter((member) => member.user_id !== userId).map((member) => member.profile);
 }
 
+export const MAX_FILE_SIZE = 6 * 1024 * 1024; // 6 MB
+export const FORBIDDEN_EXTENSIONS = [".exe", ".bat", ".cmd", ".sh", ".msi", ".vbs", ".ps1", ".js", ".ts", ".html", ".php"];
+
+export function validateUploadFile(file?: { name: string; size: number; type?: string } | null): { valid: boolean; error?: string } {
+  if (!file) return { valid: false, error: "No file provided" };
+  const ext = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
+  if (FORBIDDEN_EXTENSIONS.includes(ext)) {
+    return { valid: false, error: "Executable or script files are strictly forbidden" };
+  }
+  if (file.type && !file.type.startsWith("image/")) {
+    return { valid: false, error: "Only image files are permitted" };
+  }
+  if (file.size > MAX_FILE_SIZE) {
+    return { valid: false, error: "Files must be 6 MB or smaller" };
+  }
+  return { valid: true };
+}
+
 export function sanitizeFilename(filename: string) {
   const parts = filename.split(".");
   const extension = parts.length > 1 ? `.${parts.pop()?.toLowerCase().replace(/[^a-z0-9]/g, "")}` : "";
@@ -63,3 +81,4 @@ export function sanitizeFilename(filename: string) {
     .slice(0, 80);
   return `${base || "file"}${extension}`;
 }
+

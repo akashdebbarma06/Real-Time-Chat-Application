@@ -16,6 +16,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { ComingSoonDialog } from "@/components/ui/coming-soon-dialog";
+import { PhoneVerificationDialog } from "@/components/settings/phone-verification-dialog";
 import { createClient } from "@/lib/supabase/client";
 import { getInitials, sanitizeFilename } from "@/lib/utils";
 import type { Profile } from "@/types/chat";
@@ -33,7 +35,17 @@ export function ProfileForm({ profile, userEmail }: { profile: Profile; userEmai
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url);
   const [links, setLinks] = useState<string[]>([""]);
   const [saving, setSaving] = useState(false);
+  const [phoneVerificationOpen, setPhoneVerificationOpen] = useState(false);
+  const [comingSoonOpen, setComingSoonOpen] = useState(false);
+  const [comingSoonFeature, setComingSoonFeature] = useState("Feature");
+  const [comingSoonDescription, setComingSoonDescription] = useState("");
   const fileInput = useRef<HTMLInputElement>(null);
+
+  function triggerComingSoon(feature: string, desc: string) {
+    setComingSoonFeature(feature);
+    setComingSoonDescription(desc);
+    setComingSoonOpen(true);
+  }
 
   const displayName = profile.display_name;
   const bioWordCount = countWords(bio);
@@ -140,7 +152,7 @@ export function ProfileForm({ profile, userEmail }: { profile: Profile; userEmai
             variant="outline"
             size="sm"
             className="rounded-full text-xs gap-1.5"
-            onClick={() => fileInput.current?.click()}
+            onClick={() => triggerComingSoon("Live Camera Photo Capture", "Direct device camera snapshot capture will be enabled in the upcoming release.")}
           >
             <Camera className="size-3.5" />
             Camera
@@ -200,15 +212,24 @@ export function ProfileForm({ profile, userEmail }: { profile: Profile; userEmai
         </div>
       </div>
 
-      {/* 4. Phone */}
+      {/* 4. Phone Verification */}
       <div className="space-y-2">
-        <label className="text-xs font-semibold text-muted-foreground uppercase">Phone Number</label>
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-semibold text-muted-foreground uppercase">Phone Number</label>
+          <button
+            type="button"
+            onClick={() => setPhoneVerificationOpen(true)}
+            className="text-[10px] font-semibold text-primary hover:underline"
+          >
+            Verify Phone
+          </button>
+        </div>
         <div className="relative">
           <Phone className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="tel"
-            placeholder="+91 XXXXX XXXXX"
-            className="pl-9 rounded-xl"
+            placeholder="+1234567890"
+            className="pl-9 rounded-xl font-mono"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
           />
@@ -218,8 +239,14 @@ export function ProfileForm({ profile, userEmail }: { profile: Profile; userEmai
       {/* 5. Links (optional, max 5) */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <label className="text-xs font-semibold text-muted-foreground uppercase">Links (Optional)</label>
-          <span className="text-xs text-muted-foreground">{links.length}/5</span>
+          <label className="text-xs font-semibold text-muted-foreground uppercase">Social & Portfolio Links</label>
+          <button
+            type="button"
+            onClick={() => triggerComingSoon("Public Profile Social Links", "Verified profile links and portfolio badges will be available soon.")}
+            className="text-[10px] font-semibold text-primary hover:underline"
+          >
+            Coming Soon
+          </button>
         </div>
         {links.map((link, index) => (
           <div key={index} className="flex items-center gap-2">
@@ -241,7 +268,13 @@ export function ProfileForm({ profile, userEmail }: { profile: Profile; userEmai
           </div>
         ))}
         {links.length < 5 && (
-          <Button type="button" variant="outline" size="sm" className="rounded-full text-xs gap-1.5" onClick={addLink}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="rounded-full text-xs gap-1.5"
+            onClick={() => triggerComingSoon("Public Profile Social Links", "Custom external link verification and link preview cards will be enabled soon.")}
+          >
             <Plus className="size-3.5" />
             Add Link
           </Button>
@@ -257,6 +290,19 @@ export function ProfileForm({ profile, userEmail }: { profile: Profile; userEmai
           Save Changes
         </Button>
       </div>
+
+      <ComingSoonDialog
+        open={comingSoonOpen}
+        onOpenChange={setComingSoonOpen}
+        featureName={comingSoonFeature}
+        description={comingSoonDescription}
+      />
+
+      <PhoneVerificationDialog
+        open={phoneVerificationOpen}
+        onOpenChange={setPhoneVerificationOpen}
+        onVerified={(verifiedNumber) => setPhone(verifiedNumber)}
+      />
     </form>
   );
 }

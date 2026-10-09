@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Bell,
@@ -26,6 +26,11 @@ import {
 import { playNotificationSound, requestNotificationPermission } from "@/lib/notifications";
 import { toast } from "sonner";
 import { ComingSoonDialog } from "@/components/ui/coming-soon-dialog";
+import { ChangePasswordDialog } from "@/components/settings/change-password-dialog";
+import { ChangeEmailDialog } from "@/components/settings/change-email-dialog";
+import { BlockedContactsDialog } from "@/components/settings/blocked-contacts-dialog";
+import { TwoFactorDialog } from "@/components/settings/two-factor-dialog";
+import { PhoneVerificationDialog } from "@/components/settings/phone-verification-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -39,7 +44,7 @@ interface SettingsViewProps {
   profile: Profile;
 }
 
-type VisibilityOption = "everyone" | "nobody" | "everyone_except";
+type VisibilityOption = "everyone" | "contacts" | "nobody";
 
 export function SettingsView({ profile }: SettingsViewProps) {
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
@@ -47,6 +52,25 @@ export function SettingsView({ profile }: SettingsViewProps) {
   // Coming Soon State
   const [comingSoonOpen, setComingSoonOpen] = useState(false);
   const [comingSoonFeature, setComingSoonFeature] = useState("Feature");
+
+  // Security Dialog States
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
+  const [changeEmailOpen, setChangeEmailOpen] = useState(false);
+  const [blockedContactsOpen, setBlockedContactsOpen] = useState(false);
+  const [twoFactorOpen, setTwoFactorOpen] = useState(false);
+  const [phoneVerificationOpen, setPhoneVerificationOpen] = useState(false);
+  const [authEmail, setAuthEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadAuth() {
+      const supabase = createClient();
+      const { data } = await supabase.auth.getUser();
+      if (data?.user?.email) {
+        setAuthEmail(data.user.email);
+      }
+    }
+    void loadAuth();
+  }, []);
 
   // Privacy state
   const [lastSeenVisibility, setLastSeenVisibility] = useState<VisibilityOption>("everyone");
@@ -95,8 +119,8 @@ export function SettingsView({ profile }: SettingsViewProps) {
   }) {
     const options: { id: VisibilityOption; label: string }[] = [
       { id: "everyone", label: "Everyone" },
+      { id: "contacts", label: "Contacts" },
       { id: "nobody", label: "Nobody" },
-      { id: "everyone_except", label: "Everyone Except..." },
     ];
     return (
       <div className="space-y-2 rounded-xl border bg-muted/40 p-3">
@@ -214,30 +238,42 @@ export function SettingsView({ profile }: SettingsViewProps) {
                         </div>
                       </button>
 
-                      {/* 2. Email */}
-                      <div className="rounded-xl border bg-muted/30 p-3">
-                        <div className="flex items-center gap-3">
+                      {/* 2. Email Address */}
+                      <div className="flex items-center justify-between rounded-xl border bg-muted/30 p-3">
+                        <div className="flex items-center gap-3 min-w-0">
                           <Mail className="size-5 text-primary shrink-0" />
                           <div className="flex-1 min-w-0">
                             <p className="text-xs text-muted-foreground">Email Address</p>
                             <p className="text-sm font-medium text-foreground truncate mt-0.5">
-                              {profile.username}@aetherchat.app
+                              {authEmail || `${profile.username}@aetherchat.app`}
                             </p>
                           </div>
                         </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setChangeEmailOpen(true)}
+                          className="h-8 text-xs font-semibold text-primary hover:bg-primary/10"
+                        >
+                          Change
+                        </Button>
                       </div>
 
-                      {/* 3. Passkey */}
+                      {/* 3. Phone Verification */}
                       <button
                         type="button"
-                        onClick={() => toast.info("Passkey setup coming soon")}
-                        className="flex w-full items-center gap-3 rounded-xl border bg-muted/30 p-3 hover:bg-muted transition"
+                        onClick={() => setPhoneVerificationOpen(true)}
+                        className="flex w-full items-center justify-between rounded-xl border bg-muted/30 p-3 hover:bg-muted transition"
                       >
-                        <Key className="size-5 text-primary" />
-                        <div className="text-left">
-                          <p className="text-sm font-medium text-foreground">Passkey</p>
-                          <p className="text-xs text-muted-foreground">Set up passwordless login</p>
+                        <div className="flex items-center gap-3">
+                          <Phone className="size-5 text-primary" />
+                          <div className="text-left">
+                            <p className="text-sm font-medium text-foreground">Phone Verification</p>
+                            <p className="text-xs text-muted-foreground">Verify SMS authentication</p>
+                          </div>
                         </div>
+                        <ChevronRight className="size-4 text-muted-foreground" />
                       </button>
 
                       {/* 4. Two-step verification */}
@@ -246,23 +282,31 @@ export function SettingsView({ profile }: SettingsViewProps) {
                           <ShieldCheck className="size-5 text-primary" />
                           <div>
                             <p className="text-sm font-medium text-foreground">Two-Step Verification</p>
-                            <p className="text-xs text-muted-foreground">Extra layer of account security</p>
+                            <p className="text-xs text-muted-foreground">
+                              {twoStepEnabled ? "Active (Authenticator app)" : "Extra layer of account security"}
+                            </p>
                           </div>
                         </div>
-                        <Switch checked={twoStepEnabled} onCheckedChange={setTwoStepEnabled} />
+                        <Switch
+                          checked={twoStepEnabled}
+                          onCheckedChange={() => setTwoFactorOpen(true)}
+                        />
                       </div>
 
-                      {/* 5. Change password & email */}
+                      {/* 5. Change password */}
                       <button
                         type="button"
-                        onClick={() => toast.info("Change credentials coming soon")}
-                        className="flex w-full items-center gap-3 rounded-xl border bg-muted/30 p-3 hover:bg-muted transition"
+                        onClick={() => setChangePasswordOpen(true)}
+                        className="flex w-full items-center justify-between rounded-xl border bg-muted/30 p-3 hover:bg-muted transition"
                       >
-                        <Lock className="size-5 text-primary" />
-                        <div className="text-left">
-                          <p className="text-sm font-medium text-foreground">Change Password & Email</p>
-                          <p className="text-xs text-muted-foreground">Update login credentials</p>
+                        <div className="flex items-center gap-3">
+                          <Lock className="size-5 text-primary" />
+                          <div className="text-left">
+                            <p className="text-sm font-medium text-foreground">Change Password</p>
+                            <p className="text-xs text-muted-foreground">Update your account password</p>
+                          </div>
                         </div>
+                        <ChevronRight className="size-4 text-muted-foreground" />
                       </button>
 
                       {/* 6. Delete or deactivate account */}
@@ -309,7 +353,7 @@ export function SettingsView({ profile }: SettingsViewProps) {
                       {/* 4. Blocked Contacts */}
                       <button
                         type="button"
-                        onClick={() => toast.info("No blocked contacts")}
+                        onClick={() => setBlockedContactsOpen(true)}
                         className="flex w-full items-center gap-3 rounded-xl border bg-muted/30 p-3 hover:bg-muted transition"
                       >
                         <UserX className="size-5 text-destructive" />
@@ -512,6 +556,35 @@ export function SettingsView({ profile }: SettingsViewProps) {
         open={comingSoonOpen}
         onOpenChange={setComingSoonOpen}
         featureName={comingSoonFeature}
+      />
+
+      <ChangePasswordDialog
+        open={changePasswordOpen}
+        onOpenChange={setChangePasswordOpen}
+      />
+
+      <ChangeEmailDialog
+        open={changeEmailOpen}
+        onOpenChange={setChangeEmailOpen}
+        currentEmail={authEmail || undefined}
+      />
+
+      <BlockedContactsDialog
+        open={blockedContactsOpen}
+        onOpenChange={setBlockedContactsOpen}
+        currentUserId={profile.id}
+      />
+
+      <TwoFactorDialog
+        open={twoFactorOpen}
+        onOpenChange={setTwoFactorOpen}
+        isEnabled={twoStepEnabled}
+        onStatusChange={setTwoStepEnabled}
+      />
+
+      <PhoneVerificationDialog
+        open={phoneVerificationOpen}
+        onOpenChange={setPhoneVerificationOpen}
       />
     </div>
   );
