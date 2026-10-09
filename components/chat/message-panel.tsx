@@ -8,6 +8,7 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 import { notifyIncomingMessage, requestNotificationPermission } from "@/lib/notifications";
 import { MessageComposer } from "@/components/chat/message-composer";
 import { UserProfileSheet } from "@/components/chat/user-profile-sheet";
+import { GroupInfoSheet } from "@/components/chat/group-info-sheet";
 import { ComingSoonDialog } from "@/components/ui/coming-soon-dialog";
 import { createClient } from "@/lib/supabase/client";
 import { getConversationPeers, getConversationTitle, sanitizeFilename, cn } from "@/lib/utils";
@@ -92,6 +93,7 @@ export function MessagePanel({
 
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
   const [userProfileSheetOpen, setUserProfileSheetOpen] = useState(false);
+  const [groupInfoSheetOpen, setGroupInfoSheetOpen] = useState(false);
   const [comingSoonOpen, setComingSoonOpen] = useState(false);
   const [comingSoonFeature, setComingSoonFeature] = useState("Feature");
 
@@ -464,11 +466,18 @@ export function MessagePanel({
           </Button>
 
           <button
+            type="button"
             onClick={() => {
-              setSelectedProfile(peers[0] || null);
-              setUserProfileSheetOpen(true);
+              if (isGroup) {
+                setGroupInfoSheetOpen(true);
+              } else {
+                setSelectedProfile(peers[0] || null);
+                setUserProfileSheetOpen(true);
+              }
             }}
-            className="flex items-center gap-3 min-w-0 text-left hover:opacity-80 transition"
+            aria-label={isGroup ? "View group info" : "View contact profile"}
+            title={isGroup ? "View group info" : "View contact profile"}
+            className="flex items-center gap-3 min-w-0 text-left hover:opacity-80 transition cursor-pointer"
           >
             <div className="relative shrink-0">
               {conversation ? (
@@ -530,7 +539,14 @@ export function MessagePanel({
           </Button>
 
           {isGroup && (
-            <Button variant="ghost" size="icon-sm" aria-label="Group members" className="rounded-full">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => setGroupInfoSheetOpen(true)}
+              aria-label="View group info"
+              title="Group Info"
+              className="rounded-full"
+            >
               <UsersRound className="size-4" />
             </Button>
           )}
@@ -544,13 +560,21 @@ export function MessagePanel({
             <DropdownMenuContent align="end" side="bottom" className="w-56 p-1 rounded-2xl shadow-xl">
               <DropdownMenuItem
                 onClick={() => {
-                  setSelectedProfile(peers[0] || null);
-                  setUserProfileSheetOpen(true);
+                  if (isGroup) {
+                    setGroupInfoSheetOpen(true);
+                  } else {
+                    setSelectedProfile(peers[0] || null);
+                    setUserProfileSheetOpen(true);
+                  }
                 }}
                 className="flex items-center gap-2 text-xs rounded-xl cursor-pointer"
               >
-                <User className="size-4 text-primary" />
-                <span>View Contact Profile</span>
+                {isGroup ? (
+                  <UsersRound className="size-4 text-primary" />
+                ) : (
+                  <User className="size-4 text-primary" />
+                )}
+                <span>{isGroup ? "View Group Info" : "View Contact Profile"}</span>
               </DropdownMenuItem>
 
               <DropdownMenuItem
@@ -724,10 +748,29 @@ export function MessagePanel({
         open={userProfileSheetOpen}
         onOpenChange={setUserProfileSheetOpen}
         peerProfile={selectedProfile || peers[0] || null}
+        currentUserId={profile.id}
+        conversationId={conversationId}
         isOnline={selectedProfile ? onlineUserIds.has(selectedProfile.id) : isPeerOnline}
         isMuted={isMuted}
         onToggleMute={() => setIsMuted(!isMuted)}
       />
+
+      {conversation && isGroup && (
+        <GroupInfoSheet
+          open={groupInfoSheetOpen}
+          onOpenChange={setGroupInfoSheetOpen}
+          conversation={conversation}
+          currentUserId={profile.id}
+          onlineUserIds={onlineUserIds}
+          isMuted={isMuted}
+          onToggleMute={() => setIsMuted(!isMuted)}
+          onSelectMember={(p) => {
+            setSelectedProfile(p);
+            setUserProfileSheetOpen(true);
+          }}
+          onConversationActivity={onConversationActivity}
+        />
+      )}
 
       <ComingSoonDialog
         open={comingSoonOpen}
