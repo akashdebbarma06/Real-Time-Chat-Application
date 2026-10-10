@@ -14,6 +14,7 @@ import {
   Vault,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { AppLogo } from "@/components/ui/app-logo";
 import { cn, getInitials } from "@/lib/utils";
 import { APP_ICONS, useAppearance } from "@/lib/appearance-store";
 import type { Profile } from "@/types/chat";
@@ -101,16 +102,8 @@ export function NavigationRail({
         aria-label="Aether Chat Home"
         className="group relative mb-4 flex flex-col items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-2xl"
       >
-        <div
-          className={cn(
-            "grid size-11 place-items-center rounded-2xl bg-gradient-to-br text-white shadow-md transition-all group-hover:scale-105",
-            activeAppIcon.gradient,
-            preferences.appIcon === "midnight"
-              ? "border border-white/20 text-zinc-100 shadow-zinc-900/50"
-              : "shadow-primary/25"
-          )}
-        >
-          <MessageCircleMore className="size-6" />
+        <div className="size-11 flex items-center justify-center transition-all group-hover:scale-105">
+          <AppLogo size={44} />
         </div>
       </Link>
 
@@ -201,8 +194,8 @@ export function NavigationRail({
               {item.id === "settings" ? (
                 <Avatar className="size-6 border border-border group-hover:border-primary transition-colors">
                   <AvatarImage src={profile.avatar_url || undefined} alt={profile.display_name} />
-                  <AvatarFallback className="text-[10px] font-bold">
-                    {getInitials(profile.display_name)}
+                  <AvatarFallback className="text-[10px] font-bold uppercase">
+                    {(profile.display_name?.trim()[0] || "U").toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
               ) : (

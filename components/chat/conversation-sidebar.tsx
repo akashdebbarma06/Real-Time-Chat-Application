@@ -1,11 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Archive,
-  ArchiveRestore,
   BellOff,
   Check,
   CheckCheck,
@@ -17,25 +15,16 @@ import {
   MessageCircleMore,
   MessageSquarePlus,
   MoreVertical,
-  Moon,
   Pin,
-  PinOff,
-  QrCode,
   Search,
-  Settings,
   Star,
-  Sun,
   Trash2,
   Users,
-  UsersRound,
   X,
 } from "lucide-react";
 import { ConversationContextMenu } from "@/components/chat/conversation-context-menu";
-import { getMockConversations } from "@/lib/mock-chats";
 import { toast } from "@/lib/toast";
-import { useTheme } from "next-themes";
 import { CallsView } from "@/components/chat/calls-view";
-import { ContactsView } from "@/components/chat/contacts-view";
 import { ConversationAvatar } from "@/components/chat/conversation-avatar";
 import { ArchiveView } from "@/components/chat/archive-view";
 import { VaultView } from "@/components/chat/vault-view";
@@ -44,17 +33,19 @@ import { NewDirectChatDialog } from "@/components/chat/new-direct-chat-dialog";
 import { NewGroupDialog } from "@/components/chat/new-group-dialog";
 import { StarredMessagesDialog } from "@/components/chat/starred-messages-dialog";
 import { ConfirmActionDialog } from "@/components/chat/confirm-action-dialog";
+import { PermissionBanner } from "@/components/permissions/permission-banner";
 import { SettingsView } from "@/components/chat/settings-view";
 import { StatusView } from "@/components/chat/status-view";
 import { InPanelDirectChat } from "@/components/chat/in-panel-direct-chat";
 import { InPanelNewGroup } from "@/components/chat/in-panel-new-group";
 import { InPanelStarredMessages } from "@/components/chat/in-panel-starred-messages";
+import { useBackHandler } from "@/hooks/use-back-handler";
 import type { RailTab } from "@/components/chat/navigation-rail";
 import { Button } from "@/components/ui/button";
 import { ComingSoonDialog } from "@/components/ui/coming-soon-dialog";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Switch } from "@/components/ui/switch";
+import { clearLocalConversationMessages, deleteLocalConversation } from "@/lib/storage/local-db";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -89,8 +80,6 @@ export function ConversationSidebar({
   activeTab: activeTabProp,
   onTabChange: onTabChangeProp,
 }: ConversationSidebarProps) {
-  const { theme, setTheme } = useTheme();
-
   const router = useRouter();
 
   // Internal tab state with fallback
@@ -107,13 +96,15 @@ export function ConversationSidebar({
   };
 
   // In-panel subviews for chats tab: "chats" | "new-direct" | "new-group" | "starred"
+  const [prevTab, setPrevTab] = useState(currentTab);
   const [sidebarView, setSidebarView] = useState<"chats" | "new-direct" | "new-group" | "starred">("chats");
 
-  useEffect(() => {
+  if (prevTab !== currentTab) {
+    setPrevTab(currentTab);
     if (currentTab !== "chats") {
       setSidebarView("chats");
     }
-  }, [currentTab]);
+  }
 
   // Header Dialog states
   const [newDirectOpen, setNewDirectOpen] = useState(false);
@@ -127,6 +118,40 @@ export function ConversationSidebar({
   const [selectedChatIds, setSelectedChatIds] = useState<Set<string>>(new Set());
   const [confirmDeleteBatchOpen, setConfirmDeleteBatchOpen] = useState(false);
   const [bulkLoading, setBulkLoading] = useState(false);
+
+  // Responsive mobile tracking for tab switching
+  const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
+  useEffect(() => {
+    function handleResize() {
+      setIsMobile(window.innerWidth < 768);
+    }
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Priority 2: In-Panel Chat Subviews (New Chat, New Group, Starred)
+  useBackHandler({
+    id: "sidebar-subview",
+    priority: 50,
+    enabled: currentTab === "chats" && sidebarView !== "chats",
+    onBack: () => setSidebarView("chats"),
+  });
+
+  // Priority 2b: Multi-Select Chats Mode
+  useBackHandler({
+    id: "sidebar-selection-mode",
+    priority: 45,
+    enabled: isSelectionMode,
+    onBack: () => setIsSelectionMode(false),
+  });
+
+  // Priority 2c: Non-Chat Rail Tabs on Mobile Viewports
+  useBackHandler({
+    id: "sidebar-mobile-tab-switch",
+    priority: 40,
+    enabled: isMobile && currentTab !== "chats",
+    onBack: () => handleTabChange("chats"),
+  });
 
   // Chat Filter Sub-tabs: all | unread | groups
   const [chatFilter, setChatFilter] = useState<"all" | "unread" | "groups">("all");
@@ -184,16 +209,10 @@ export function ConversationSidebar({
   const [comingSoonOpen, setComingSoonOpen] = useState(false);
   const [comingSoonFeature, setComingSoonFeature] = useState("Feature");
 
-  // Merge real conversations with rich mock data containing both groups & 1-on-1 chats
+  // Active conversations list from database (defaults to clean empty array if none)
   const allConversations = useMemo(() => {
-    const mockList = getMockConversations(profile.id);
-    if (!conversations || conversations.length === 0) {
-      return mockList;
-    }
-    const existingIds = new Set(conversations.map((c) => c.id));
-    const supplementary = mockList.filter((m) => !existingIds.has(m.id));
-    return [...conversations, ...supplementary];
-  }, [conversations, profile.id]);
+    return conversations || [];
+  }, [conversations]);
 
   const filteredConversations = useMemo(() => {
     return allConversations.filter((conversation) => {
@@ -269,16 +288,37 @@ export function ConversationSidebar({
     }
   }
 
-  function handleClearChat(id: string) {
+  async function handleClearChat(id: string) {
+    try {
+      await clearLocalConversationMessages(id);
+    } catch (err) {
+      console.warn("Failed to clear local messages:", err);
+    }
     const conv = allConversations.find((c) => c.id === id);
     if (conv) {
       conv.last_message = null;
       onConversationCreated();
     }
+    toast.success("Chat messages cleared");
   }
 
-  function handleExitGroup(id: string) {
+  async function handleExitGroup(id: string) {
+    try {
+      const supabase = createClient();
+      await supabase
+        .from("conversation_members")
+        .delete()
+        .match({ conversation_id: id, user_id: profile.id });
+      await deleteLocalConversation(id);
+    } catch (err) {
+      console.warn("Failed to exit group:", err);
+    }
     toggleArchive(id);
+    if (selectedConversationId === id) {
+      router.push("/chat");
+    }
+    onConversationCreated();
+    toast.success("Exited group");
   }
 
   function handleBlockContact(id: string) {
@@ -288,10 +328,26 @@ export function ConversationSidebar({
       blocked.add(id);
       localStorage.setItem(`aether_blocked_${profile.id}`, JSON.stringify([...blocked]));
     } catch {}
+    toast.success("Contact blocked");
   }
 
-  function handleDeleteChat(id: string) {
+  async function handleDeleteChat(id: string) {
+    try {
+      const supabase = createClient();
+      await supabase
+        .from("conversation_members")
+        .delete()
+        .match({ conversation_id: id, user_id: profile.id });
+      await deleteLocalConversation(id);
+    } catch (err) {
+      console.warn("Failed to delete chat:", err);
+    }
     toggleArchive(id);
+    if (selectedConversationId === id) {
+      router.push("/chat");
+    }
+    onConversationCreated();
+    toast.success("Conversation deleted");
   }
 
   function handleAddToList(id: string) {
@@ -563,6 +619,7 @@ export function ConversationSidebar({
         {/* 1. CHATS TAB */}
         {currentTab === "chats" && (
           <div className="flex h-full flex-col">
+            <PermissionBanner onManagePermissions={() => handleTabChange("settings")} />
             {/* Filter Pill Tabs: All Chats | Unread | Groups */}
             <div className="px-5 pt-4 pb-3">
               <div className="flex items-center gap-2">
@@ -753,9 +810,10 @@ export function ConversationSidebar({
                         router.push(`/chat/${conversation.id}`);
                       }}
                       onContextMenu={(e) => {
-                        // Right-Click (contextmenu on Desktop): Prevents native context menu and opens custom options popup menu
+                        // Right-Click (contextmenu on Desktop): Prevents native context menu, opens custom options popup menu, and opens the conversation pane
                         e.preventDefault();
                         e.stopPropagation();
+                        router.push(`/chat/${conversation.id}`);
                         setContextMenu({
                           conversation,
                           position: { x: e.clientX, y: e.clientY },
@@ -781,6 +839,12 @@ export function ConversationSidebar({
                         const dx = Math.abs(touch.clientX - touchStartPosRef.current.x);
                         const dy = Math.abs(touch.clientY - touchStartPosRef.current.y);
                         if (dx > 10 || dy > 10) {
+                          clearTimeout(longPressTimerRef.current);
+                          longPressTimerRef.current = null;
+                        }
+                      }}
+                      onTouchCancel={() => {
+                        if (longPressTimerRef.current) {
                           clearTimeout(longPressTimerRef.current);
                           longPressTimerRef.current = null;
                         }
@@ -996,6 +1060,7 @@ export function ConversationSidebar({
             profile={profile}
             activeSection={settingsSection}
             onSectionChange={setSettingsSection}
+            onNavigateToProfile={() => router.push("/profile")}
           />
         )}
       </div>

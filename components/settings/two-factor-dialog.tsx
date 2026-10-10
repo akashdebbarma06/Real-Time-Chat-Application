@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { CheckCircle2, Copy, KeyRound, Loader2, QrCode, Shield, ShieldAlert, ShieldCheck } from "lucide-react";
+import { useState, useCallback } from "react";
+import { CheckCircle2, Copy, KeyRound, Loader2, QrCode, ShieldCheck } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,6 +27,7 @@ export function TwoFactorDialog({
   isEnabled,
   onStatusChange,
 }: TwoFactorDialogProps) {
+  const [prevOpen, setPrevOpen] = useState(open);
   const [step, setStep] = useState<"status" | "enroll" | "verify" | "success">("status");
   const [factorId, setFactorId] = useState<string | null>(null);
   const [qrCodeUri, setQrCodeUri] = useState<string>("");
@@ -34,12 +35,13 @@ export function TwoFactorDialog({
   const [verificationCode, setVerificationCode] = useState<string>("");
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
+  if (prevOpen !== open) {
+    setPrevOpen(open);
     if (open) {
       setStep("status");
       setVerificationCode("");
     }
-  }, [open]);
+  }
 
   const startEnrollment = useCallback(async () => {
     setLoading(true);

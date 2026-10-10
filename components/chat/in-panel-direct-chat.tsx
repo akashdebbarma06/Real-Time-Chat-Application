@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Loader2, MessageSquarePlus, Search } from "lucide-react";
+import { ArrowLeft, Loader2, Search } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -25,11 +25,10 @@ export function InPanelDirectChat({
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [users, setUsers] = useState<Profile[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [creatingId, setCreatingId] = useState<string | null>(null);
 
   useEffect(() => {
-    setLoading(true);
     const timer = setTimeout(async () => {
       try {
         const supabase = createClient();

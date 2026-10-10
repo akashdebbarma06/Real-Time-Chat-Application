@@ -107,7 +107,7 @@ export function GroupInfoSheet({
   // Members and media
   const [memberQuery, setMemberQuery] = useState("");
   const [sharedMedia, setSharedMedia] = useState<SharedMediaItem[]>([]);
-  const [loadingMedia, setLoadingMedia] = useState(false);
+  const [loadingMedia, setLoadingMedia] = useState(Boolean(conversation.id));
 
   // Danger actions dialog states
   const [confirmLeaveOpen, setConfirmLeaveOpen] = useState(false);
@@ -123,17 +123,18 @@ export function GroupInfoSheet({
   const [addingUserId, setAddingUserId] = useState<string | null>(null);
 
   // Sync props when conversation changes
-  useEffect(() => {
+  const [prevConvId, setPrevConvId] = useState(conversation.id);
+  if (prevConvId !== conversation.id) {
+    setPrevConvId(conversation.id);
     setGroupName(conversation.name || "Untitled Group");
     setNameInput(conversation.name || "Untitled Group");
     setAvatarUrl(conversation.avatar_url);
-  }, [conversation.name, conversation.avatar_url]);
+  }
 
   // Fetch real group attachments
   useEffect(() => {
     if (!open || !conversation.id) return;
 
-    setLoadingMedia(true);
     void createClient()
       .from("messages")
       .select("id, message_type, attachment_path, attachment_name, attachment_size, created_at")
@@ -179,7 +180,6 @@ export function GroupInfoSheet({
   // Fetch users when Add Member dialog opens
   useEffect(() => {
     if (!addMemberOpen) return;
-    setLoadingUsers(true);
     const existingMemberIds = new Set(conversation.members.map((m) => m.user_id));
 
     const timer = setTimeout(async () => {

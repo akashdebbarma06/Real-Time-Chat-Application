@@ -18,7 +18,9 @@
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
+  --color-accent: var(--color-accent, var(--accent));
+  --color-accent-hover: var(--color-accent-hover, var(--accent));
+  --color-accent-subtle: var(--color-accent-subtle, var(--muted));
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-border: var(--border);
@@ -181,8 +183,31 @@ html.dark[data-accent="cyan"] {
 
 .chat-bg-dots {
   background-color: var(--background);
-  background-image: radial-gradient(color-mix(in oklab, var(--foreground) 12%, transparent) 1.2px, transparent 1.2px);
-  background-size: 18px 18px;
+  background-image:
+    radial-gradient(circle at center, color-mix(in oklab, var(--primary) 6%, transparent) 0%, transparent 75%),
+    radial-gradient(color-mix(in oklab, var(--foreground) 13%, transparent) 1.2px, transparent 1.2px);
+  background-size: 100% 100%, 20px 20px;
+}
+
+/* ═══════════ BUBBLE STYLES ENFORCEMENT ═══════════ */
+[data-bubble-style="pill"] .chat-bubble {
+  border-radius: 9999px !important;
+}
+[data-bubble-style="classic"] .justify-end .chat-bubble {
+  border-radius: 16px !important;
+  border-bottom-right-radius: 0px !important;
+}
+[data-bubble-style="classic"] .justify-start .chat-bubble {
+  border-radius: 16px !important;
+  border-bottom-left-radius: 0px !important;
+}
+[data-bubble-style="rounded"] .justify-end .chat-bubble {
+  border-radius: 18px !important;
+  border-bottom-right-radius: 4px !important;
+}
+[data-bubble-style="rounded"] .justify-start .chat-bubble {
+  border-radius: 18px !important;
+  border-bottom-left-radius: 4px !important;
 }
 
 .chat-bg-grid {

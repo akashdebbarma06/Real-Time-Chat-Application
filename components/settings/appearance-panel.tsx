@@ -24,6 +24,7 @@ import {
   type BubbleStyle,
   type ChatViewMode,
 } from "@/lib/appearance-store";
+import { AppLogo } from "@/components/ui/app-logo";
 import { cn } from "@/lib/utils";
 
 interface AppearancePanelProps {
@@ -302,14 +303,20 @@ export function AppearancePanel({ onBack }: AppearancePanelProps) {
                     className="flex flex-col items-center gap-1.5 group cursor-pointer"
                     title={icon.label}
                   >
-                    <div
-                      className={cn(
-                        "size-10 rounded-2xl bg-gradient-to-br shadow-sm flex items-center justify-center transition-all group-hover:scale-105 active:scale-95",
-                        icon.gradient,
-                        isSelected && "ring-2 ring-primary ring-offset-2 ring-offset-card"
+                    <div className="relative">
+                      <AppLogo
+                        size={40}
+                        iconChoice={icon.id}
+                        className={cn(
+                          "rounded-2xl transition-all group-hover:scale-105 active:scale-95 shadow-sm",
+                          isSelected && "ring-2 ring-primary ring-offset-2 ring-offset-card"
+                        )}
+                      />
+                      {isSelected && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/35 rounded-2xl">
+                          <Check className="size-4 text-white stroke-[3]" />
+                        </div>
                       )}
-                    >
-                      {isSelected && <Check className="size-4 text-white stroke-[2.5]" />}
                     </div>
                     <span className="text-[10px] text-muted-foreground group-hover:text-foreground text-center truncate max-w-full">
                       {icon.label.split(" ")[0]}

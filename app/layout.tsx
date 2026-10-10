@@ -9,10 +9,7 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0B0F17" },
-  ],
+  themeColor: "#00A884",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -40,18 +37,23 @@ export const metadata: Metadata = {
     description: "Next-gen, secure messaging platform for web and mobile.",
   },
   icons: {
-    icon: "/icon-192.png",
-    apple: "/icon-192.png",
+    icon: [{ url: "/favicon.svg?v=2", type: "image/svg+xml" }],
+    shortcut: "/favicon.svg?v=2",
+    apple: "/favicon.svg?v=2",
   },
-  manifest: "/manifest.webmanifest",
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml" />
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased min-h-svh bg-background text-foreground`}>
         <AppProviders>{children}</AppProviders>
       </body>
     </html>
   );
 }
+

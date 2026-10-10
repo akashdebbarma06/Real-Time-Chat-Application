@@ -40,6 +40,8 @@ export interface ReadReceipt {
   read_at: string;
 }
 
+export type MessageDeliveryStatus = "sending" | "sent" | "delivered" | "read" | "failed";
+
 export interface ChatMessage {
   id: string;
   conversation_id: string;
@@ -55,4 +57,7 @@ export interface ChatMessage {
   deleted_at: string | null;
   sender: Profile;
   read_receipts: ReadReceipt[];
+  delivery_status?: MessageDeliveryStatus;
+  local_media_url?: string | null;
+  media_downloaded?: boolean;
 }

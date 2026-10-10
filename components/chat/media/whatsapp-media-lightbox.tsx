@@ -30,6 +30,7 @@ import { createClient } from "@/lib/supabase/client";
 import { toggleMessagePin, usePinnedMessageIds } from "@/lib/pinned-store";
 import { toggleMessageStar, useStarredIds } from "@/lib/starred-store";
 import { cn, formatMessageTime, getInitials } from "@/lib/utils";
+import { useBackHandler } from "@/hooks/use-back-handler";
 import type { ChatMessage, Profile } from "@/types/chat";
 
 interface WhatsAppMediaLightboxProps {
@@ -66,13 +67,32 @@ export function WhatsAppMediaLightbox({
   const [zoomLevel, setZoomLevel] = useState(1);
   const [showReactions, setShowReactions] = useState(false);
 
+  // Priority 1a: Lightbox reaction picker
+  useBackHandler({
+    id: "lightbox-reaction-picker",
+    priority: 110,
+    enabled: open && showReactions,
+    onBack: () => setShowReactions(false),
+  });
+
+  // Priority 1: Media Lightbox overlay
+  useBackHandler({
+    id: "whatsapp-media-lightbox",
+    priority: 100,
+    enabled: open,
+    pushHistory: true,
+    onBack: onClose,
+  });
+
   // Cache resolved signed URLs by message id
   const [urlCache, setUrlCache] = useState<Record<string, string>>({});
   const activeVideoRef = useRef<HTMLVideoElement | null>(null);
   const carouselContainerRef = useRef<HTMLDivElement | null>(null);
 
   // Synchronize when activeMessageId opens
-  useEffect(() => {
+  const [prevActiveId, setPrevActiveId] = useState(activeMessageId);
+  if (prevActiveId !== activeMessageId) {
+    setPrevActiveId(activeMessageId);
     if (activeMessageId) {
       setCurrentId(activeMessageId);
       setZoomLevel(1);
@@ -81,7 +101,7 @@ export function WhatsAppMediaLightbox({
         setUrlCache((prev) => ({ ...prev, [activeMessageId]: initialUrl }));
       }
     }
-  }, [activeMessageId, initialUrl]);
+  }
 
   // Current active index in the media array
   const activeIndex = useMemo(() => {

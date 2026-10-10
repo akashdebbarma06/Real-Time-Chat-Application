@@ -61,13 +61,18 @@ export function SharedVaultView({
   const [searchQuery, setSearchQuery] = useState("");
   const [mediaItems, setMediaItems] = useState<SharedMediaItem[]>([]);
   const [linkItems, setLinkItems] = useState<SharedLinkItem[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(Boolean(conversationId));
+
+  const [prevConvId, setPrevConvId] = useState(conversationId);
+  if (prevConvId !== conversationId) {
+    setPrevConvId(conversationId);
+    if (conversationId) setLoading(true);
+  }
 
   // Fetch attachments & links from conversation
   useEffect(() => {
     if (!conversationId) return;
 
-    setLoading(true);
     const supabase = createClient();
 
     // 1. Fetch attachments

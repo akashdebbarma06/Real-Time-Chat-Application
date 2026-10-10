@@ -26,6 +26,7 @@ import { formatConversationTime, formatFileSize, getConversationTitle } from "@/
 import { WhatsAppMediaLightbox } from "@/components/chat/media/whatsapp-media-lightbox";
 import { cn } from "@/lib/utils";
 import type { ChatMessage, ConversationSummary, Profile } from "@/types/chat";
+import { getAllLocalVaultMedia } from "@/lib/storage/local-db";
 
 export interface VaultMediaItem {
   id: string;
@@ -57,187 +58,6 @@ interface VaultViewProps {
   profile: Profile;
 }
 
-const DEFAULT_VAULT_MEDIA: VaultMediaItem[] = [
-  {
-    id: "v-media-1",
-    conversation_id: "c-1",
-    chat_title: "Design Team",
-    sender_id: "u-1",
-    attachment_name: "Mobile_App_V2_Mockup.png",
-    attachment_path: "mockups/mobile_v2.png",
-    attachment_size: 2450000,
-    created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
-    url: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80",
-    isVideo: false,
-  },
-  {
-    id: "v-media-2",
-    conversation_id: "c-2",
-    chat_title: "Engineering Team",
-    sender_id: "u-2",
-    attachment_name: "Architecture_Diagram_2026.png",
-    attachment_path: "diagrams/arch_2026.png",
-    attachment_size: 1840000,
-    created_at: new Date(Date.now() - 3600000 * 6).toISOString(),
-    url: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&auto=format&fit=crop&q=80",
-    isVideo: false,
-  },
-  {
-    id: "v-media-3",
-    conversation_id: "c-1",
-    chat_title: "Design Team",
-    sender_id: "u-1",
-    attachment_name: "Brand_Identity_Concept.png",
-    attachment_path: "branding/concept.png",
-    attachment_size: 3200000,
-    created_at: new Date(Date.now() - 3600000 * 18).toISOString(),
-    url: "https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?w=800&auto=format&fit=crop&q=80",
-    isVideo: false,
-  },
-  {
-    id: "v-media-4",
-    conversation_id: "c-3",
-    chat_title: "Alex Morgan",
-    sender_id: "u-3",
-    attachment_name: "Offsite_Summit_Photo.jpg",
-    attachment_path: "events/summit.jpg",
-    attachment_size: 4100000,
-    created_at: new Date(Date.now() - 86400000).toISOString(),
-    url: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&auto=format&fit=crop&q=80",
-    isVideo: false,
-  },
-  {
-    id: "v-media-5",
-    conversation_id: "c-2",
-    chat_title: "Engineering Team",
-    sender_id: "u-2",
-    attachment_name: "Product_Walkthrough_Demo.mp4",
-    attachment_path: "demos/walkthrough.mp4",
-    attachment_size: 18500000,
-    created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
-    url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-    isVideo: true,
-  },
-  {
-    id: "v-media-6",
-    conversation_id: "c-4",
-    chat_title: "Sarah Connor",
-    sender_id: "u-4",
-    attachment_name: "Dark_Mode_Palette.png",
-    attachment_path: "design/palette.png",
-    attachment_size: 1200000,
-    created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
-    url: "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=800&auto=format&fit=crop&q=80",
-    isVideo: false,
-  },
-];
-
-const DEFAULT_VAULT_DOCS: VaultMediaItem[] = [
-  {
-    id: "v-doc-1",
-    conversation_id: "c-2",
-    chat_title: "Engineering Team",
-    sender_id: "u-2",
-    attachment_name: "Aether_Product_Specs_v2.pdf",
-    attachment_path: "docs/specs_v2.pdf",
-    attachment_size: 2450000,
-    created_at: new Date(Date.now() - 3600000 * 4).toISOString(),
-    url: "#",
-    isVideo: false,
-  },
-  {
-    id: "v-doc-2",
-    conversation_id: "c-1",
-    chat_title: "Design Team",
-    sender_id: "u-1",
-    attachment_name: "Brand_Design_Tokens_Q4.zip",
-    attachment_path: "assets/tokens.zip",
-    attachment_size: 14200000,
-    created_at: new Date(Date.now() - 3600000 * 12).toISOString(),
-    url: "#",
-    isVideo: false,
-  },
-  {
-    id: "v-doc-3",
-    conversation_id: "c-3",
-    chat_title: "Alex Morgan",
-    sender_id: "u-3",
-    attachment_name: "Q3_Sprint_Deliverables.xlsx",
-    attachment_path: "sheets/deliverables.xlsx",
-    attachment_size: 840000,
-    created_at: new Date(Date.now() - 86400000).toISOString(),
-    url: "#",
-    isVideo: false,
-  },
-  {
-    id: "v-doc-4",
-    conversation_id: "c-2",
-    chat_title: "Engineering Team",
-    sender_id: "u-2",
-    attachment_name: "Database_Schema_001.sql",
-    attachment_path: "sql/migration.sql",
-    attachment_size: 230000,
-    created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
-    url: "#",
-    isVideo: false,
-  },
-  {
-    id: "v-doc-5",
-    conversation_id: "c-4",
-    chat_title: "Sarah Connor",
-    sender_id: "u-4",
-    attachment_name: "Security_Audit_Report.docx",
-    attachment_path: "compliance/security.docx",
-    attachment_size: 1100000,
-    created_at: new Date(Date.now() - 86400000 * 4).toISOString(),
-    url: "#",
-    isVideo: false,
-  },
-];
-
-const DEFAULT_VAULT_LINKS: VaultLinkItem[] = [
-  {
-    id: "v-link-1",
-    conversation_id: "c-1",
-    chat_title: "Design Team",
-    url: "https://www.figma.com/community/file/102948572910",
-    domain: "figma.com",
-    title: "Aether Chat Design System 2.0",
-    created_at: new Date(Date.now() - 3600000 * 3).toISOString(),
-    context_text: "Here is the updated Figma library file for the new settings views.",
-  },
-  {
-    id: "v-link-2",
-    conversation_id: "c-2",
-    chat_title: "Engineering Team",
-    url: "https://github.com/supabase/supabase-js",
-    domain: "github.com",
-    title: "Official Supabase Client Library Repository",
-    created_at: new Date(Date.now() - 3600000 * 8).toISOString(),
-    context_text: "Reference for realtime subscription reconnection patterns.",
-  },
-  {
-    id: "v-link-3",
-    conversation_id: "c-2",
-    chat_title: "Engineering Team",
-    url: "https://nextjs.org/docs/app/building-your-application",
-    domain: "nextjs.org",
-    title: "Next.js App Router Documentation",
-    created_at: new Date(Date.now() - 86400000).toISOString(),
-    context_text: "Check out server action caching documentation here.",
-  },
-  {
-    id: "v-link-4",
-    conversation_id: "c-3",
-    chat_title: "Alex Morgan",
-    url: "https://tailwindcss.com/docs/responsive-design",
-    domain: "tailwindcss.com",
-    title: "Tailwind CSS Responsive Breakpoints & Utilities",
-    created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
-    context_text: "Remember to use md:hidden and block for mobile-only elements.",
-  },
-];
-
 export function VaultView({ conversations, profile }: VaultViewProps) {
   const [activeTab, setActiveTab] = useState<"media" | "docs" | "links">("media");
   const [searchQuery, setSearchQuery] = useState("");
@@ -261,39 +81,58 @@ export function VaultView({ conversations, profile }: VaultViewProps) {
     return map;
   }, [conversations, profile.id]);
 
-  // Fetch from Supabase
+  // Load from Client-Side Persistent Storage (IndexedDB) & Ephemeral Queue
   useEffect(() => {
-    const conversationIds = conversations.map((c) => c.id);
-    if (!conversationIds.length) {
-      setFetchedMedia(DEFAULT_VAULT_MEDIA);
-      setFetchedDocs(DEFAULT_VAULT_DOCS);
-      setFetchedLinks(DEFAULT_VAULT_LINKS);
-      return;
-    }
+    let active = true;
 
-    setLoading(true);
-    const supabase = createClient();
+    async function loadVault() {
+      setLoading(true);
 
-    const fetchAttachments = supabase
-      .from("messages")
-      .select("id, conversation_id, sender_id, message_type, attachment_path, attachment_name, attachment_size, created_at, content")
-      .in("conversation_id", conversationIds)
-      .not("attachment_path", "is", null)
-      .is("deleted_at", null)
-      .order("created_at", { ascending: false })
-      .limit(80);
+      // 1. WhatsApp Architecture: Load persistent media and files directly from user device IndexedDB
+      try {
+        const localVault = await getAllLocalVaultMedia();
+        if (active && (localVault.media.length > 0 || localVault.docs.length > 0 || localVault.links.length > 0)) {
+          setFetchedMedia(localVault.media);
+          setFetchedDocs(localVault.docs);
+          setFetchedLinks(localVault.links);
+          setLoading(false);
+        }
+      } catch (err) {
+        console.warn("[VaultView] Local DB load warning:", err);
+      }
 
-    const fetchLinks = supabase
-      .from("messages")
-      .select("id, conversation_id, sender_id, content, created_at")
-      .in("conversation_id", conversationIds)
-      .ilike("content", "%http%")
-      .is("deleted_at", null)
-      .order("created_at", { ascending: false })
-      .limit(80);
+      const conversationIds = conversations.map((c) => c.id);
+      if (!conversationIds.length) {
+        if (active) setLoading(false);
+        return;
+      }
 
-    Promise.all([fetchAttachments, fetchLinks])
-      .then(async ([attRes, linkRes]) => {
+      // 2. Scan ephemeral queue for any pending unpurged attachments
+      const supabase = createClient();
+
+      const fetchAttachments = supabase
+        .from("messages")
+        .select("id, conversation_id, sender_id, message_type, attachment_path, attachment_name, attachment_size, created_at, content")
+        .in("conversation_id", conversationIds)
+        .not("attachment_path", "is", null)
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false })
+        .limit(80);
+
+      const fetchLinks = supabase
+        .from("messages")
+        .select("id, conversation_id, sender_id, content, created_at")
+        .in("conversation_id", conversationIds)
+        .ilike("content", "%http%")
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false })
+        .limit(80);
+
+      try {
+        const [attRes, linkRes] = await Promise.all([fetchAttachments, fetchLinks]);
+
+        if (!active) return;
+
         if (attRes.data && attRes.data.length > 0) {
           const withUrls: VaultMediaItem[] = await Promise.all(
             attRes.data.map(async (row) => {
@@ -333,11 +172,17 @@ export function VaultView({ conversations, profile }: VaultViewProps) {
             return !isImg && !item.isVideo;
           });
 
-          setFetchedMedia(photosAndVideos.length > 0 ? photosAndVideos : DEFAULT_VAULT_MEDIA);
-          setFetchedDocs(documents.length > 0 ? documents : DEFAULT_VAULT_DOCS);
-        } else {
-          setFetchedMedia(DEFAULT_VAULT_MEDIA);
-          setFetchedDocs(DEFAULT_VAULT_DOCS);
+          setFetchedMedia((prev) => {
+            const existingIds = new Set(prev.map((m) => m.id));
+            const newItems = photosAndVideos.filter((m) => !existingIds.has(m.id));
+            return [...prev, ...newItems];
+          });
+
+          setFetchedDocs((prev) => {
+            const existingIds = new Set(prev.map((d) => d.id));
+            const newItems = documents.filter((d) => !existingIds.has(d.id));
+            return [...prev, ...newItems];
+          });
         }
 
         if (linkRes.data && linkRes.data.length > 0) {
@@ -368,25 +213,30 @@ export function VaultView({ conversations, profile }: VaultViewProps) {
             }
           });
 
-          setFetchedLinks(foundLinks.length > 0 ? foundLinks : DEFAULT_VAULT_LINKS);
-        } else {
-          setFetchedLinks(DEFAULT_VAULT_LINKS);
+          setFetchedLinks((prev) => {
+            const existingIds = new Set(prev.map((l) => l.id));
+            const newLinks = foundLinks.filter((l) => !existingIds.has(l.id));
+            return [...prev, ...newLinks];
+          });
         }
-      })
-      .catch(() => {
-        setFetchedMedia(DEFAULT_VAULT_MEDIA);
-        setFetchedDocs(DEFAULT_VAULT_DOCS);
-        setFetchedLinks(DEFAULT_VAULT_LINKS);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+      } catch (err) {
+        console.warn("[VaultView] Ephemeral queue check error:", err);
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+
+    void loadVault();
+
+    return () => {
+      active = false;
+    };
   }, [conversations, conversationTitleMap]);
 
   // Combined lists
-  const mediaList = fetchedMedia.length > 0 ? fetchedMedia : DEFAULT_VAULT_MEDIA;
-  const docsList = fetchedDocs.length > 0 ? fetchedDocs : DEFAULT_VAULT_DOCS;
-  const linkList = fetchedLinks.length > 0 ? fetchedLinks : DEFAULT_VAULT_LINKS;
+  const mediaList = fetchedMedia;
+  const docsList = fetchedDocs;
+  const linkList = fetchedLinks;
 
   // Filter by query (searches item name, chat title, and URL/domain)
   const q = searchQuery.toLowerCase().trim();

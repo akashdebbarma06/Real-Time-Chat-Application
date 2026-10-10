@@ -10,6 +10,7 @@ import { VoiceNotePlayer } from "@/components/chat/media/voice-note-player";
 import { VideoPlayerCard } from "@/components/chat/media/video-player-card";
 import { VideoNoteBubble } from "@/components/chat/media/video-note-bubble";
 import { ImageMediaCard } from "@/components/chat/media/image-media-card";
+import { getLocalMediaBlob, saveLocalMediaBlob } from "@/lib/storage/local-db";
 
 interface AttachmentPreviewProps {
   message: ChatMessage;
@@ -29,16 +30,71 @@ export function AttachmentPreview({
   useEffect(() => {
     if (!message.attachment_path) return;
     let active = true;
-    void createClient()
-      .storage.from("chat-files")
-      .createSignedUrl(message.attachment_path, 3600)
-      .then(({ data }) => {
-        if (active) setUrl(data?.signedUrl || null);
-      });
+
+    async function resolveMedia() {
+      const mediaId = message.attachment_path!;
+
+      // 1. Client-Side Persistent Storage: Check local IndexedDB first (0 network latency)
+      const local = await getLocalMediaBlob(mediaId);
+      if (local && active) {
+        setUrl(local.url);
+        return;
+      }
+
+      // 2. Fetch binary from ephemeral backend queue if not yet cached on user's device
+      try {
+        const supabase = createClient();
+        const { data: signData } = await supabase.storage
+          .from("chat-files")
+          .createSignedUrl(mediaId, 3600);
+
+        const downloadUrl = signData?.signedUrl;
+        if (!downloadUrl) return;
+
+        // Fetch file blob directly
+        const res = await fetch(downloadUrl);
+        if (!res.ok) {
+          if (active) setUrl(downloadUrl);
+          return;
+        }
+        const blob = await res.blob();
+
+        const fileName = message.attachment_name || "attachment";
+        const mimeType = blob.type || (message.message_type === "image" ? "image/jpeg" : "application/octet-stream");
+
+        // Save Blob into client IndexedDB persistent storage
+        const localBlobUrl = await saveLocalMediaBlob(
+          mediaId,
+          message.conversation_id,
+          fileName,
+          mimeType,
+          blob,
+          message.attachment_size || blob.size
+        );
+
+        if (active) {
+          setUrl(localBlobUrl);
+        }
+
+        // Ephemeral Auto-Purge Flow: Send download ACK to purge binary from backend object storage
+        void fetch("/api/media/ack-download", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mediaId }),
+        }).catch((ackErr) => {
+          console.warn("[Media ACK] Ephemeral purge warning:", ackErr);
+        });
+      } catch (err) {
+        console.error("[AttachmentPreview] Failed to cache ephemeral media:", err);
+      }
+    }
+
+    void resolveMedia();
+
     return () => {
       active = false;
     };
-  }, [message.attachment_path]);
+  }, [message.attachment_path, message.attachment_name, message.attachment_size, message.conversation_id, message.message_type]);
 
   if (!url) {
     return (

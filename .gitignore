@@ -5,13 +5,27 @@
 # Next.js build output
 /.next/
 /out/
+/dist/
+/build/
 
 # Environment files
 .env
-.env*.local
+.env.local
+.env.*.local
 .env.production
 .env.development
 !.env.example
+
+# Android build outputs & local config
+*.apk
+*.aab
+!public/downloads/AetherChat.apk
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+*.jks
+*.keystore
 
 # Logs and runtime data
 *.log

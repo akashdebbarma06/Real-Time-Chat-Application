@@ -46,6 +46,41 @@ export function setLocalStarredIds(userId: string, ids: Set<string>) {
   }
 }
 
+interface StarredMessagesTable {
+  select: (cols: string) => StarredMessagesTable;
+  eq: (col: string, val: unknown) => StarredMessagesTable;
+  order: (col: string, options?: { ascending: boolean }) => StarredMessagesTable;
+  insert: (values: Record<string, unknown>) => Promise<{ error: { code?: string; message: string } | null }>;
+  delete: () => StarredMessagesTable;
+  then: PromiseLike<{ data: unknown[]; error: { code?: string; message: string } | null }>["then"];
+}
+
+interface StarredRowRaw {
+  id?: string;
+  message_id: string;
+  conversation_id: string;
+  created_at?: string;
+  messages?: {
+    id?: string;
+    content?: string;
+    created_at?: string;
+    attachment_name?: string | null;
+    attachment_path?: string | null;
+    sender_id?: string;
+    sender?: {
+      id?: string;
+      display_name?: string;
+      username?: string;
+      avatar_url?: string | null;
+    };
+  };
+  conversations?: {
+    id?: string;
+    name?: string;
+    type?: string;
+  };
+}
+
 /**
  * Fetch all starred message IDs for the current user from database,
  * falling back to local storage cache if table is not yet migrated.
@@ -56,7 +91,8 @@ export async function fetchUserStarredIds(userId: string): Promise<Set<string>> 
 
   try {
     const supabase = createClient();
-    const { data, error } = await (supabase.from("starred_messages" as any) as any)
+    const { data, error } = await (supabase as unknown as { from: (t: string) => StarredMessagesTable })
+      .from("starred_messages")
       .select("message_id")
       .eq("user_id", userId);
 
@@ -64,7 +100,7 @@ export async function fetchUserStarredIds(userId: string): Promise<Set<string>> 
       return localSet;
     }
 
-    const dbSet = new Set<string>((data || []).map((row: { message_id: string }) => String(row.message_id)));
+    const dbSet = new Set<string>(((data as Array<{ message_id: string }>) || []).map((row) => String(row.message_id)));
     // Merge and save cache
     const merged = new Set<string>([...localSet, ...dbSet]);
     setLocalStarredIds(userId, merged);
@@ -116,7 +152,7 @@ export async function toggleMessageStar(
   // Persist to Supabase
   try {
     const supabase = createClient();
-    const table = supabase.from("starred_messages" as any) as any;
+    const table = (supabase as unknown as { from: (t: string) => StarredMessagesTable }).from("starred_messages");
     if (nextStarred) {
       const { error } = await table.insert({
         user_id: userId,
@@ -150,7 +186,8 @@ export async function fetchFullStarredMessages(userId: string): Promise<StarredM
 
   try {
     const supabase = createClient();
-    const { data, error } = await (supabase.from("starred_messages" as any) as any)
+    const { data, error } = await (supabase as unknown as { from: (t: string) => StarredMessagesTable })
+      .from("starred_messages")
       .select(`
         id,
         message_id,
@@ -180,7 +217,7 @@ export async function fetchFullStarredMessages(userId: string): Promise<StarredM
       .order("created_at", { ascending: false });
 
     if (!error && Array.isArray(data) && data.length > 0) {
-      return data.map((row: any) => {
+      return (data as unknown as StarredRowRaw[]).map((row) => {
         const msg = row.messages || {};
         const sender = msg.sender || {};
         const conv = row.conversations || {};
@@ -188,7 +225,7 @@ export async function fetchFullStarredMessages(userId: string): Promise<StarredM
           id: row.id || row.message_id,
           message_id: row.message_id,
           conversation_id: row.conversation_id,
-          created_at: msg.created_at || row.created_at,
+          created_at: msg.created_at || row.created_at || new Date().toISOString(),
           content: msg.content || "",
           attachment_name: msg.attachment_name,
           attachment_path: msg.attachment_path,

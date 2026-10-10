@@ -57,12 +57,21 @@ export function InPanelUserProfile({
   onBack,
 }: InPanelUserProfileProps) {
   const [sharedMedia, setSharedMedia] = useState<SharedMediaItem[]>([]);
-  const [loadingMedia, setLoadingMedia] = useState(false);
+  const [loadingMedia, setLoadingMedia] = useState(Boolean(conversationId));
   const [isBlocked, setIsBlocked] = useState(false);
   const [blockLoading, setBlockLoading] = useState(false);
   const [viewingVault, setViewingVault] = useState(false);
   const [confirmClearOpen, setConfirmClearOpen] = useState(false);
   const [clearing, setClearing] = useState(false);
+
+  // Sync state when conversationId changes
+  const [prevConvId, setPrevConvId] = useState(conversationId);
+  if (prevConvId !== conversationId) {
+    setPrevConvId(conversationId);
+    if (!conversationId) {
+      setSharedMedia([]);
+    }
+  }
 
   // Fetch real shared media & block status
   useEffect(() => {
@@ -83,7 +92,6 @@ export function InPanelUserProfile({
 
     // 2. Fetch real attachments from this conversation
     if (conversationId) {
-      setLoadingMedia(true);
       void createClient()
         .from("messages")
         .select("id, message_type, attachment_path, attachment_name, attachment_size, created_at")
@@ -124,8 +132,6 @@ export function InPanelUserProfile({
           setSharedMedia(itemsWithUrls);
           setLoadingMedia(false);
         });
-    } else {
-      setSharedMedia([]);
     }
   }, [peerProfile, currentUserId, conversationId]);
 

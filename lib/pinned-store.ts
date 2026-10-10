@@ -54,13 +54,18 @@ export function toggleMessagePin(
 }
 
 export function usePinnedMessageIds(conversationId: string): Set<string> {
+  const [prevConvId, setPrevConvId] = useState(conversationId);
   const [pinnedIds, setPinnedIds] = useState<Set<string>>(() =>
     getLocalPinnedMessageIds(conversationId)
   );
 
+  if (prevConvId !== conversationId) {
+    setPrevConvId(conversationId);
+    setPinnedIds(getLocalPinnedMessageIds(conversationId));
+  }
+
   useEffect(() => {
     if (!conversationId) return;
-    setPinnedIds(getLocalPinnedMessageIds(conversationId));
 
     function handleUpdate(event: Event) {
       const custom = event as CustomEvent<{ conversationId?: string }>;

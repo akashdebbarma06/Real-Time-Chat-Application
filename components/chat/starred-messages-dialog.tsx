@@ -36,9 +36,14 @@ export function StarredMessagesDialog({
   const [messages, setMessages] = useState<StarredMessageItem[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (prevOpen !== open) {
+    setPrevOpen(open);
+    if (open) setLoading(true);
+  }
+
   useEffect(() => {
     if (!open || !currentUserId) return;
-    setLoading(true);
     fetchFullStarredMessages(currentUserId)
       .then(setMessages)
       .finally(() => setLoading(false));

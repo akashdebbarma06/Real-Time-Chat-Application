@@ -19,10 +19,10 @@ export const toast = Object.assign(noopToast, {
   custom: noopToast,
   loading: noopToast,
   action: noopToast,
-  promise: <T>(promise: Promise<T> | (() => Promise<T>), _data?: unknown): Promise<T> => {
+  promise: <T>(promise: Promise<T> | (() => Promise<T>)): Promise<T> => {
     return typeof promise === "function" ? promise() : promise;
   },
-  dismiss: (_id?: ToastId) => {},
+  dismiss: () => {},
 });
 
 export default toast;

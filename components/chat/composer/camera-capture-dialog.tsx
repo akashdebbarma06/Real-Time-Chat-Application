@@ -18,6 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useBackHandler } from "@/hooks/use-back-handler";
 
 export type CameraMode = "photo" | "video" | "video-note";
 
@@ -46,12 +47,35 @@ export function CameraCaptureDialog({
   const recordedChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Priority 1: Camera capture dialog
+  useBackHandler({
+    id: "camera-capture-dialog",
+    priority: 100,
+    enabled: open,
+    onBack: () => onOpenChange(false),
+  });
+
+  // Stop and cleanup active stream
+  function stopCamera() {
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+    }
+    if (stream) {
+      stream.getTracks().forEach((track) => track.stop());
+      setStream(null);
+    }
+    setRecording(false);
+    setRecordSeconds(0);
+  }
+
   // Start camera stream on dialog open
   useEffect(() => {
     if (!open) {
-      stopCamera();
       return;
     }
+    let localStream: MediaStream | null = null;
+    let isCancelled = false;
 
     async function initCamera() {
       setLoading(true);
@@ -83,12 +107,18 @@ export function CameraCaptureDialog({
                 };
 
         const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+        if (isCancelled) {
+          mediaStream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+        localStream = mediaStream;
         setStream(mediaStream);
         if (videoRef.current) {
           videoRef.current.srcObject = mediaStream;
           await videoRef.current.play();
         }
       } catch (err: unknown) {
+        if (isCancelled) return;
         const error = err as Error;
         const msg =
           error.name === "NotAllowedError" || error.name === "PermissionDeniedError"
@@ -97,29 +127,24 @@ export function CameraCaptureDialog({
         setPermissionError(msg);
         toast.error("Camera access failed", { description: msg });
       } finally {
-        setLoading(false);
+        if (!isCancelled) setLoading(false);
       }
     }
 
     void initCamera();
 
     return () => {
-      stopCamera();
+      isCancelled = true;
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        mediaRecorderRef.current.stop();
+      }
+      if (localStream) {
+        (localStream as MediaStream).getTracks().forEach((track) => track.stop());
+      }
+      setStream(null);
     };
   }, [open, mode]);
-
-  function stopCamera() {
-    if (timerRef.current) clearInterval(timerRef.current);
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
-      mediaRecorderRef.current.stop();
-    }
-    if (stream) {
-      stream.getTracks().forEach((track) => track.stop());
-      setStream(null);
-    }
-    setRecording(false);
-    setRecordSeconds(0);
-  }
 
   // 1. Photo Snapshot Capture
   function capturePhoto() {
@@ -143,10 +168,9 @@ export function CameraCaptureDialog({
         const file = new File([blob], `photo-${Date.now()}.jpg`, {
           type: "image/jpeg",
         });
-        const objectUrl = URL.createObjectURL(file);
         stopCamera();
         onOpenChange(false);
-        onCaptureMedia(file, objectUrl);
+        onCaptureMedia(file);
       },
       "image/jpeg",
       0.9
@@ -174,10 +198,9 @@ export function CameraCaptureDialog({
         const file = new File([blob], `${prefix}-${Date.now()}.webm`, {
           type: "video/webm",
         });
-        const objectUrl = URL.createObjectURL(file);
         stopCamera();
         onOpenChange(false);
-        onCaptureMedia(file, objectUrl);
+        onCaptureMedia(file);
       };
 
       recorder.start(250);

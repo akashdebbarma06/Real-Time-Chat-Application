@@ -11,10 +11,16 @@ describe("WhatsApp Web Settings Panel Layout & Styling", () => {
     expect(settingsContent).toContain("searchQuery");
   });
 
-  it("renders a WhatsApp-style user profile header with status", () => {
-    expect(settingsContent).toContain('href="/profile"');
-    expect(settingsContent).toContain("profile.display_name");
-    expect(settingsContent).toContain("profile.bio");
+  it("renders a scrollable WhatsApp-style hero profile banner opening in side panel with 24h note cloud bubble and 96px avatar", () => {
+    expect(settingsContent).not.toContain('href="/profile"');
+    expect(settingsContent).toContain('setSelectedSection("profile")');
+    expect(settingsContent).toContain("selectedSection === \"profile\"");
+    expect(settingsContent).toContain("NoteStatusDialog");
+    expect(settingsContent).toContain("noteStatus");
+    expect(settingsContent).toContain("size-24");
+    expect(settingsContent).toContain("Camera");
+    expect(settingsContent).toContain("@{profile.username");
+    expect(settingsContent).toContain("›");
   });
 
   it("orders settings items in official WhatsApp Web sequence", () => {
@@ -109,5 +115,61 @@ describe("WhatsApp Web Settings Panel Layout & Styling", () => {
     // Privacy subpanel
     expect(settingsContent).toMatch(/Privacy & Security[\s\S]*?pb-28 md:pb-6/);
   });
+
+  it("integrates WhatsApp profile picture slide-up action sheet in Profile view and settings banner", () => {
+    expect(settingsContent).toContain("ProfilePhotoSheet");
+    expect(settingsContent).toContain("photoSheetOpen");
+    expect(settingsContent).toContain("setPhotoSheetOpen(true)");
+    expect(settingsContent).toContain("CameraCaptureDialog");
+    expect(settingsContent).toContain("handleSelectDefaultAvatar");
+    expect(settingsContent).toContain("handleRemoveAvatar");
+    expect(settingsContent).toContain("onRemovePhoto");
+    expect(settingsContent).toContain(".toUpperCase()");
+
+    const sheetPath = path.resolve(__dirname, "../components/settings/profile-photo-sheet.tsx");
+    const sheetContent = fs.readFileSync(sheetPath, "utf-8");
+
+    // Action sheet styling & header
+    expect(sheetContent).toContain("rounded-t-3xl");
+    expect(sheetContent).toContain("Profile picture");
+    expect(sheetContent).toContain("slide-in-from-bottom");
+
+    // 4 Options including Remove
+    expect(sheetContent).toContain("Camera");
+    expect(sheetContent).toContain("Gallery");
+    expect(sheetContent).toContain("Select Default");
+    expect(sheetContent).toContain("Remove");
+    expect(sheetContent).toContain("Trash2");
+    expect(sheetContent).toContain("onRemovePhoto");
+
+    // Gallery restricted strictly to photos
+    expect(sheetContent).toContain('accept="image/png, image/jpeg, image/webp"');
+
+    // Default Avatar SVG Data URL generator
+    expect(sheetContent).toContain("generateDefaultAvatarSvg");
+    expect(sheetContent).toContain("data:image/svg+xml;utf8");
+    expect(sheetContent).toContain("🦊");
+    expect(sheetContent).toContain("🐼");
+    expect(sheetContent).toContain("🐱");
+    expect(sheetContent).toContain("🚀");
+    expect(sheetContent).toContain("⭐");
+  });
+
+  it("configures transparent vector favicon.svg with cache-busting in layout", () => {
+    const layoutPath = path.resolve(__dirname, "../app/layout.tsx");
+    const layoutContent = fs.readFileSync(layoutPath, "utf-8");
+    expect(layoutContent).toContain('/favicon.svg?v=2');
+    expect(layoutContent).toContain('image/svg+xml');
+
+    const faviconPath = path.resolve(__dirname, "../public/favicon.svg");
+    expect(fs.existsSync(faviconPath)).toBe(true);
+    const faviconContent = fs.readFileSync(faviconPath, "utf-8");
+    expect(faviconContent).toContain("<svg");
+    expect(faviconContent).toContain("#00A884");
+    expect(faviconContent).toContain("<rect");
+    expect(faviconContent).toContain("<circle");
+  });
 });
+
+
 

@@ -38,12 +38,11 @@ export function NewGroupDialog({
   const [query, setQuery] = useState("");
   const [users, setUsers] = useState<Profile[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!open) return;
-    setLoading(true);
     const timer = setTimeout(async () => {
       try {
         const supabase = createClient();

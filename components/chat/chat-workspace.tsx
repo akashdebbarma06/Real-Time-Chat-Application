@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "@/lib/toast";
 import { ConversationSidebar } from "@/components/chat/conversation-sidebar";
 import { EmptyChat } from "@/components/chat/empty-chat";
@@ -10,10 +11,13 @@ import { NavigationRail, type RailTab } from "@/components/chat/navigation-rail"
 import { NewChatDialog } from "@/components/chat/new-chat-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePresence } from "@/hooks/use-presence";
+import { useBackHandler } from "@/hooks/use-back-handler";
 import { createClient } from "@/lib/supabase/client";
 import { getConversationTitle } from "@/lib/utils";
 import { InPanelUserProfile } from "@/components/chat/in-panel-user-profile";
 import { InPanelGroupInfo } from "@/components/chat/in-panel-group-info";
+import { PermissionModal } from "@/components/permissions/permission-modal";
+import { hasPromptedInitialPermissions } from "@/lib/permissions/device-permissions";
 import type { ConversationSummary, Profile } from "@/types/chat";
 
 interface ChatWorkspaceProps {
@@ -22,17 +26,68 @@ interface ChatWorkspaceProps {
 }
 
 export function ChatWorkspace({ profile, selectedConversationId }: ChatWorkspaceProps) {
+  const router = useRouter();
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [newChatOpen, setNewChatOpen] = useState(false);
   const [railTab, setRailTab] = useState<RailTab>("chats");
+  const [permissionModalOpen, setPermissionModalOpen] = useState(false);
   const [sideDetailView, setSideDetailView] = useState<
     | { type: "user-profile"; profile: Profile; isOnline?: boolean; returnToGroup?: boolean }
     | { type: "group-info"; conversation: ConversationSummary }
     | null
   >(null);
   const onlineUserIds = usePresence(profile.id);
+
+  // Responsive mobile tracking for active chat dismissal
+  const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
+  useEffect(() => {
+    function handleResize() {
+      setIsMobile(window.innerWidth < 768);
+    }
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const selectedConversation = conversations.find((conversation) => conversation.id === selectedConversationId);
+
+  // Priority 2: In-Panel Contact / Group Info Drawer
+  useBackHandler({
+    id: "chat-side-detail-view",
+    priority: 50,
+    enabled: Boolean(sideDetailView),
+    onBack: () => {
+      if (sideDetailView?.type === "user-profile" && sideDetailView.returnToGroup && selectedConversation) {
+        setSideDetailView({
+          type: "group-info",
+          conversation: selectedConversation,
+        });
+      } else {
+        setSideDetailView(null);
+      }
+    },
+  });
+
+  // Priority 3: Active Mobile Conversation
+  useBackHandler({
+    id: "chat-active-conversation-mobile",
+    priority: 25,
+    enabled: Boolean(selectedConversationId) && isMobile,
+    onBack: () => {
+      router.push("/chat");
+    },
+  });
+
+  // Auto-prompt initial permissions modal once on first visit
+  useEffect(() => {
+    if (!hasPromptedInitialPermissions()) {
+      const timer = setTimeout(() => {
+        setPermissionModalOpen(true);
+      }, 750);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   const handleTabChange = useCallback((tab: RailTab) => {
     setRailTab(tab);
@@ -134,8 +189,6 @@ export function ChatWorkspace({ profile, selectedConversationId }: ChatWorkspace
     () => conversations.reduce((acc, c) => acc + (c.unread_count || 0), 0),
     [conversations]
   );
-
-  const selectedConversation = conversations.find((conversation) => conversation.id === selectedConversationId);
 
   if (loading) {
     return (
@@ -273,6 +326,12 @@ export function ChatWorkspace({ profile, selectedConversationId }: ChatWorkspace
           void loadConversations();
         }}
         triggerVariant="none"
+      />
+
+      {/* Comprehensive Device & Web Permissions Setup Modal */}
+      <PermissionModal
+        open={permissionModalOpen}
+        onOpenChange={setPermissionModalOpen}
       />
     </main>
   );

@@ -1,3 +1,5 @@
+import fs from "fs";
+import path from "path";
 import { describe, expect, it } from "vitest";
 import { getLocalPinnedMessageIds, setLocalPinnedMessageIds, toggleMessagePin } from "@/lib/pinned-store";
 
@@ -35,8 +37,6 @@ describe("Message Pinning & Context Menu Store", () => {
   });
 
   describe("Message Context Menu Viewport Collision & Reaction Expansion", () => {
-    const fs = require("fs");
-    const path = require("path");
 
     const bubblePath = path.resolve(__dirname, "../components/chat/message-bubble.tsx");
     const bubbleContent = fs.readFileSync(bubblePath, "utf-8");
@@ -62,6 +62,32 @@ describe("Message Pinning & Context Menu Store", () => {
       expect(menuContent).toContain("setShowFullPicker(false)");
       expect(menuContent).toContain("slide-in-from-top-2");
       expect(menuContent).toContain("zoom-in-95");
+    });
+
+    it("styles action context menu with slim 175px width, 13px font-size, and py-1.5 padding per item", () => {
+      expect(menuContent).toContain("w-[175px]");
+      expect(menuContent).toContain("text-[13px]");
+      expect(menuContent).toContain("py-1.5");
+      expect(menuContent).toContain("spaceBelow < 300");
+    });
+
+    it("renders corner reaction badge pinned to bottom-right of message bubble", () => {
+      expect(bubbleContent).toContain("-bottom-2.5");
+      expect(bubbleContent).toContain("right-3");
+      expect(bubbleContent).toContain("border-[1.5px] border-background");
+      expect(bubbleContent).toContain("size-6 rounded-full");
+      expect(bubbleContent).toContain("ReactionDetailsDialog");
+    });
+
+    it("verifies ReactionDetailsDialog matches WhatsApp Web structure", () => {
+      const dialogPath = path.resolve(__dirname, "../components/chat/reaction-details-dialog.tsx");
+      const dialogContent = fs.readFileSync(dialogPath, "utf-8");
+
+      expect(dialogContent).toContain("{totalCount === 1 ? \"reaction\" : \"reactions\"}");
+      expect(dialogContent).toContain('activeCategory === "all"');
+      expect(dialogContent).toContain("Click to remove");
+      expect(dialogContent).toContain("onRemoveReaction(item.emoji)");
+      expect(dialogContent).toContain('"You"');
     });
   });
 });

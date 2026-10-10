@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Check, Loader2, Search, Users, X } from "lucide-react";
+import { ArrowLeft, Check, Loader2, Search, X } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -27,11 +27,10 @@ export function InPanelNewGroup({
   const [query, setQuery] = useState("");
   const [users, setUsers] = useState<Profile[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    setLoading(true);
     const timer = setTimeout(async () => {
       try {
         const supabase = createClient();

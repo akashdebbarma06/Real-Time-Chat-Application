@@ -51,12 +51,13 @@ export function MessageContextMenu({
   const [showFullPicker, setShowFullPicker] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const [shiftX, setShiftX] = useState(0);
+  const [prevPlacement, setPrevPlacement] = useState(placement);
   const [effectivePlacement, setEffectivePlacement] = useState(placement);
 
-  // Sync and dynamically verify vertical placement
-  useEffect(() => {
+  if (prevPlacement !== placement) {
+    setPrevPlacement(placement);
     setEffectivePlacement(placement);
-  }, [placement]);
+  }
 
   // Viewport collision detection: clamp horizontal coordinates and prevent vertical cutoff
   useEffect(() => {
@@ -77,7 +78,7 @@ export function MessageContextMenu({
 
     // If space below is insufficient (< 300px) or menu cuts off at bottom, flip to render ABOVE
     const spaceBelow = viewportHeight - rect.bottom;
-    if ((spaceBelow < 0 || rect.bottom > viewportHeight - padding) && effectivePlacement === "bottom") {
+    if ((spaceBelow < 300 || rect.bottom > viewportHeight - padding) && effectivePlacement === "bottom") {
       setEffectivePlacement("top");
     }
   }, [showFullPicker, effectivePlacement]);
@@ -190,9 +191,10 @@ export function MessageContextMenu({
             </button>
           </div>
 
-          {/* Action Menu Dropdown List */}
+          {/* Action Menu Dropdown List (Slim 175px, font-size 13px, py-1.5 padding per item) */}
           <div
-            className="w-48 py-1.5 rounded-2xl border border-border bg-popover/95 text-popover-foreground shadow-2xl shadow-black/20 flex flex-col text-sm overflow-hidden backdrop-blur-2xl"
+            className="w-[175px] py-1.5 rounded-2xl border border-border bg-popover/95 text-popover-foreground shadow-2xl shadow-black/20 flex flex-col text-[13px] overflow-hidden backdrop-blur-2xl"
+            style={{ width: "175px" }}
           >
             {onReply && (
               <button
@@ -201,7 +203,7 @@ export function MessageContextMenu({
                   onReply(message);
                   onClose();
                 }}
-                className="flex items-center gap-3 px-4 py-2 hover:bg-muted hover:text-foreground transition-colors w-full text-left text-xs font-medium cursor-pointer"
+                className="flex items-center gap-2.5 px-3.5 py-1.5 hover:bg-muted hover:text-foreground transition-colors w-full text-left text-[13px] font-medium cursor-pointer"
               >
                 <span className="text-sm">↩</span>
                 <span>Reply</span>
@@ -215,7 +217,7 @@ export function MessageContextMenu({
                   onCopy(message.content);
                   onClose();
                 }}
-                className="flex items-center gap-3 px-4 py-2 hover:bg-muted hover:text-foreground transition-colors w-full text-left text-xs font-medium cursor-pointer"
+                className="flex items-center gap-2.5 px-3.5 py-1.5 hover:bg-muted hover:text-foreground transition-colors w-full text-left text-[13px] font-medium cursor-pointer"
               >
                 <span className="text-sm">📋</span>
                 <span>Copy</span>
@@ -229,7 +231,7 @@ export function MessageContextMenu({
                   onDownload();
                   onClose();
                 }}
-                className="flex items-center gap-3 px-4 py-2 hover:bg-muted hover:text-foreground transition-colors w-full text-left text-xs font-medium cursor-pointer"
+                className="flex items-center gap-2.5 px-3.5 py-1.5 hover:bg-muted hover:text-foreground transition-colors w-full text-left text-[13px] font-medium cursor-pointer"
               >
                 <span className="text-sm">⬇</span>
                 <span>Download</span>
@@ -243,7 +245,7 @@ export function MessageContextMenu({
                   onForward(message);
                   onClose();
                 }}
-                className="flex items-center gap-3 px-4 py-2 hover:bg-muted hover:text-foreground transition-colors w-full text-left text-xs font-medium cursor-pointer"
+                className="flex items-center gap-2.5 px-3.5 py-1.5 hover:bg-muted hover:text-foreground transition-colors w-full text-left text-[13px] font-medium cursor-pointer"
               >
                 <span className="text-sm">➡</span>
                 <span>Forward</span>
@@ -257,7 +259,7 @@ export function MessageContextMenu({
                   onPin();
                   onClose();
                 }}
-                className="flex items-center gap-3 px-4 py-2 hover:bg-muted hover:text-foreground transition-colors w-full text-left text-xs font-medium cursor-pointer"
+                className="flex items-center gap-2.5 px-3.5 py-1.5 hover:bg-muted hover:text-foreground transition-colors w-full text-left text-[13px] font-medium cursor-pointer"
               >
                 <span className="text-sm">📌</span>
                 <span>{isPinned ? "Unpin" : "Pin"}</span>
@@ -271,7 +273,7 @@ export function MessageContextMenu({
                   onStar();
                   onClose();
                 }}
-                className="flex items-center gap-3 px-4 py-2 hover:bg-muted hover:text-foreground transition-colors w-full text-left text-xs font-medium cursor-pointer"
+                className="flex items-center gap-2.5 px-3.5 py-1.5 hover:bg-muted hover:text-foreground transition-colors w-full text-left text-[13px] font-medium cursor-pointer"
               >
                 <span className="text-sm">⭐</span>
                 <span>{isStarred ? "Unstar" : "Star"}</span>
@@ -285,7 +287,7 @@ export function MessageContextMenu({
                   onEdit();
                   onClose();
                 }}
-                className="flex items-center gap-3 px-4 py-2 hover:bg-muted hover:text-foreground transition-colors w-full text-left text-xs font-medium cursor-pointer"
+                className="flex items-center gap-2.5 px-3.5 py-1.5 hover:bg-muted hover:text-foreground transition-colors w-full text-left text-[13px] font-medium cursor-pointer"
               >
                 <span className="text-sm">✏</span>
                 <span>Edit</span>
@@ -301,7 +303,7 @@ export function MessageContextMenu({
                     onDelete(message.id);
                     onClose();
                   }}
-                  className="flex items-center gap-3 px-4 py-2 hover:bg-destructive/10 text-destructive hover:text-destructive transition-colors w-full text-left text-xs font-medium cursor-pointer"
+                  className="flex items-center gap-2.5 px-3.5 py-1.5 hover:bg-destructive/10 text-destructive hover:text-destructive transition-colors w-full text-left text-[13px] font-medium cursor-pointer"
                 >
                   <span className="text-sm">🗑</span>
                   <span>Delete</span>

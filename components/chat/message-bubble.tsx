@@ -22,11 +22,14 @@ import { toggleMessagePin, usePinnedMessageIds } from "@/lib/pinned-store";
 import { createClient } from "@/lib/supabase/client";
 import { cn, formatMessageTime, getInitials } from "@/lib/utils";
 import { BUBBLE_STYLES, useAppearance } from "@/lib/appearance-store";
-import type { ChatMessage, Profile } from "@/types/chat";
+import { ReactionDetailsDialog } from "@/components/chat/reaction-details-dialog";
+import type { ChatMessage, ConversationMember, Profile } from "@/types/chat";
 
 interface MessageBubbleProps {
   message: ChatMessage;
   currentUserId: string;
+  currentUserProfile?: Profile;
+  members?: ConversationMember[];
   showSenderName: boolean;
   showReceipt: boolean;
   reactions?: { [emoji: string]: string[] };
@@ -45,6 +48,8 @@ interface MessageBubbleProps {
 export function MessageBubble({
   message,
   currentUserId,
+  currentUserProfile,
+  members,
   showSenderName,
   showReceipt,
   reactions: externalReactions,
@@ -73,6 +78,7 @@ export function MessageBubble({
 
   const [localReactions, setLocalReactions] = useState<{ [emoji: string]: string[] }>({});
   const reactions = externalReactions || localReactions;
+  const [reactionDetailsOpen, setReactionDetailsOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content || "");
   const [localMenuOpen, setLocalMenuOpen] = useState(false);
@@ -147,6 +153,11 @@ export function MessageBubble({
       e.preventDefault();
       e.stopPropagation();
       clearLongPress();
+      // Check click position collision against bottom of screen (< 300px)
+      const spaceBelowClick = window.innerHeight - e.clientY;
+      if (spaceBelowClick < 300) {
+        setMenuPlacement("top");
+      }
       handleOpen();
     },
     [clearLongPress, handleOpen]
@@ -337,6 +348,12 @@ export function MessageBubble({
     }
   }
 
+  // Reaction metrics for overlapping corner badge
+  const reactionEntries = Object.entries(reactions).filter(([, users]) => users.length > 0);
+  const totalReactionsCount = reactionEntries.reduce((acc, [, users]) => acc + users.length, 0);
+  const sortedReactions = [...reactionEntries].sort((a, b) => b[1].length - a[1].length);
+  const topEmoji = sortedReactions[0]?.[0] || "";
+
   return (
     <div
       className={cn(
@@ -374,6 +391,7 @@ export function MessageBubble({
         className={cn(
           "relative flex flex-col min-w-[90px] w-fit max-w-[75%]",
           isPoll && "w-full max-w-[360px] sm:max-w-[400px]",
+          totalReactionsCount > 0 && "mb-2",
           menuOpen ? "z-50" : "z-1",
           own && "items-end"
         )}
@@ -418,7 +436,7 @@ export function MessageBubble({
             maxWidth: isPoll ? "400px" : "75%",
             wordBreak: "break-word",
             overflowWrap: "break-word",
-            borderRadius: isVideoNote && !showTextContent ? "50%" : "12px",
+            borderRadius: isVideoNote && !showTextContent ? "50%" : undefined,
             ...((isMedia && !showTextContent) || isCustomRichCard
               ? { background: "transparent", padding: 0, border: "none", boxShadow: "none" }
               : isVoiceNote && !showTextContent
@@ -541,29 +559,35 @@ export function MessageBubble({
             </div>
           )}
 
-          {/* Reaction Pills below message */}
-          {Object.entries(reactions).some(([, users]) => users.length > 0) && (
-            <div className="mt-2 flex flex-wrap gap-1.5" onClick={(e) => e.stopPropagation()}>
-              {Object.entries(reactions).map(([emoji, users]) => {
-                if (!users.length) return null;
-                const active = users.includes(currentUserId);
-                return (
-                  <button
-                    key={emoji}
-                    onClick={() => toggleReaction(emoji)}
-                    className={cn(
-                      "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold border transition-all shadow-sm active:scale-95",
-                      active
-                        ? "bg-primary/20 border-primary/40 text-primary"
-                        : "bg-muted border-border text-muted-foreground hover:border-foreground/20"
-                    )}
-                  >
-                    <span>{emoji}</span>
-                    <span>{users.length}</span>
-                  </button>
-                );
-              })}
-            </div>
+          {/* Corner Reaction Badge: Overlapping chip pinned to bottom-right of message bubble */}
+          {totalReactionsCount > 0 && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setReactionDetailsOpen(true);
+              }}
+              title={`${totalReactionsCount} reactions. Click to view details.`}
+              aria-label={`${totalReactionsCount} reactions. Click to view details.`}
+              className={cn(
+                "absolute -bottom-2.5 right-3 z-10 select-none cursor-pointer active:scale-95 transition-transform flex items-center justify-center border-[1.5px] border-background bg-card text-foreground shadow-xs",
+                totalReactionsCount === 1
+                  ? "size-6 rounded-full text-xs"
+                  : "h-6 px-1.5 rounded-full text-xs gap-1"
+              )}
+              style={{
+                position: "absolute",
+                bottom: "-10px",
+                right: "12px",
+              }}
+            >
+              <span>{topEmoji}</span>
+              {totalReactionsCount > 1 && (
+                <span className="text-[11px] font-semibold text-muted-foreground">
+                  {totalReactionsCount}
+                </span>
+              )}
+            </button>
           )}
         </div>
 
@@ -587,6 +611,18 @@ export function MessageBubble({
             onDelete={onDelete}
           />
         )}
+
+        {/* WhatsApp Web Centered Reaction Details Modal */}
+        <ReactionDetailsDialog
+          open={reactionDetailsOpen}
+          onOpenChange={setReactionDetailsOpen}
+          reactions={reactions}
+          currentUserId={currentUserId}
+          currentUserProfile={currentUserProfile}
+          messageSender={message.sender}
+          members={members}
+          onRemoveReaction={toggleReaction}
+        />
       </div>
     </div>
   );

@@ -24,11 +24,10 @@ export function InPanelStarredMessages({
 }: InPanelStarredMessagesProps) {
   const router = useRouter();
   const [messages, setMessages] = useState<StarredMessageItem[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!currentUserId) return;
-    setLoading(true);
     fetchFullStarredMessages(currentUserId)
       .then(setMessages)
       .finally(() => setLoading(false));

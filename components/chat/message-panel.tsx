@@ -40,6 +40,13 @@ import { DocumentPreviewDialog } from "@/components/chat/composer/document-previ
 import { WhatsAppMediaLightbox } from "@/components/chat/media/whatsapp-media-lightbox";
 import { CHAT_BACKGROUNDS, useAppearance } from "@/lib/appearance-store";
 import {
+  getLocalMessages,
+  saveLocalMessage,
+  saveLocalMessages,
+  deleteLocalMessage,
+  saveLocalMediaBlob,
+} from "@/lib/storage/local-db";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -158,6 +165,14 @@ export function MessagePanel({
   const notifiedMessageKeys = useRef<Set<string>>(new Set());
 
   const loadMessages = useCallback(async () => {
+    // 1. WhatsApp Architecture: Load immediately from Client IndexedDB (0 network latency)
+    const localMsgs = await getLocalMessages(conversationId);
+    if (localMsgs.length > 0) {
+      setMessages(localMsgs);
+      setLoading(false);
+    }
+
+    // 2. Poll ephemeral delivery queue on backend for unreceived/new messages
     const { data, error } = await createClient()
       .from("messages")
       .select(MESSAGE_SELECT)
@@ -166,8 +181,9 @@ export function MessagePanel({
       .order("created_at", { ascending: false })
       .limit(100);
 
-    if (error) toast.error(error.message);
-    else {
+    if (error) {
+      if (localMsgs.length === 0) toast.error(error.message);
+    } else if (data && data.length > 0) {
       const rawMessages = (data || []) as unknown as ChatMessage[];
       const formatted = rawMessages.map((msg) => {
         let type = msg.type;
@@ -197,10 +213,30 @@ export function MessagePanel({
         }
         return type ? { ...msg, type } : msg;
       });
-      setMessages(formatted.reverse());
+
+      // Persist newly received messages into client IndexedDB persistent storage
+      await saveLocalMessages(formatted);
+
+      // Ephemeral Auto-Purge Flow:
+      // Once recipient confirms receipt, trigger ACK to purge the message row from the backend queue
+      for (const msg of formatted) {
+        if (msg.sender_id !== profile.id) {
+          void fetch("/api/messages/ack-delivery", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ messageId: msg.id, conversationId }),
+          }).catch((err) => {
+            console.warn("[Ephemeral Delivery ACK] Purge warning:", err);
+          });
+        }
+      }
+
+      // Reload updated local store
+      const updatedLocal = await getLocalMessages(conversationId);
+      setMessages(updatedLocal);
     }
     setLoading(false);
-  }, [conversationId]);
+  }, [conversationId, profile.id]);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -392,7 +428,7 @@ export function MessagePanel({
     setLightboxActiveMessageId(message.id);
     setLightboxInitialUrl(url || null);
     setLightboxOpen(true);
-  }, []);
+  }, [setLightboxActiveMessageId, setLightboxInitialUrl, setLightboxOpen]);
 
   function broadcastTyping(isTyping: boolean) {
     if (typingTimer.current) clearTimeout(typingTimer.current);
@@ -439,6 +475,12 @@ export function MessagePanel({
       .update({ deleted_at: new Date().toISOString() })
       .eq("conversation_id", conversationId);
 
+    // Delete from client-side IndexedDB persistent storage
+    const localMsgs = await getLocalMessages(conversationId);
+    for (const m of localMsgs) {
+      await deleteLocalMessage(m.id);
+    }
+
     setLoading(false);
     if (error) {
       toast.error(error.message);
@@ -468,7 +510,26 @@ export function MessagePanel({
     if (error) {
       toast.error(error.message);
     } else {
-      if (insertedMsg?.id) sentMessageIds.current.add(insertedMsg.id);
+      if (insertedMsg?.id) {
+        sentMessageIds.current.add(insertedMsg.id);
+        const localSentMsg: ChatMessage = {
+          id: insertedMsg.id,
+          conversation_id: conversationId,
+          sender_id: profile.id,
+          content: finalContent,
+          message_type: "text",
+          attachment_path: null,
+          attachment_name: null,
+          attachment_size: null,
+          created_at: new Date().toISOString(),
+          edited_at: null,
+          deleted_at: null,
+          sender: profile,
+          read_receipts: [],
+          delivery_status: "sent",
+        };
+        await saveLocalMessage(localSentMsg);
+      }
       void channelRef.current?.send({
         type: "broadcast",
         event: "INSERT",
@@ -535,7 +596,6 @@ export function MessagePanel({
     if (error) {
       toast.error(error.message);
     } else {
-      if (insertedFileMsg?.id) sentMessageIds.current.add(insertedFileMsg.id);
       const dispatchType = isVideoNote
         ? "video_note"
         : isImage
@@ -543,6 +603,37 @@ export function MessagePanel({
           : isVideo
             ? "video"
             : "file";
+
+      if (insertedFileMsg?.id) {
+        sentMessageIds.current.add(insertedFileMsg.id);
+        // Save media binary directly into client IndexedDB persistent storage
+        await saveLocalMediaBlob(
+          path,
+          conversationId,
+          file.name,
+          file.type,
+          file,
+          file.size
+        );
+        const localSentFileMsg: ChatMessage = {
+          id: insertedFileMsg.id,
+          conversation_id: conversationId,
+          sender_id: profile.id,
+          content: caption,
+          message_type: isImage ? "image" : "file",
+          type: dispatchType,
+          attachment_path: path,
+          attachment_name: file.name,
+          attachment_size: file.size,
+          created_at: new Date().toISOString(),
+          edited_at: null,
+          deleted_at: null,
+          sender: profile,
+          read_receipts: [],
+          delivery_status: "sent",
+        };
+        await saveLocalMessage(localSentFileMsg);
+      }
 
       void channelRef.current?.send({
         type: "broadcast",
@@ -880,6 +971,8 @@ export function MessagePanel({
                       <MessageBubble
                         message={message}
                         currentUserId={profile.id}
+                        currentUserProfile={profile}
+                        members={conversation?.members}
                         showSenderName={isGroup}
                         showReceipt={message.id === lastOwnMessageId}
                         reactions={reactionsByMessage[message.id] || {}}

@@ -93,6 +93,17 @@ export function MessageComposer({
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const documentInputRef = useRef<HTMLInputElement>(null);
 
+  // Revoke object URL on unmount or file change to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        try {
+          URL.revokeObjectURL(previewUrl);
+        } catch {}
+      }
+    };
+  }, [previewUrl]);
+
   // Close overlays on outside click
   useEffect(() => {
     function handleClickOutside(e: MouseEvent | TouchEvent) {

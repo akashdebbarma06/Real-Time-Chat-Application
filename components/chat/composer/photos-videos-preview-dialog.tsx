@@ -17,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useBackHandler } from "@/hooks/use-back-handler";
 
 export interface TextItem {
   id: string;
@@ -89,6 +90,26 @@ export function PhotosVideosPreviewDialog({
   const [showDrawMode, setShowDrawMode] = useState(false);
   const [drawColor, setDrawColor] = useState("#00a884");
 
+  // Priority 1a: Dismiss editing tool overlays
+  useBackHandler({
+    id: "media-editor-tool-popups",
+    priority: 110,
+    enabled: open && (showFilterPicker || showStickerPicker || showDrawMode),
+    onBack: () => {
+      setShowFilterPicker(false);
+      setShowStickerPicker(false);
+      setShowDrawMode(false);
+    },
+  });
+
+  // Priority 1: Dismiss preview modal
+  useBackHandler({
+    id: "photos-videos-preview-dialog",
+    priority: 100,
+    enabled: open,
+    onBack: onClose,
+  });
+
   // Freehand Canvas Drawing State
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isDrawingRef = useRef(false);
@@ -111,10 +132,6 @@ export function PhotosVideosPreviewDialog({
   // Initialize or update items when files prop changes
   useEffect(() => {
     if (!open || files.length === 0) {
-      setItems([]);
-      setActiveIndex(0);
-      setCaption("");
-      setShowDrawMode(false);
       return;
     }
 
@@ -136,11 +153,14 @@ export function PhotosVideosPreviewDialog({
       };
     });
 
-    setItems(created);
-    setActiveIndex(0);
-    setCaption("");
+    const timer = setTimeout(() => {
+      setItems(created);
+      setActiveIndex(0);
+      setCaption("");
+    }, 0);
 
     return () => {
+      clearTimeout(timer);
       created.forEach((item) => URL.revokeObjectURL(item.previewUrl));
     };
   }, [open, files]);

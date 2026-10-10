@@ -39,8 +39,8 @@ import { ConfirmActionDialog } from "@/components/chat/confirm-action-dialog";
 import { GroupPermissionsView } from "@/components/chat/group-permissions-view";
 import { SharedVaultView } from "@/components/chat/shared-vault-view";
 import { createClient } from "@/lib/supabase/client";
-import { getInitials } from "@/lib/utils";
-import { cn } from "@/lib/utils";
+import { cn, getInitials } from "@/lib/utils";
+import { useBackHandler } from "@/hooks/use-back-handler";
 import type { ConversationSummary, Profile } from "@/types/chat";
 
 interface SharedMediaItem {
@@ -82,6 +82,17 @@ export function InPanelGroupInfo({
   const [viewingVault, setViewingVault] = useState(false);
   const [viewingPermissions, setViewingPermissions] = useState(false);
 
+  // Priority 2a: Sub-view inside Group Info
+  useBackHandler({
+    id: "in-panel-group-subview",
+    priority: 60,
+    enabled: viewingPermissions || viewingVault,
+    onBack: () => {
+      if (viewingPermissions) setViewingPermissions(false);
+      if (viewingVault) setViewingVault(false);
+    },
+  });
+
   // Inline editing: Avatar
   const [avatarUrl, setAvatarUrl] = useState<string | null>(conversation.avatar_url);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -106,7 +117,7 @@ export function InPanelGroupInfo({
   // Members and media
   const [memberQuery, setMemberQuery] = useState("");
   const [sharedMedia, setSharedMedia] = useState<SharedMediaItem[]>([]);
-  const [loadingMedia, setLoadingMedia] = useState(false);
+  const [loadingMedia, setLoadingMedia] = useState(Boolean(conversation.id));
 
   // Danger actions dialog states
   const [confirmLeaveOpen, setConfirmLeaveOpen] = useState(false);
@@ -122,17 +133,18 @@ export function InPanelGroupInfo({
   const [addingUserId, setAddingUserId] = useState<string | null>(null);
 
   // Sync props when conversation changes
-  useEffect(() => {
+  const [prevConvId, setPrevConvId] = useState(conversation.id);
+  if (prevConvId !== conversation.id) {
+    setPrevConvId(conversation.id);
     setGroupName(conversation.name || "Untitled Group");
     setNameInput(conversation.name || "Untitled Group");
     setAvatarUrl(conversation.avatar_url);
-  }, [conversation.name, conversation.avatar_url]);
+  }
 
   // Fetch real group attachments
   useEffect(() => {
     if (!conversation.id) return;
 
-    setLoadingMedia(true);
     void createClient()
       .from("messages")
       .select("id, message_type, attachment_path, attachment_name, attachment_size, created_at")
@@ -178,7 +190,6 @@ export function InPanelGroupInfo({
   // Fetch users when Add Member dialog opens
   useEffect(() => {
     if (!addMemberOpen) return;
-    setLoadingUsers(true);
     const existingMemberIds = new Set(conversation.members.map((m) => m.user_id));
 
     const timer = setTimeout(async () => {

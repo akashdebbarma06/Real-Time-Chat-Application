@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Loader2, MessageSquarePlus, Search } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -35,12 +34,11 @@ export function NewDirectChatDialog({
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [users, setUsers] = useState<Profile[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [creatingId, setCreatingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
-    setLoading(true);
     const timer = setTimeout(async () => {
       try {
         const supabase = createClient();

@@ -82,7 +82,10 @@ export function BlockedContactsDialog({
 
   useEffect(() => {
     if (open) {
-      void fetchBlockedList();
+      const timer = setTimeout(() => {
+        void fetchBlockedList();
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [open, fetchBlockedList]);
 

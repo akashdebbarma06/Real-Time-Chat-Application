@@ -28,7 +28,7 @@ export function ContactPickerDialog({
   onSubmitContact,
 }: ContactPickerDialogProps) {
   const [contacts, setContacts] = useState<Profile[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
 
   // Custom manual contact input state
@@ -37,7 +37,6 @@ export function ContactPickerDialog({
 
   useEffect(() => {
     if (!open) return;
-    setLoading(true);
     void createClient()
       .from("profiles")
       .select("id, username, display_name, avatar_url, bio, last_seen_at")
