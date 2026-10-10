@@ -54,7 +54,9 @@ jobs:
         run: npm run build
 
       - name: 📲 Sync Assets to Native Android Platform
-        run: npx cap sync android
+        run: |
+          mkdir -p out android/app/src/main/assets
+          npx cap sync android
 
       - name: 🤖 Build Android Debug APK
         working-directory: android
