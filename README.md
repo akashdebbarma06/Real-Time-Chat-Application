@@ -269,7 +269,7 @@ Aether Chat uses Capacitor 7 to bundle the web client into an optimized native A
 
 ### Prerequisites
 - **Android Studio** (Koala or newer) with Android SDK Platform 34 installed.
-- **Java Development Kit (JDK)**: JDK 17 or JDK 21.
+- **Java Development Kit (JDK)**: JDK 21 (required by Capacitor).
 
 ### 1. Sync Web Assets with Android Project
 ```bash
