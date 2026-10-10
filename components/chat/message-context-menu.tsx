@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { CornerUpLeft, Copy, Download, Forward, Pin, Star, Pencil, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { CornerUpLeft, Copy, Download, Forward, Pin, Star, Pencil, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ChatMessage } from "@/types/chat";
 
@@ -49,6 +49,38 @@ export function MessageContextMenu({
   onDelete,
 }: MessageContextMenuProps) {
   const [showFullPicker, setShowFullPicker] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [shiftX, setShiftX] = useState(0);
+  const [effectivePlacement, setEffectivePlacement] = useState(placement);
+
+  // Sync and dynamically verify vertical placement
+  useEffect(() => {
+    setEffectivePlacement(placement);
+  }, [placement]);
+
+  // Viewport collision detection: clamp horizontal coordinates and prevent vertical cutoff
+  useEffect(() => {
+    if (!menuRef.current) return;
+    const rect = menuRef.current.getBoundingClientRect();
+    const padding = 12; // 12px viewport gutter
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    // Clamp horizontal coordinates so menu never bleeds outside left or right boundaries
+    let offsetX = 0;
+    if (rect.right > viewportWidth - padding) {
+      offsetX = (viewportWidth - padding) - rect.right;
+    } else if (rect.left < padding) {
+      offsetX = padding - rect.left;
+    }
+    setShiftX(offsetX);
+
+    // If space below is insufficient (< 300px) or menu cuts off at bottom, flip to render ABOVE
+    const spaceBelow = viewportHeight - rect.bottom;
+    if ((spaceBelow < 0 || rect.bottom > viewportHeight - padding) && effectivePlacement === "bottom") {
+      setEffectivePlacement("top");
+    }
+  }, [showFullPicker, effectivePlacement]);
 
   const isMedia = Boolean(
     message.type === "image" ||
@@ -63,211 +95,222 @@ export function MessageContextMenu({
     message.attachment_path
   );
 
-  const hasText = Boolean(message.content && message.content.trim().length > 0 && message.content.toLowerCase() !== "video note" && message.content.toLowerCase() !== "voice note" && message.content.toLowerCase() !== "camera capture");
+  const hasText = Boolean(
+    message.content &&
+    message.content.trim().length > 0 &&
+    message.content.toLowerCase() !== "video note" &&
+    message.content.toLowerCase() !== "voice note" &&
+    message.content.toLowerCase() !== "camera capture"
+  );
 
   return (
     <div
+      ref={menuRef}
       onClick={(e) => e.stopPropagation()}
       className={cn(
         "absolute z-50 flex flex-col gap-2 select-none message-context-menu animate-in fade-in zoom-in-95 duration-150",
-        placement === "top" ? "bottom-full mb-2" : "top-full mt-2",
+        effectivePlacement === "top" ? "bottom-full mb-2" : "top-full mt-2",
         own ? "right-0 items-end" : "left-0 items-start"
       )}
       style={{
         zIndex: 50,
+        transform: shiftX ? `translateX(${shiftX}px)` : undefined,
       }}
     >
-      {/* 1. Emoji Reaction Pill (Separated, Frosted Glass) */}
-      <div
-        className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/12 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.5)] text-white w-fit"
-        style={{
-          backgroundColor: "rgba(26, 32, 44, 0.75)",
-          backdropFilter: "blur(12px)",
-          WebkitBackdropFilter: "blur(12px)",
-          boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.5)",
-        }}
-      >
-        {QUICK_EMOJIS.map((emoji) => (
-          <button
-            key={emoji}
-            type="button"
-            onClick={() => {
-              onReact(emoji);
-              onClose();
-            }}
-            className="hover:scale-125 transition-transform duration-150 text-lg px-0.5 cursor-pointer leading-none"
-            title={`React ${emoji}`}
-          >
-            {emoji}
-          </button>
-        ))}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            setShowFullPicker((prev) => !prev);
-          }}
-          className={cn(
-            "text-gray-400 hover:text-white font-semibold text-lg ml-1 leading-none transition-colors cursor-pointer",
-            showFullPicker && "text-white"
-          )}
-          title="More reactions"
-        >
-          +
-        </button>
-      </div>
-
-      {/* Extended Emoji Picker if Plus clicked */}
-      {showFullPicker && (
+      {/* 1. Extended Emoji Picker (replaces quick strip & hides actions to prevent stacking conflicts) */}
+      {showFullPicker ? (
         <div
-          className="p-2 rounded-2xl border border-white/12 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.5)] grid grid-cols-6 gap-1 max-h-36 overflow-y-auto scrollbar-thin text-white w-fit animate-in fade-in zoom-in-95 duration-100"
-          style={{
-            backgroundColor: "rgba(26, 32, 44, 0.85)",
-            backdropFilter: "blur(12px)",
-            WebkitBackdropFilter: "blur(12px)",
-          }}
+          className="p-3 rounded-2xl border border-border bg-popover/95 text-popover-foreground shadow-2xl shadow-black/20 flex flex-col gap-2 w-64 backdrop-blur-2xl animate-in fade-in zoom-in-95 slide-in-from-top-2 duration-150 select-none"
         >
-          {EXTENDED_EMOJIS.map((emoji) => (
+          {/* Header with Title and Close Icon */}
+          <div className="flex items-center justify-between px-1 pb-1 border-b border-border/60">
+            <span className="text-xs font-semibold text-muted-foreground">Reactions</span>
             <button
-              key={emoji}
               type="button"
-              onClick={() => {
-                onReact(emoji);
-                onClose();
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowFullPicker(false);
               }}
-              className="hover:scale-125 transition-transform duration-150 text-base p-1 cursor-pointer leading-none"
+              className="p-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
+              aria-label="Close reaction picker"
+              title="Close"
             >
-              {emoji}
+              <X className="size-3.5" />
             </button>
-          ))}
+          </div>
+
+          {/* Emoji Grid */}
+          <div className="grid grid-cols-6 gap-1 max-h-40 overflow-y-auto scrollbar-thin p-0.5">
+            {EXTENDED_EMOJIS.map((emoji) => (
+              <button
+                key={emoji}
+                type="button"
+                onClick={() => {
+                  onReact(emoji);
+                  onClose();
+                }}
+                className="hover:scale-125 transition-transform duration-150 text-xl p-1 cursor-pointer leading-none hover:bg-muted/60 rounded-xl grid place-items-center"
+                title={`React ${emoji}`}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
         </div>
-      )}
-
-      {/* 2. Action Menu Dropdown (Separated, Frosted Glass) */}
-      <div
-        className="w-48 py-1.5 rounded-2xl border border-white/12 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.5)] flex flex-col text-sm text-gray-200 overflow-hidden"
-        style={{
-          backgroundColor: "rgba(26, 32, 44, 0.80)",
-          backdropFilter: "blur(12px)",
-          WebkitBackdropFilter: "blur(12px)",
-          boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.5)",
-        }}
-      >
-        {onReply && (
-          <button
-            type="button"
-            onClick={() => {
-              onReply(message);
-              onClose();
-            }}
-            className="flex items-center gap-3 px-4 py-2 hover:bg-white/10 transition-colors w-full text-left text-xs font-medium cursor-pointer"
+      ) : (
+        <>
+          {/* Quick 6-Icon Emoji Reaction Strip */}
+          <div
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-border bg-popover/90 text-popover-foreground shadow-xl shadow-black/20 backdrop-blur-xl w-fit"
           >
-            <span className="text-sm">↩</span>
-            <span>Reply</span>
-          </button>
-        )}
-
-        {hasText && onCopy && (
-          <button
-            type="button"
-            onClick={() => {
-              onCopy(message.content);
-              onClose();
-            }}
-            className="flex items-center gap-3 px-4 py-2 hover:bg-white/10 transition-colors w-full text-left text-xs font-medium cursor-pointer"
-          >
-            <span className="text-sm">📋</span>
-            <span>Copy</span>
-          </button>
-        )}
-
-        {isMedia && onDownload && (
-          <button
-            type="button"
-            onClick={() => {
-              onDownload();
-              onClose();
-            }}
-            className="flex items-center gap-3 px-4 py-2 hover:bg-white/10 transition-colors w-full text-left text-xs font-medium cursor-pointer"
-          >
-            <span className="text-sm">⬇</span>
-            <span>Download</span>
-          </button>
-        )}
-
-        {onForward && (
-          <button
-            type="button"
-            onClick={() => {
-              onForward(message);
-              onClose();
-            }}
-            className="flex items-center gap-3 px-4 py-2 hover:bg-white/10 transition-colors w-full text-left text-xs font-medium cursor-pointer"
-          >
-            <span className="text-sm">➡</span>
-            <span>Forward</span>
-          </button>
-        )}
-
-        {onPin && (
-          <button
-            type="button"
-            onClick={() => {
-              onPin();
-              onClose();
-            }}
-            className="flex items-center gap-3 px-4 py-2 hover:bg-white/10 transition-colors w-full text-left text-xs font-medium cursor-pointer"
-          >
-            <span className="text-sm">📌</span>
-            <span>{isPinned ? "Unpin" : "Pin"}</span>
-          </button>
-        )}
-
-        {onStar && (
-          <button
-            type="button"
-            onClick={() => {
-              onStar();
-              onClose();
-            }}
-            className="flex items-center gap-3 px-4 py-2 hover:bg-white/10 transition-colors w-full text-left text-xs font-medium cursor-pointer"
-          >
-            <span className="text-sm">⭐</span>
-            <span>{isStarred ? "Unstar" : "Star"}</span>
-          </button>
-        )}
-
-        {own && onEdit && hasText && (
-          <button
-            type="button"
-            onClick={() => {
-              onEdit();
-              onClose();
-            }}
-            className="flex items-center gap-3 px-4 py-2 hover:bg-white/10 transition-colors w-full text-left text-xs font-medium cursor-pointer"
-          >
-            <span className="text-sm">✏</span>
-            <span>Edit</span>
-          </button>
-        )}
-
-        {onDelete && (
-          <>
-            <div className="h-px bg-white/10 my-1" />
+            {QUICK_EMOJIS.map((emoji) => (
+              <button
+                key={emoji}
+                type="button"
+                onClick={() => {
+                  onReact(emoji);
+                  onClose();
+                }}
+                className="hover:scale-125 transition-transform duration-150 text-lg px-0.5 cursor-pointer leading-none"
+                title={`React ${emoji}`}
+              >
+                {emoji}
+              </button>
+            ))}
             <button
               type="button"
-              onClick={() => {
-                onDelete(message.id);
-                onClose();
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowFullPicker(true);
               }}
-              className="flex items-center gap-3 px-4 py-2 hover:bg-red-500/20 text-red-400 transition-colors w-full text-left text-xs font-medium cursor-pointer"
+              className="text-muted-foreground hover:text-foreground font-semibold text-lg ml-1 leading-none transition-colors cursor-pointer"
+              title="More reactions"
             >
-              <span className="text-sm">🗑</span>
-              <span>Delete</span>
+              +
             </button>
-          </>
-        )}
-      </div>
+          </div>
+
+          {/* Action Menu Dropdown List */}
+          <div
+            className="w-48 py-1.5 rounded-2xl border border-border bg-popover/95 text-popover-foreground shadow-2xl shadow-black/20 flex flex-col text-sm overflow-hidden backdrop-blur-2xl"
+          >
+            {onReply && (
+              <button
+                type="button"
+                onClick={() => {
+                  onReply(message);
+                  onClose();
+                }}
+                className="flex items-center gap-3 px-4 py-2 hover:bg-muted hover:text-foreground transition-colors w-full text-left text-xs font-medium cursor-pointer"
+              >
+                <span className="text-sm">↩</span>
+                <span>Reply</span>
+              </button>
+            )}
+
+            {hasText && onCopy && (
+              <button
+                type="button"
+                onClick={() => {
+                  onCopy(message.content);
+                  onClose();
+                }}
+                className="flex items-center gap-3 px-4 py-2 hover:bg-muted hover:text-foreground transition-colors w-full text-left text-xs font-medium cursor-pointer"
+              >
+                <span className="text-sm">📋</span>
+                <span>Copy</span>
+              </button>
+            )}
+
+            {isMedia && onDownload && (
+              <button
+                type="button"
+                onClick={() => {
+                  onDownload();
+                  onClose();
+                }}
+                className="flex items-center gap-3 px-4 py-2 hover:bg-muted hover:text-foreground transition-colors w-full text-left text-xs font-medium cursor-pointer"
+              >
+                <span className="text-sm">⬇</span>
+                <span>Download</span>
+              </button>
+            )}
+
+            {onForward && (
+              <button
+                type="button"
+                onClick={() => {
+                  onForward(message);
+                  onClose();
+                }}
+                className="flex items-center gap-3 px-4 py-2 hover:bg-muted hover:text-foreground transition-colors w-full text-left text-xs font-medium cursor-pointer"
+              >
+                <span className="text-sm">➡</span>
+                <span>Forward</span>
+              </button>
+            )}
+
+            {onPin && (
+              <button
+                type="button"
+                onClick={() => {
+                  onPin();
+                  onClose();
+                }}
+                className="flex items-center gap-3 px-4 py-2 hover:bg-muted hover:text-foreground transition-colors w-full text-left text-xs font-medium cursor-pointer"
+              >
+                <span className="text-sm">📌</span>
+                <span>{isPinned ? "Unpin" : "Pin"}</span>
+              </button>
+            )}
+
+            {onStar && (
+              <button
+                type="button"
+                onClick={() => {
+                  onStar();
+                  onClose();
+                }}
+                className="flex items-center gap-3 px-4 py-2 hover:bg-muted hover:text-foreground transition-colors w-full text-left text-xs font-medium cursor-pointer"
+              >
+                <span className="text-sm">⭐</span>
+                <span>{isStarred ? "Unstar" : "Star"}</span>
+              </button>
+            )}
+
+            {own && onEdit && hasText && (
+              <button
+                type="button"
+                onClick={() => {
+                  onEdit();
+                  onClose();
+                }}
+                className="flex items-center gap-3 px-4 py-2 hover:bg-muted hover:text-foreground transition-colors w-full text-left text-xs font-medium cursor-pointer"
+              >
+                <span className="text-sm">✏</span>
+                <span>Edit</span>
+              </button>
+            )}
+
+            {onDelete && (
+              <>
+                <div className="h-px bg-border my-1" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    onDelete(message.id);
+                    onClose();
+                  }}
+                  className="flex items-center gap-3 px-4 py-2 hover:bg-destructive/10 text-destructive hover:text-destructive transition-colors w-full text-left text-xs font-medium cursor-pointer"
+                >
+                  <span className="text-sm">🗑</span>
+                  <span>Delete</span>
+                </button>
+              </>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }

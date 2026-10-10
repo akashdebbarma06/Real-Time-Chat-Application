@@ -77,7 +77,7 @@ export function InAppContactForm({ profile, userEmail, compact = false }: InAppC
       <div className="space-y-4">
         {ticketReference ? (
           <div className="rounded-2xl border bg-card p-5 text-center space-y-4 shadow-sm">
-            <div className="mx-auto grid size-12 place-items-center rounded-xl bg-emerald-500/15 text-emerald-500">
+            <div className="mx-auto grid size-12 place-items-center rounded-xl bg-primary/15 text-primary">
               <CheckCircle2 className="size-6" />
             </div>
             <div className="space-y-1">
@@ -235,7 +235,7 @@ export function InAppContactForm({ profile, userEmail, compact = false }: InAppC
         <div className="lg:col-span-2">
           {ticketReference ? (
             <div className="rounded-3xl border bg-card p-8 sm:p-10 shadow-xl text-center space-y-5">
-              <div className="mx-auto grid size-16 place-items-center rounded-2xl bg-emerald-500/15 text-emerald-500 shadow-md">
+              <div className="mx-auto grid size-16 place-items-center rounded-2xl bg-primary/15 text-primary shadow-md">
                 <CheckCircle2 className="size-8" />
               </div>
               <div className="space-y-1.5">

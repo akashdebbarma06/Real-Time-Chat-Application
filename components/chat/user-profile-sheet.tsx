@@ -1,19 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import {
   Bell,
   BellOff,
-  Calendar,
-  Download,
-  FileIcon,
+  ChevronRight,
   ImageIcon,
   Loader2,
-  Mail,
-  MessageSquare,
   Phone,
-  ShieldAlert,
+  Play,
+  Trash2,
   UserCheck,
   UserX,
   Video,
@@ -27,18 +24,22 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ConfirmActionDialog } from "@/components/chat/confirm-action-dialog";
+import { SharedVaultView } from "@/components/chat/shared-vault-view";
 import { createClient } from "@/lib/supabase/client";
-import { formatConversationTime, formatFileSize, getInitials } from "@/lib/utils";
+import { formatConversationTime, getInitials } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import type { Profile } from "@/types/chat";
 
 interface SharedMediaItem {
   id: string;
-  message_type: "text" | "image" | "file";
+  message_type: "text" | "image" | "file" | "video";
   attachment_path: string;
   attachment_name: string;
   attachment_size: number | null;
   created_at: string;
   url?: string;
+  isVideo?: boolean;
 }
 
 interface UserProfileSheetProps {
@@ -66,6 +67,9 @@ export function UserProfileSheet({
   const [loadingMedia, setLoadingMedia] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
   const [blockLoading, setBlockLoading] = useState(false);
+  const [viewingVault, setViewingVault] = useState(false);
+  const [confirmClearOpen, setConfirmClearOpen] = useState(false);
+  const [clearing, setClearing] = useState(false);
 
   // Fetch real shared media & block status
   useEffect(() => {
@@ -110,33 +114,48 @@ export function UserProfileSheet({
                 const { data: signData } = await supabase.storage
                   .from("chat-files")
                   .createSignedUrl(row.attachment_path, 3600);
-                url = signData?.signedUrl || undefined;
+                url = signData?.signedUrl;
               }
+              const isVideo =
+                (row.message_type as string) === "video" ||
+                Boolean(row.attachment_name?.match(/\.(mp4|webm|mov|mkv)$/i));
+
               return {
-                id: row.id,
-                message_type: row.message_type as "text" | "image" | "file",
-                attachment_path: row.attachment_path,
-                attachment_name: row.attachment_name || "Attachment",
-                attachment_size: row.attachment_size,
-                created_at: row.created_at,
+                ...row,
                 url,
-              };
+                isVideo,
+              } as SharedMediaItem;
             })
           );
 
           setSharedMedia(itemsWithUrls);
           setLoadingMedia(false);
         });
+    } else {
+      setSharedMedia([]);
     }
   }, [open, peerProfile, currentUserId, conversationId]);
 
+  // Filter media for photos and videos only
+  const mediaList = useMemo(() => {
+    return sharedMedia.filter((item) => {
+      const isImg =
+        item.message_type === "image" ||
+        Boolean(item.attachment_name?.match(/\.(jpeg|jpg|gif|png|webp|svg)$/i));
+      const isVid =
+        item.message_type === "video" ||
+        Boolean(item.attachment_name?.match(/\.(mp4|webm|mov|mkv)$/i));
+      return isImg || isVid;
+    });
+  }, [sharedMedia]);
+
+  // Only 3 recent photo and video items visible on info panel
+  const recentMedia = useMemo(() => mediaList.slice(0, 3), [mediaList]);
+
   if (!peerProfile) return null;
 
-  const images = sharedMedia.filter((item) => item.message_type === "image");
-  const files = sharedMedia.filter((item) => item.message_type !== "image");
-
   async function handleToggleBlock() {
-    if (!currentUserId || !peerProfile) return;
+    if (!currentUserId || !peerProfile?.id) return;
     setBlockLoading(true);
     try {
       const supabase = createClient();
@@ -159,270 +178,280 @@ export function UserProfileSheet({
         toast.success(`Blocked ${peerProfile.display_name}`);
       }
     } catch {
-      toast.error("Failed to update block status");
+      toast.error(isBlocked ? "Failed to unblock user" : "Failed to block user");
     } finally {
       setBlockLoading(false);
     }
   }
 
+  async function handleClearConversation() {
+    if (!conversationId) return;
+    setClearing(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from("messages")
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("conversation_id", conversationId);
+
+      if (error) throw error;
+      setSharedMedia([]);
+      toast.success("Conversation cleared");
+      setConfirmClearOpen(false);
+    } catch {
+      toast.error("Failed to clear conversation");
+    } finally {
+      setClearing(false);
+    }
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md w-full max-h-[88vh] h-[88vh] p-0 flex flex-col rounded-3xl overflow-hidden shadow-2xl border bg-background">
-        <DialogHeader className="p-4 border-b flex flex-row items-center justify-between shrink-0">
-          <DialogTitle className="text-base font-bold">Contact Info</DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-md w-full max-h-[88vh] h-[88vh] p-0 flex flex-col rounded-2xl overflow-hidden shadow-2xl border border-border bg-background text-foreground">
+          {viewingVault ? (
+            <SharedVaultView
+              conversationId={conversationId}
+              title={peerProfile.display_name}
+              onBack={() => setViewingVault(false)}
+            />
+          ) : (
+            <>
+              {/* Header */}
+              <DialogHeader className="p-3.5 border-b border-border/80 flex flex-row items-center justify-between shrink-0">
+                <div>
+                  <DialogTitle className="text-sm font-semibold text-foreground">Contact Info</DialogTitle>
+                  <p className="text-[11px] text-muted-foreground truncate mt-0.5">@{peerProfile.username}</p>
+                </div>
+              </DialogHeader>
 
-        {/* Scrollable Container with Reliable Overflow */}
-        <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-6">
-          {/* 1. Avatar & Online Status */}
-          <div className="flex flex-col items-center text-center">
-            <div className="relative size-24">
-              <Avatar className="size-24 rounded-full border-2 border-purple-500/30 shadow-xl">
-                <AvatarImage src={peerProfile.avatar_url || undefined} alt={peerProfile.display_name} />
-                <AvatarFallback className="rounded-full text-2xl font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400">
-                  {getInitials(peerProfile.display_name)}
-                </AvatarFallback>
-              </Avatar>
-              <span
-                className={`absolute bottom-1 right-1 size-4 rounded-full border-2 border-background ${
-                  isOnline
-                    ? "bg-emerald-500 shadow-sm shadow-emerald-500/50"
-                    : "bg-muted-foreground/50"
-                }`}
-                title={isOnline ? "Online" : "Offline"}
-              />
-            </div>
+              {/* Scrollable Container */}
+              <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-4 space-y-4">
+                {/* 1. Compact Horizontal Hero Card */}
+                <div className="flex items-center gap-3.5 p-3.5 rounded-xl border border-border/70 bg-card/60 shadow-xs">
+                  <div className="relative shrink-0">
+                    <Avatar className="size-12 rounded-full border border-border">
+                      <AvatarImage src={peerProfile.avatar_url || undefined} alt={peerProfile.display_name} />
+                      <AvatarFallback className="text-sm font-bold bg-muted text-foreground">
+                        {getInitials(peerProfile.display_name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span
+                      className={cn(
+                        "absolute bottom-0 right-0 size-3 rounded-full border-2 border-background",
+                        isOnline ? "bg-emerald-500" : "bg-muted-foreground/60"
+                      )}
+                    />
+                  </div>
 
-            <h2 className="mt-3 text-xl font-bold tracking-tight text-foreground">
-              {peerProfile.display_name}
-            </h2>
-            <p className="text-xs text-muted-foreground font-mono">@{peerProfile.username}</p>
-
-            {/* Status Badge */}
-            <div className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-muted/60 border px-3 py-1 text-xs font-semibold">
-              <span
-                className={`size-2 rounded-full ${
-                  isOnline ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground/60"
-                }`}
-              />
-              <span className={isOnline ? "text-emerald-500 font-medium" : "text-muted-foreground"}>
-                {isOnline
-                  ? "Active Now"
-                  : peerProfile.last_seen_at
-                    ? `Last seen ${formatConversationTime(peerProfile.last_seen_at)}`
-                    : "Offline"}
-              </span>
-            </div>
-
-            {/* Quick Action Buttons: Voice / Video Call */}
-            <div className="mt-4 flex items-center justify-center gap-3">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => toast.info(`Starting voice call with ${peerProfile.display_name}...`)}
-                className="rounded-2xl gap-2 h-9 px-4 text-xs font-semibold hover:bg-purple-500/10 hover:text-purple-600 hover:border-purple-500/30 transition-all"
-              >
-                <Phone className="size-3.5 text-purple-600 dark:text-purple-400" />
-                <span>Call</span>
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => toast.info(`Starting video call with ${peerProfile.display_name}...`)}
-                className="rounded-2xl gap-2 h-9 px-4 text-xs font-semibold hover:bg-purple-500/10 hover:text-purple-600 hover:border-purple-500/30 transition-all"
-              >
-                <Video className="size-3.5 text-purple-600 dark:text-purple-400" />
-                <span>Video</span>
-              </Button>
-            </div>
-          </div>
-
-          {/* 2. Bio & User Info */}
-          <div className="rounded-2xl border bg-muted/30 p-4 space-y-2">
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-              About
-            </p>
-            <p className="text-sm text-foreground leading-relaxed">
-              {peerProfile.bio?.trim() || "No bio provided yet."}
-            </p>
-            {peerProfile.last_seen_at && (
-              <div className="flex items-center gap-1.5 pt-2 text-[11px] text-muted-foreground border-t border-muted/50">
-                <Calendar className="size-3.5" />
-                <span>Member on Aether Chat</span>
-              </div>
-            )}
-          </div>
-
-          {/* 3. Real Shared Photos */}
-          <div className="space-y-2.5">
-            <div className="flex items-center justify-between">
-              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                <ImageIcon className="size-3.5 text-purple-600 dark:text-purple-400" />
-                <span>Shared Photos</span>
-              </p>
-              <span className="text-xs text-muted-foreground font-medium">
-                {images.length} {images.length === 1 ? "photo" : "photos"}
-              </span>
-            </div>
-
-            {loadingMedia ? (
-              <div className="flex h-20 items-center justify-center gap-2 text-xs text-muted-foreground">
-                <Loader2 className="size-4 animate-spin text-purple-600" />
-                <span>Loading media...</span>
-              </div>
-            ) : images.length > 0 ? (
-              <div className="grid grid-cols-3 gap-2">
-                {images.map((img) => (
-                  <a
-                    key={img.id}
-                    href={img.url || "#"}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="group relative aspect-square overflow-hidden rounded-xl border bg-muted/40 transition hover:opacity-90"
-                  >
-                    {img.url ? (
-                      <Image
-                        src={img.url}
-                        alt={img.attachment_name || "Shared photo"}
-                        fill
-                        unoptimized
-                        className="object-cover transition duration-300 group-hover:scale-105"
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-sm font-semibold text-foreground truncate leading-tight">
+                      {peerProfile.display_name}
+                    </h2>
+                    <p className="text-xs text-muted-foreground truncate mt-0.5">
+                      @{peerProfile.username}
+                    </p>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <span
+                        className={cn(
+                          "size-1.5 rounded-full shrink-0",
+                          isOnline ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground/60"
+                        )}
                       />
-                    ) : (
-                      <div className="grid size-full place-items-center text-xs text-muted-foreground">
-                        <ImageIcon className="size-5" />
-                      </div>
-                    )}
-                  </a>
-                ))}
-              </div>
-            ) : (
-              <div className="rounded-xl border bg-muted/20 p-3.5 text-center">
-                <p className="text-xs text-muted-foreground">No photos shared in this chat yet</p>
-              </div>
-            )}
-          </div>
+                      <span className="text-[11px] text-muted-foreground truncate">
+                        {isOnline
+                          ? "Active now"
+                          : peerProfile.last_seen_at
+                            ? `Last seen ${formatConversationTime(peerProfile.last_seen_at)}`
+                            : "Offline"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
 
-          {/* 4. Real Shared Documents & Files */}
-          <div className="space-y-2.5">
-            <div className="flex items-center justify-between">
-              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                <FileIcon className="size-3.5 text-purple-600 dark:text-purple-400" />
-                <span>Shared Files</span>
-              </p>
-              <span className="text-xs text-muted-foreground font-medium">
-                {files.length} {files.length === 1 ? "file" : "files"}
-              </span>
-            </div>
-
-            {loadingMedia ? (
-              <div className="flex h-16 items-center justify-center gap-2 text-xs text-muted-foreground">
-                <Loader2 className="size-4 animate-spin text-purple-600" />
-              </div>
-            ) : files.length > 0 ? (
-              <div className="space-y-2">
-                {files.map((file) => (
-                  <a
-                    key={file.id}
-                    href={file.url || "#"}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    download={file.attachment_name}
-                    className="flex items-center gap-3 rounded-xl border bg-muted/30 p-2.5 transition hover:bg-muted"
+                {/* 2. Action Row: 2-column grid button pair */}
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => toast.info(`Starting audio call with ${peerProfile.display_name}...`)}
+                    className="h-9 rounded-xl border-border/70 bg-card/50 hover:bg-muted text-xs font-medium gap-2 text-foreground"
                   >
-                    <div className="grid size-9 place-items-center rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 shrink-0">
-                      <FileIcon className="size-4" />
+                    <Phone className="size-3.5 text-primary" />
+                    <span>Audio Call</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => toast.info(`Starting video call with ${peerProfile.display_name}...`)}
+                    className="h-9 rounded-xl border-border/70 bg-card/50 hover:bg-muted text-xs font-medium gap-2 text-foreground"
+                  >
+                    <Video className="size-3.5 text-primary" />
+                    <span>Video Call</span>
+                  </Button>
+                </div>
+
+                {/* 3. Bio Section: Clean rounded box */}
+                <div className="p-3.5 rounded-xl border border-border/70 bg-card/60 space-y-1 shadow-xs">
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block">
+                    Bio
+                  </span>
+                  <p className="text-xs text-foreground leading-relaxed whitespace-pre-wrap">
+                    {peerProfile.bio?.trim() || "No bio provided yet."}
+                  </p>
+                </div>
+
+                {/* 4. Shared Vault: 3 recent photo/video preview with View All button */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between px-0.5">
+                    <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                      <ImageIcon className="size-3.5 text-primary" />
+                      <span>Shared Vault</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setViewingVault(true)}
+                      className="text-xs text-primary font-medium hover:underline inline-flex items-center gap-0.5 cursor-pointer"
+                    >
+                      <span>View all</span>
+                      <ChevronRight className="size-3" />
+                    </button>
+                  </div>
+
+                  {/* Content: Only 3 recent photos & videos */}
+                  {loadingMedia ? (
+                    <div className="flex h-20 items-center justify-center gap-2 text-xs text-muted-foreground">
+                      <Loader2 className="size-3.5 animate-spin text-primary" />
+                      <span>Loading media...</span>
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-xs font-semibold text-foreground">
-                        {file.attachment_name}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground">
-                        {formatFileSize(file.attachment_size)} · {formatConversationTime(file.created_at)}
-                      </p>
+                  ) : recentMedia.length > 0 ? (
+                    <div className="grid grid-cols-3 gap-1.5 pt-1">
+                      {recentMedia.map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => setViewingVault(true)}
+                          className="group relative aspect-square overflow-hidden rounded-xl border border-border/70 bg-muted/40 transition hover:opacity-90 cursor-pointer text-left"
+                        >
+                          {item.isVideo ? (
+                            <div className="relative size-full bg-black/80 flex items-center justify-center">
+                              {item.url ? (
+                                <video
+                                  src={item.url}
+                                  preload="metadata"
+                                  className="size-full object-cover opacity-80"
+                                />
+                              ) : null}
+                              <div className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:scale-110 transition">
+                                <div className="size-6 rounded-full bg-black/60 flex items-center justify-center text-white">
+                                  <Play className="size-3 fill-current ml-0.5" />
+                                </div>
+                              </div>
+                            </div>
+                          ) : item.url ? (
+                            <Image
+                              src={item.url}
+                              alt={item.attachment_name || "Shared photo"}
+                              fill
+                              unoptimized
+                              className="object-cover transition duration-300 group-hover:scale-105"
+                            />
+                          ) : (
+                            <div className="grid size-full place-items-center text-xs text-muted-foreground">
+                              <ImageIcon className="size-4" />
+                            </div>
+                          )}
+                        </button>
+                      ))}
                     </div>
-                    <Download className="size-4 text-muted-foreground shrink-0 hover:text-foreground" />
-                  </a>
-                ))}
-              </div>
-            ) : (
-              <div className="rounded-xl border bg-muted/20 p-3.5 text-center">
-                <p className="text-xs text-muted-foreground">No documents shared in this chat yet</p>
-              </div>
-            )}
-          </div>
+                  ) : (
+                    <div className="rounded-xl border border-border/70 bg-card/40 p-4 text-center">
+                      <p className="text-xs text-muted-foreground">No photos or videos shared yet</p>
+                    </div>
+                  )}
+                </div>
 
-          {/* 5. Actions: Mute, Block, Report */}
-          <div className="space-y-2 pt-2 border-t">
-            {/* Mute Notifications */}
-            <button
-              type="button"
-              onClick={() => {
-                if (onToggleMute) onToggleMute();
-                toast.success(isMuted ? "Notifications unmuted" : "Notifications muted");
-              }}
-              className="flex w-full items-center gap-3 rounded-2xl border bg-muted/30 p-3 text-left transition hover:bg-muted cursor-pointer"
-            >
-              {isMuted ? (
-                <Bell className="size-4 text-emerald-500 shrink-0" />
-              ) : (
-                <BellOff className="size-4 text-amber-500 shrink-0" />
-              )}
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold text-foreground">
-                  {isMuted ? "Unmute Notifications" : "Mute Notifications"}
-                </p>
-                <p className="text-[10px] text-muted-foreground">
-                  {isMuted ? "You will receive notifications from this chat" : "Silence notifications for this contact"}
-                </p>
-              </div>
-            </button>
+                {/* 5. Actions: Grouped list card */}
+                <div className="space-y-1.5">
+                  <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-0.5">
+                    Privacy & Controls
+                  </span>
+                  <div className="rounded-xl border border-border/70 bg-card/60 divide-y divide-border/60 overflow-hidden shadow-xs">
+                    {/* Mute Notifications */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (onToggleMute) onToggleMute();
+                        toast.success(isMuted ? "Notifications unmuted" : "Notifications muted");
+                      }}
+                      className="flex items-center justify-between w-full p-3 hover:bg-muted/60 transition text-left cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        {isMuted ? (
+                          <Bell className="size-4 text-primary shrink-0" />
+                        ) : (
+                          <BellOff className="size-4 text-muted-foreground shrink-0" />
+                        )}
+                        <span className="text-xs font-medium text-foreground">
+                          {isMuted ? "Unmute Notifications" : "Mute Notifications"}
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-muted-foreground">
+                        {isMuted ? "Muted" : "Active"}
+                      </span>
+                    </button>
 
-            {/* Block / Unblock Contact */}
-            <button
-              type="button"
-              disabled={blockLoading}
-              onClick={() => void handleToggleBlock()}
-              className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition cursor-pointer ${
-                isBlocked
-                  ? "border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
-                  : "border-destructive/30 bg-destructive/10 hover:bg-destructive/20 text-destructive"
-              }`}
-            >
-              {blockLoading ? (
-                <Loader2 className="size-4 animate-spin shrink-0" />
-              ) : isBlocked ? (
-                <UserCheck className="size-4 shrink-0" />
-              ) : (
-                <UserX className="size-4 shrink-0" />
-              )}
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold">
-                  {isBlocked ? "Unblock Contact" : "Block Contact"}
-                </p>
-                <p className="text-[10px] opacity-80">
-                  {isBlocked
-                    ? "Allow messages and calls from this user"
-                    : "Prevent messages and calls from this user"}
-                </p>
-              </div>
-            </button>
+                    {/* Clear Conversation */}
+                    <button
+                      type="button"
+                      onClick={() => setConfirmClearOpen(true)}
+                      className="flex items-center justify-between w-full p-3 hover:bg-muted/60 transition text-left cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Trash2 className="size-4 text-muted-foreground shrink-0" />
+                        <span className="text-xs font-medium text-foreground">Clear conversation</span>
+                      </div>
+                    </button>
 
-            {/* Report Contact */}
-            <button
-              type="button"
-              onClick={() => toast.info("Report submitted to moderation team")}
-              className="flex w-full items-center gap-3 rounded-2xl border bg-muted/30 p-3 text-left transition hover:bg-muted cursor-pointer"
-            >
-              <ShieldAlert className="size-4 text-amber-500 shrink-0" />
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold text-foreground">Report Contact</p>
-                <p className="text-[10px] text-muted-foreground">Report spam, abuse, or impersonation</p>
+                    {/* Block Contact: muted red button */}
+                    <button
+                      type="button"
+                      disabled={blockLoading}
+                      onClick={() => void handleToggleBlock()}
+                      className="flex items-center justify-between w-full p-3 hover:bg-destructive/10 text-destructive/90 transition text-left cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        {blockLoading ? (
+                          <Loader2 className="size-4 animate-spin shrink-0" />
+                        ) : isBlocked ? (
+                          <UserCheck className="size-4 shrink-0" />
+                        ) : (
+                          <UserX className="size-4 shrink-0" />
+                        )}
+                        <span className="text-xs font-medium">
+                          {isBlocked ? "Unblock contact" : "Block contact"}
+                        </span>
+                      </div>
+                      <span className="text-[11px] opacity-70">
+                        {isBlocked ? "Blocked" : ""}
+                      </span>
+                    </button>
+                  </div>
+                </div>
               </div>
-            </button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmActionDialog
+        open={confirmClearOpen}
+        onOpenChange={setConfirmClearOpen}
+        title="Clear Conversation"
+        description="Are you sure you want to clear all messages in this conversation? This cannot be undone."
+        confirmLabel="Clear"
+        variant="destructive"
+        loading={clearing}
+        onConfirm={() => void handleClearConversation()}
+      />
+    </>
   );
 }

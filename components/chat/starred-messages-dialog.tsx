@@ -98,7 +98,7 @@ export function StarredMessagesDialog({
                 <div
                   key={item.id}
                   onClick={() => handleOpenChat(item.conversation_id)}
-                  className="group relative flex flex-col gap-2 rounded-2xl border border-muted/60 bg-muted/20 p-3.5 transition-all hover:bg-muted/60 hover:border-purple-500/30 cursor-pointer"
+                  className="group relative flex flex-col gap-2 rounded-2xl border border-muted/60 bg-muted/20 p-3.5 transition-all hover:bg-muted/60 hover:border-primary/30 cursor-pointer"
                 >
                   {/* Top Bar: Sender & Chat title & Date */}
                   <div className="flex items-center justify-between gap-2">
@@ -144,7 +144,7 @@ export function StarredMessagesDialog({
                   {/* Attachment Preview if any */}
                   {item.attachment_name && (
                     <div className="flex items-center gap-2 rounded-xl bg-background/80 p-2 text-xs border border-muted/50 ml-8">
-                      <FileText className="size-4 text-purple-600 shrink-0" />
+                      <FileText className="size-4 text-primary shrink-0" />
                       <span className="truncate flex-1 text-muted-foreground">
                         {item.attachment_name}
                       </span>
@@ -152,7 +152,7 @@ export function StarredMessagesDialog({
                   )}
 
                   {/* Bottom hint */}
-                  <div className="flex items-center justify-end text-[10px] font-medium text-purple-600 dark:text-purple-400 opacity-0 group-hover:opacity-100 transition">
+                  <div className="flex items-center justify-end text-[10px] font-medium text-primary opacity-0 group-hover:opacity-100 transition">
                     <span className="flex items-center gap-1">
                       <MessageSquare className="size-3" />
                       Open conversation →

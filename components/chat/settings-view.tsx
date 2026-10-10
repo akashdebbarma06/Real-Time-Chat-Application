@@ -6,17 +6,22 @@ import {
   ArrowLeft,
   Bell,
   Check,
+  CheckCheck,
   ChevronRight,
+  Clock,
   Download,
   Edit2,
   Globe,
+  HardDrive,
   HelpCircle,
   Key,
   KeyRound,
+  Keyboard,
   Lock,
   LogOut,
   Mail,
   MessageSquare,
+  Monitor,
   Palette,
   Phone,
   Search,
@@ -39,26 +44,38 @@ import { TwoFactorDialog } from "@/components/settings/two-factor-dialog";
 import { PhoneVerificationDialog } from "@/components/settings/phone-verification-dialog";
 import { AppearancePanel } from "@/components/settings/appearance-panel";
 import { NotificationSettings } from "@/components/settings/notification-settings";
+import { ChatsSettings } from "@/components/settings/chats-settings";
+import { StorageSettings } from "@/components/settings/storage-settings";
+import { KeyboardShortcutsDialog } from "@/components/settings/keyboard-shortcuts-dialog";
+import { LinkedDevicesDialog } from "@/components/settings/linked-devices-dialog";
 import { FaqSection } from "@/components/help/faq-section";
 import { InAppContactForm } from "@/components/help/in-app-contact-form";
 import { InAppPrivacyView } from "@/components/help/in-app-privacy-view";
-import { useAppearance } from "@/lib/appearance-store";
+import { ACCENT_COLORS, BUBBLE_STYLES, useAppearance } from "@/lib/appearance-store";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { createClient } from "@/lib/supabase/client";
-import { getInitials } from "@/lib/utils";
+import { cn, getInitials } from "@/lib/utils";
 import type { Profile } from "@/types/chat";
 
 interface SettingsViewProps {
   profile: Profile;
+  activeSection?: string | null;
+  onSectionChange?: (section: string | null) => void;
 }
 
 type VisibilityOption = "everyone" | "contacts" | "nobody";
 
-export function SettingsView({ profile }: SettingsViewProps) {
-  const [selectedSection, setSelectedSection] = useState<string | null>(null);
+export function SettingsView({ profile, activeSection, onSectionChange }: SettingsViewProps) {
+  const [internalSection, setInternalSection] = useState<string | null>(null);
+  const selectedSection = activeSection !== undefined ? activeSection : internalSection;
+
+  const setSelectedSection = (section: string | null) => {
+    setInternalSection(section);
+    onSectionChange?.(section);
+  };
 
   // Coming Soon State
   const [comingSoonOpen, setComingSoonOpen] = useState(false);
@@ -89,6 +106,23 @@ export function SettingsView({ profile }: SettingsViewProps) {
   const [lastSeenVisibility, setLastSeenVisibility] = useState<VisibilityOption>("everyone");
   const [profilePicVisibility, setProfilePicVisibility] = useState<VisibilityOption>("everyone");
   const [bioVisibility, setBioVisibility] = useState<VisibilityOption>("everyone");
+  const [readReceipts, setReadReceipts] = useState(() => {
+    if (typeof window !== "undefined") {
+      const v = localStorage.getItem("privacy_read_receipts");
+      if (v !== null) return v === "true";
+    }
+    return true;
+  });
+  const [disappearingTimer, setDisappearingTimer] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("privacy_disappearing_timer") || "Off";
+    }
+    return "Off";
+  });
+
+  // Dialog States
+  const [linkedDevicesOpen, setLinkedDevicesOpen] = useState(false);
+  const [keyboardShortcutsOpen, setKeyboardShortcutsOpen] = useState(false);
 
   // Notification state
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -125,14 +159,21 @@ export function SettingsView({ profile }: SettingsViewProps) {
     {
       id: "privacy",
       title: "Privacy & Security",
-      subtitle: "Visibility controls & blocked contacts",
+      subtitle: "Visibility, read receipts & linked devices",
       icon: ShieldCheck,
       action: () => setSelectedSection("privacy"),
     },
     {
+      id: "chats",
+      title: "Chats",
+      subtitle: "Enter is send, archive behavior & auto-download",
+      icon: MessageSquare,
+      action: () => setSelectedSection("chats"),
+    },
+    {
       id: "appearance",
       title: "Appearance",
-      subtitle: `${preferences.accentColor.charAt(0).toUpperCase() + preferences.accentColor.slice(1)} · ${preferences.bubbleStyle} bubbles · ${preferences.chatBackground} bg`,
+      subtitle: `${ACCENT_COLORS.find((a) => a.id === preferences.accentColor)?.label || "Violet"} · ${BUBBLE_STYLES.find((b) => b.id === preferences.bubbleStyle)?.label || "Default"}${preferences.chatBackground !== "default" ? " · Wallpaper" : ""}`,
       icon: Palette,
       action: () => setSelectedSection("appearance"),
     },
@@ -142,6 +183,20 @@ export function SettingsView({ profile }: SettingsViewProps) {
       subtitle: "Alerts, tone & vibration",
       icon: Bell,
       action: () => setSelectedSection("notifications"),
+    },
+    {
+      id: "storage",
+      title: "Storage & Data",
+      subtitle: "Cache usage, media storage & network",
+      icon: HardDrive,
+      action: () => setSelectedSection("storage"),
+    },
+    {
+      id: "shortcuts",
+      title: "Keyboard Shortcuts",
+      subtitle: "Quick cheat sheet for desktop navigation",
+      icon: Keyboard,
+      action: () => setKeyboardShortcutsOpen(true),
     },
     {
       id: "language",
@@ -190,8 +245,8 @@ export function SettingsView({ profile }: SettingsViewProps) {
       { id: "nobody", label: "Nobody" },
     ];
     return (
-      <div className="space-y-2 rounded-2xl border border-[#222e35] bg-[#202c33]/60 p-3">
-        <p className="text-xs font-semibold text-[#e9edef]">{label}</p>
+      <div className="space-y-2 rounded-2xl border border-border bg-card p-3">
+        <p className="text-xs font-semibold text-foreground">{label}</p>
         <div className="grid grid-cols-3 gap-1.5">
           {options.map((opt) => (
             <button
@@ -200,8 +255,8 @@ export function SettingsView({ profile }: SettingsViewProps) {
               onClick={() => onChange(opt.id)}
               className={`rounded-xl py-2 text-[11px] font-semibold transition-all cursor-pointer ${
                 value === opt.id
-                  ? "bg-[#00a884] text-white shadow-xs"
-                  : "bg-[#111b21] text-[#8696a0] hover:text-[#e9edef] hover:bg-[#202c33]"
+                  ? "bg-primary text-primary-foreground shadow-xs font-semibold"
+                  : "bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80"
               }`}
             >
               {opt.label}
@@ -240,7 +295,7 @@ export function SettingsView({ profile }: SettingsViewProps) {
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-3.5 space-y-3">
+        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-3.5 space-y-3 pb-28 md:pb-6">
           {/* Add new account */}
           <button
             type="button"
@@ -381,44 +436,144 @@ export function SettingsView({ profile }: SettingsViewProps) {
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-3.5 space-y-4">
+        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-3.5 space-y-4 pb-28 md:pb-6">
           <p className="text-xs font-bold text-foreground uppercase tracking-wider">Who Can See</p>
 
           <VisibilitySelector label="Last Seen & Online" value={lastSeenVisibility} onChange={setLastSeenVisibility} />
           <VisibilitySelector label="Profile Picture" value={profilePicVisibility} onChange={setProfilePicVisibility} />
           <VisibilitySelector label="Bio & About" value={bioVisibility} onChange={setBioVisibility} />
 
-          <div className="pt-2">
-            <button
-              type="button"
-              onClick={() => setBlockedContactsOpen(true)}
-              className="flex w-full items-center justify-between rounded-2xl border bg-card/60 p-3 hover:bg-muted transition text-left cursor-pointer"
-            >
-              <div className="flex items-center gap-3">
-                <div className="grid size-9 place-items-center rounded-xl bg-destructive/10 text-destructive shrink-0">
-                  <UserX className="size-4" />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-foreground">Blocked Contacts</p>
-                  <p className="text-[11px] text-muted-foreground">Manage your blocked contacts</p>
-                </div>
+          {/* Messaging & Activity */}
+          <p className="text-xs font-bold text-foreground uppercase tracking-wider pt-2">
+            Messaging & Activity
+          </p>
+
+          {/* Read Receipts Toggle */}
+          <div className="flex items-center justify-between rounded-2xl border bg-card/60 p-3.5 shadow-2xs">
+            <div className="flex items-start gap-3 min-w-0 pr-2">
+              <div className="grid size-9 place-items-center rounded-xl bg-primary/10 text-primary shrink-0 mt-0.5">
+                <CheckCheck className="size-4" />
               </div>
-              <ChevronRight className="size-4 text-muted-foreground" />
-            </button>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-foreground">Read receipts</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+                  If turned off, you won&apos;t send or receive read receipts. Read receipts are always sent for group chats.
+                </p>
+              </div>
+            </div>
+            <Switch
+              checked={readReceipts}
+              onCheckedChange={(val) => {
+                setReadReceipts(val);
+                if (typeof window !== "undefined") {
+                  localStorage.setItem("privacy_read_receipts", String(val));
+                }
+                toast.success(val ? "Read receipts enabled" : "Read receipts disabled");
+              }}
+              aria-label="Toggle read receipts"
+            />
           </div>
+
+          {/* Default message timer for disappearing messages */}
+          <div className="space-y-2 rounded-2xl border border-border bg-card/60 p-3.5 shadow-2xs">
+            <div className="flex items-center gap-3">
+              <div className="grid size-9 place-items-center rounded-xl bg-primary/10 text-primary shrink-0">
+                <Clock className="size-4" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-foreground">Default message timer</p>
+                <p className="text-[11px] text-muted-foreground">Start new chats with disappearing messages</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-4 gap-1.5 pt-1">
+              {(["Off", "24 hours", "7 days", "90 days"] as const).map((timer) => (
+                <button
+                  key={timer}
+                  type="button"
+                  onClick={() => {
+                    setDisappearingTimer(timer);
+                    if (typeof window !== "undefined") {
+                      localStorage.setItem("privacy_disappearing_timer", timer);
+                    }
+                    toast.success(`Default timer set to ${timer}`);
+                  }}
+                  className={`rounded-xl py-2 text-[11px] font-semibold transition-all cursor-pointer ${
+                    disappearingTimer === timer
+                      ? "bg-primary text-primary-foreground shadow-xs font-semibold"
+                      : "bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80"
+                  }`}
+                >
+                  {timer}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Security & Sessions */}
+          <p className="text-xs font-bold text-foreground uppercase tracking-wider pt-2">
+            Security & Sessions
+          </p>
+
+          {/* Linked Devices / Active Sessions */}
+          <button
+            type="button"
+            onClick={() => setLinkedDevicesOpen(true)}
+            className="flex w-full items-center justify-between rounded-2xl border bg-card/60 p-3 hover:bg-muted transition text-left cursor-pointer"
+          >
+            <div className="flex items-center gap-3">
+              <div className="grid size-9 place-items-center rounded-xl bg-primary/10 text-primary shrink-0">
+                <Monitor className="size-4" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-foreground">Linked Devices</p>
+                <p className="text-[11px] text-muted-foreground">Active sessions & remote sign-out</p>
+              </div>
+            </div>
+            <ChevronRight className="size-4 text-muted-foreground" />
+          </button>
+
+          {/* Blocked Contacts */}
+          <button
+            type="button"
+            onClick={() => setBlockedContactsOpen(true)}
+            className="flex w-full items-center justify-between rounded-2xl border bg-card/60 p-3 hover:bg-muted transition text-left cursor-pointer"
+          >
+            <div className="flex items-center gap-3">
+              <div className="grid size-9 place-items-center rounded-xl bg-destructive/10 text-destructive shrink-0">
+                <UserX className="size-4" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-foreground">Blocked Contacts</p>
+                <p className="text-[11px] text-muted-foreground">Manage your blocked contacts</p>
+              </div>
+            </div>
+            <ChevronRight className="size-4 text-muted-foreground" />
+          </button>
         </div>
 
         <BlockedContactsDialog open={blockedContactsOpen} onOpenChange={setBlockedContactsOpen} currentUserId={profile.id} />
+        <LinkedDevicesDialog open={linkedDevicesOpen} onOpenChange={setLinkedDevicesOpen} />
       </div>
     );
   }
 
-  // 4. Notifications Sub-panel (Modern Nested UI)
+  // 4. Chats Sub-panel
+  if (selectedSection === "chats") {
+    return <ChatsSettings onBack={() => setSelectedSection(null)} />;
+  }
+
+  // 5. Storage & Data Sub-panel
+  if (selectedSection === "storage") {
+    return <StorageSettings onBack={() => setSelectedSection(null)} />;
+  }
+
+  // 6. Notifications Sub-panel (Modern Nested UI)
   if (selectedSection === "notifications") {
     return <NotificationSettings onBack={() => setSelectedSection(null)} />;
   }
 
-  // 5. Language Sub-panel
+  // 7. Language Sub-panel
   if (selectedSection === "language") {
     return (
       <div className="flex h-full flex-col bg-background text-foreground min-h-0 select-none">
@@ -439,7 +594,7 @@ export function SettingsView({ profile }: SettingsViewProps) {
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-3.5 space-y-1.5">
+        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-3.5 space-y-1.5 pb-28 md:pb-6">
           {[
             "English",
             "Hindi",
@@ -499,7 +654,7 @@ export function SettingsView({ profile }: SettingsViewProps) {
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-3.5 space-y-2.5">
+        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-3.5 space-y-2.5 pb-28 md:pb-6">
           {/* Help Centre -> Opens FAQ in side panel */}
           <button
             type="button"
@@ -597,7 +752,7 @@ export function SettingsView({ profile }: SettingsViewProps) {
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-3.5">
+        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-3.5 pb-28 md:pb-6">
           <FaqSection
             compact
             onNavigate={(tab) => setSelectedSection(tab === "contact" ? "help:contact" : "help:privacy")}
@@ -628,7 +783,7 @@ export function SettingsView({ profile }: SettingsViewProps) {
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-3.5">
+        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-3.5 pb-28 md:pb-6">
           <InAppContactForm profile={profile} userEmail={authEmail || undefined} compact />
         </div>
       </div>
@@ -656,7 +811,7 @@ export function SettingsView({ profile }: SettingsViewProps) {
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-3.5">
+        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-3.5 pb-28 md:pb-6">
           <InAppPrivacyView profile={profile} userEmail={authEmail || undefined} compact />
         </div>
       </div>
@@ -665,28 +820,28 @@ export function SettingsView({ profile }: SettingsViewProps) {
 
   // ═══════════ MAIN SETTINGS MENU LIST ═══════════
   return (
-    <div className="flex h-full flex-col bg-[#111b21] text-[#e9edef] min-h-0 select-none overflow-hidden">
+    <div className="flex h-full flex-col bg-background text-foreground min-h-0 select-none overflow-hidden">
       {/* Top Header */}
       <div className="px-6 pt-5 pb-3 flex items-center justify-between shrink-0">
-        <h1 className="text-xl font-bold tracking-tight text-white">Settings</h1>
+        <h1 className="text-xl font-bold tracking-tight text-foreground">Settings</h1>
       </div>
 
-      {/* WhatsApp-style Search Input */}
+      {/* Search Input */}
       <div className="px-4 pb-3 shrink-0">
-        <div className="flex items-center gap-3 bg-[#202c33] rounded-lg px-3 py-2 border border-transparent focus-within:border-[#00a884]/50 focus-within:ring-1 focus-within:ring-[#00a884]">
-          <Search className="text-[#8696a0] size-4 shrink-0" />
+        <div className="flex items-center gap-3 bg-muted/50 rounded-lg px-3 py-2 border border-border focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary">
+          <Search className="text-muted-foreground size-4 shrink-0" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search settings"
-            className="w-full bg-transparent text-sm text-[#e9edef] placeholder-[#8696a0] outline-none"
+            className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => setSearchQuery("")}
-              className="text-[#8696a0] hover:text-[#e9edef] cursor-pointer"
+              className="text-muted-foreground hover:text-foreground cursor-pointer"
               aria-label="Clear search"
             >
               <X className="size-3.5" />
@@ -695,15 +850,15 @@ export function SettingsView({ profile }: SettingsViewProps) {
         </div>
       </div>
 
-      {/* User Profile Header (WhatsApp Style) */}
+      {/* User Profile Header */}
       <Link
         href="/profile"
-        className="px-6 py-4 flex items-center gap-4 hover:bg-[#202c33] cursor-pointer transition-colors border-b border-[#222e35] shrink-0 group"
+        className="px-6 py-4 flex items-center gap-4 hover:bg-muted cursor-pointer transition-colors border-b border-border shrink-0 group"
       >
         <div className="relative group shrink-0">
-          <Avatar className="size-16 rounded-full border border-[#222e35]">
+          <Avatar className="size-16 rounded-full border border-border">
             <AvatarImage src={profile.avatar_url || undefined} alt={profile.display_name} />
-            <AvatarFallback className="rounded-full text-lg font-bold bg-[#202c33] text-[#e9edef]">
+            <AvatarFallback className="rounded-full text-lg font-bold bg-muted text-foreground">
               {getInitials(profile.display_name)}
             </AvatarFallback>
           </Avatar>
@@ -713,18 +868,18 @@ export function SettingsView({ profile }: SettingsViewProps) {
         </div>
 
         <div className="flex flex-col flex-1 min-w-0">
-          <span className="text-base font-semibold text-white truncate">
+          <span className="text-base font-semibold text-foreground truncate">
             {profile.display_name || "admin"}
           </span>
-          <span className="text-xs text-[#8696a0] truncate mt-0.5">
+          <span className="text-xs text-muted-foreground truncate mt-0.5">
             {profile.bio || `@${profile.username}` || "Available"}
           </span>
         </div>
       </Link>
 
-      {/* Settings Navigation List (Flat, borderless WhatsApp items) */}
+      {/* Settings Navigation List */}
       <ScrollArea className="flex-1">
-        <div className="flex flex-col py-2">
+        <div className="flex flex-col py-2 pb-28 md:pb-6">
           {filteredItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -732,37 +887,43 @@ export function SettingsView({ profile }: SettingsViewProps) {
                 key={item.id}
                 type="button"
                 onClick={item.action}
-                className="flex items-center gap-6 px-6 py-3.5 hover:bg-[#202c33] transition-colors w-full text-left group cursor-pointer"
+                className={cn(
+                  "flex items-center gap-6 px-6 py-3.5 hover:bg-muted transition-colors w-full text-left group cursor-pointer",
+                  item.id === "invite" && "block md:hidden",
+                  item.id === "shortcuts" && "hidden md:flex"
+                )}
               >
-                <Icon className="text-[#8696a0] group-hover:text-[#d1d7db] shrink-0 size-5" />
-                <div className="flex flex-col min-w-0">
-                  <span className="text-[15px] font-normal text-[#e9edef] leading-snug">
-                    {item.title}
-                  </span>
-                  <span className="text-xs text-[#8696a0] truncate mt-0.5">
-                    {item.subtitle}
-                  </span>
+                <div className="flex items-center gap-6 w-full">
+                  <Icon className="text-muted-foreground group-hover:text-foreground shrink-0 size-5" />
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-[15px] font-normal text-foreground leading-snug">
+                      {item.title}
+                    </span>
+                    <span className="text-xs text-muted-foreground truncate mt-0.5">
+                      {item.subtitle}
+                    </span>
+                  </div>
                 </div>
               </button>
             );
           })}
 
           {filteredItems.length === 0 && (
-            <div className="py-8 text-center text-xs text-[#8696a0]">
+            <div className="py-8 text-center text-xs text-muted-foreground">
               No settings found for &ldquo;{searchQuery}&rdquo;
             </div>
           )}
 
           {/* Divider line */}
-          <div className="h-px bg-[#222e35] my-2 mx-6" />
+          <div className="h-px bg-border my-2 mx-6" />
 
           {/* Log Out Row */}
           <button
             type="button"
             onClick={() => void logout()}
-            className="flex items-center gap-6 px-6 py-3.5 hover:bg-[#202c33] text-[#ea4335] hover:text-red-400 transition-colors w-full text-left group cursor-pointer"
+            className="flex items-center gap-6 px-6 py-3.5 hover:bg-destructive/10 text-destructive transition-colors w-full text-left group cursor-pointer"
           >
-            <LogOut className="shrink-0 size-5 text-[#ea4335] group-hover:text-red-400" />
+            <LogOut className="shrink-0 size-5 text-destructive" />
             <span className="text-[15px] font-medium">Log out</span>
           </button>
         </div>
@@ -772,6 +933,11 @@ export function SettingsView({ profile }: SettingsViewProps) {
         open={comingSoonOpen}
         onOpenChange={setComingSoonOpen}
         featureName={comingSoonFeature}
+      />
+
+      <KeyboardShortcutsDialog
+        open={keyboardShortcutsOpen}
+        onOpenChange={setKeyboardShortcutsOpen}
       />
     </div>
   );

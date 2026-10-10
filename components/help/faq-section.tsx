@@ -364,7 +364,7 @@ export function FaqSection({ compact = false, onNavigate }: FaqSectionProps = {}
                           onClick={() => handleVote(item.id, "up")}
                           className={`flex items-center gap-1 px-2 py-1 rounded-md transition ${
                             currentVote === "up"
-                              ? "bg-emerald-500/10 text-emerald-500 font-semibold"
+                              ? "bg-primary/10 text-primary font-semibold"
                               : "hover:bg-muted hover:text-foreground"
                           }`}
                         >

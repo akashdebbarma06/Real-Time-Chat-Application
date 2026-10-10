@@ -10,26 +10,27 @@ import {
 } from "lucide-react";
 
 interface AttachmentGridMenuProps {
-  onSelectGallery: () => void;
-  onSelectLocation: () => void;
-  onSelectContact: () => void;
+  onSelectPhotosAndVideos?: () => void;
+  onSelectGallery?: () => void;
+  onSelectLocation?: () => void;
+  onSelectContact?: () => void;
   onSelectDocument: () => void;
-  onSelectPoll: () => void;
-  onSelectEvent: () => void;
+  onSelectPoll?: () => void;
+  onSelectEvent?: () => void;
 }
 
 const ATTACHMENT_ITEMS = [
   {
-    id: "gallery",
-    label: "Gallery",
+    id: "photos_and_videos",
+    label: "Photos & videos",
     icon: ImageIcon,
     gradient: "from-purple-600 to-fuchsia-500 shadow-purple-500/25",
   },
   {
-    id: "location",
-    label: "Location",
-    icon: MapPin,
-    gradient: "from-blue-600 to-sky-500 shadow-blue-500/25",
+    id: "document",
+    label: "Document",
+    icon: FileText,
+    gradient: "from-indigo-600 to-violet-500 shadow-indigo-500/25",
   },
   {
     id: "contact",
@@ -38,10 +39,10 @@ const ATTACHMENT_ITEMS = [
     gradient: "from-cyan-500 to-teal-400 shadow-cyan-500/25",
   },
   {
-    id: "document",
-    label: "Document",
-    icon: FileText,
-    gradient: "from-indigo-600 to-violet-500 shadow-indigo-500/25",
+    id: "location",
+    label: "Location",
+    icon: MapPin,
+    gradient: "from-blue-600 to-sky-500 shadow-blue-500/25",
   },
   {
     id: "poll",
@@ -58,6 +59,7 @@ const ATTACHMENT_ITEMS = [
 ] as const;
 
 export function AttachmentGridMenu({
+  onSelectPhotosAndVideos,
   onSelectGallery,
   onSelectLocation,
   onSelectContact,
@@ -67,23 +69,24 @@ export function AttachmentGridMenu({
 }: AttachmentGridMenuProps) {
   function handleClick(id: string) {
     switch (id) {
+      case "photos_and_videos":
       case "gallery":
-        onSelectGallery();
+        (onSelectPhotosAndVideos || onSelectGallery)?.();
         break;
       case "location":
-        onSelectLocation();
+        onSelectLocation?.();
         break;
       case "contact":
-        onSelectContact();
+        onSelectContact?.();
         break;
       case "document":
         onSelectDocument();
         break;
       case "poll":
-        onSelectPoll();
+        onSelectPoll?.();
         break;
       case "event":
-        onSelectEvent();
+        onSelectEvent?.();
         break;
     }
   }
@@ -92,7 +95,7 @@ export function AttachmentGridMenu({
     <div
       role="menu"
       aria-label="Attachment options"
-      className="absolute bottom-full right-4 sm:right-16 mb-3 z-30 w-72 sm:w-80 rounded-3xl border border-white/20 dark:border-white/10 bg-background/85 dark:bg-card/90 backdrop-blur-2xl p-4 shadow-2xl shadow-black/10 dark:shadow-black/40 animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-200"
+      className="absolute bottom-full right-4 sm:right-16 mb-3 z-30 w-72 sm:w-80 rounded-3xl border border-border bg-popover/95 text-popover-foreground backdrop-blur-2xl p-4 shadow-2xl shadow-black/20 animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-200"
     >
       <div className="grid grid-cols-3 gap-y-4 gap-x-2">
         {ATTACHMENT_ITEMS.map((item) => {
@@ -109,7 +112,7 @@ export function AttachmentGridMenu({
               >
                 <Icon className="size-6 drop-shadow-sm" />
               </div>
-              <span className="text-xs font-medium text-foreground tracking-tight group-hover:text-primary transition-colors">
+              <span className="text-xs font-medium text-popover-foreground tracking-tight group-hover:text-primary transition-colors">
                 {item.label}
               </span>
             </button>

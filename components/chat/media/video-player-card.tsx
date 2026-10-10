@@ -30,6 +30,7 @@ interface VideoPlayerCardProps {
   readBySomeoneElse?: boolean;
   own?: boolean;
   onForward?: () => void;
+  onMediaClick?: () => void;
 }
 
 function formatVideoTime(seconds: number): string {
@@ -47,6 +48,7 @@ export function VideoPlayerCard({
   readBySomeoneElse = false,
   own = false,
   onForward,
+  onMediaClick,
 }: VideoPlayerCardProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const lightboxVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -121,12 +123,28 @@ export function VideoPlayerCard({
     video.muted = nextMuted;
   };
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onMediaClick) {
+      if (videoRef.current && isPlaying) {
+        videoRef.current.pause();
+      }
+      onMediaClick();
+      return;
+    }
+    handleTogglePlay(e);
+  };
+
   const openLightbox = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (videoRef.current && isPlaying) {
       videoRef.current.pause();
     }
-    setIsLightboxOpen(true);
+    if (onMediaClick) {
+      onMediaClick();
+    } else {
+      setIsLightboxOpen(true);
+    }
   };
 
   return (
@@ -146,13 +164,13 @@ export function VideoPlayerCard({
 
       {/* ── Sleek Media Card with 16px radius, 4:3 aspect ratio and 2px accent border ── */}
       <div
-        onClick={handleTogglePlay}
+        onClick={handleCardClick}
         role="button"
         tabIndex={0}
         aria-label={isPlaying ? "Pause video" : "Play video"}
         style={{
           borderRadius: "16px",
-          border: "2px solid #ff3b30",
+          border: "2px solid var(--border)",
           overflow: "hidden",
           maxWidth: "320px",
           aspectRatio: "4 / 3",

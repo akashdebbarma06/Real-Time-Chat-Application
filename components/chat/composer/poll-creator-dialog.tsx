@@ -85,7 +85,7 @@ export function PollCreatorDialog({
       <DialogContent className="sm:max-w-md rounded-3xl p-6 bg-card border shadow-2xl">
         <DialogHeader className="space-y-1">
           <div className="flex items-center gap-2">
-            <div className="grid size-9 place-items-center rounded-xl bg-emerald-500/10 text-emerald-500">
+            <div className="grid size-9 place-items-center rounded-xl bg-primary/10 text-primary">
               <BarChart2 className="size-5" />
             </div>
             <div>
@@ -172,7 +172,7 @@ export function PollCreatorDialog({
             </Button>
             <Button
               type="submit"
-              className="rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-500/20"
+              className="rounded-xl text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-md shadow-primary/20"
             >
               Create Poll
             </Button>

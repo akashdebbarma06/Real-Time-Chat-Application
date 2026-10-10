@@ -121,7 +121,7 @@ export function VideoNoteBubble({
 
       {/* Standalone Circular Video Note Column */}
       <div className={cn("flex flex-col", own ? "items-end" : "items-start")}>
-        {/* Strict 1:1 circular container with accent border 3px solid #ff3b30 */}
+        {/* Strict 1:1 circular container with accent border 3px solid var(--primary) */}
         <div
           onClick={handleTogglePlay}
           role="button"
@@ -133,7 +133,7 @@ export function VideoNoteBubble({
             aspectRatio: "1 / 1",
             borderRadius: "50%",
             overflow: "hidden",
-            border: "3px solid #ff3b30",
+            border: "3px solid var(--primary)",
             boxShadow: "0 6px 20px rgba(0,0,0,0.4)",
           }}
           className="relative bg-black group cursor-pointer select-none shrink-0 transition-transform active:scale-98"

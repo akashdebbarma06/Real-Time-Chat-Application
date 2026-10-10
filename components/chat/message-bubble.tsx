@@ -36,6 +36,7 @@ interface MessageBubbleProps {
   onEdit?: (messageId: string, newContent: string) => void;
   onDelete?: (messageId: string) => void;
   onForward?: (message: ChatMessage) => void;
+  onMediaClick?: (message: ChatMessage, url?: string) => void;
   isMenuOpen?: boolean;
   onOpenMenu?: () => void;
   onCloseMenu?: () => void;
@@ -53,6 +54,7 @@ export function MessageBubble({
   onEdit,
   onDelete,
   onForward,
+  onMediaClick,
   isMenuOpen: isMenuOpenProp,
   onOpenMenu,
   onCloseMenu,
@@ -84,7 +86,11 @@ export function MessageBubble({
   const handleOpen = useCallback(() => {
     if (bubbleRef.current) {
       const rect = bubbleRef.current.getBoundingClientRect();
-      if (rect.top < 320) {
+      const spaceBelow = window.innerHeight - rect.bottom;
+      // Calculate bounding rect against window.innerHeight: if space below < 300px, automatically flip to render ABOVE
+      if (spaceBelow < 300) {
+        setMenuPlacement("top");
+      } else if (rect.top < 300) {
         setMenuPlacement("bottom");
       } else {
         setMenuPlacement("top");
@@ -366,12 +372,15 @@ export function MessageBubble({
         onTouchMove={clearLongPress}
         onContextMenu={handleContextMenu}
         className={cn(
-          "relative flex flex-col w-fit max-w-[70%]",
+          "relative flex flex-col min-w-[90px] w-fit max-w-[75%]",
+          isPoll && "w-full max-w-[360px] sm:max-w-[400px]",
           menuOpen ? "z-50" : "z-1",
           own && "items-end"
         )}
         style={{
-          maxWidth: "70%",
+          minWidth: isPoll ? undefined : "90px",
+          width: isPoll ? "100%" : "fit-content",
+          maxWidth: isPoll ? "400px" : "75%",
           position: "relative",
           zIndex: menuOpen ? 50 : 1,
         }}
@@ -392,7 +401,8 @@ export function MessageBubble({
         {/* Bubble */}
         <div
           className={cn(
-            "chat-bubble message-bubble relative transition-all select-text w-fit max-w-[70%] break-words [word-break:break-word] [overflow-wrap:break-word]",
+            "chat-bubble message-bubble relative transition-all select-text min-w-[90px] w-fit max-w-[75%] break-words [word-break:break-word] [overflow-wrap:break-word]",
+            isPoll && "!w-full !max-w-[360px] sm:!max-w-[400px] box-border",
             (isMedia && !showTextContent) || isCustomRichCard
               ? "!bg-transparent !p-0 !border-0 !shadow-none"
               : cn(
@@ -403,8 +413,9 @@ export function MessageBubble({
                 )
           )}
           style={{
-            width: "fit-content",
-            maxWidth: "70%",
+            minWidth: isPoll ? undefined : "90px",
+            width: isPoll ? "100%" : "fit-content",
+            maxWidth: isPoll ? "400px" : "75%",
             wordBreak: "break-word",
             overflowWrap: "break-word",
             borderRadius: isVideoNote && !showTextContent ? "50%" : "12px",
@@ -453,14 +464,16 @@ export function MessageBubble({
               own={own}
             />
           ) : isPoll && parsedPoll ? (
-            <PollCard
-              messageId={message.id}
-              poll={parsedPoll}
-              timestamp={formatMessageTime(message.created_at)}
-              showReceipt={own}
-              readBySomeoneElse={readBySomeoneElse}
-              own={own}
-            />
+            <div className="w-full max-w-[360px] sm:max-w-[400px] box-border">
+              <PollCard
+                messageId={message.id}
+                poll={parsedPoll}
+                timestamp={formatMessageTime(message.created_at)}
+                showReceipt={own}
+                readBySomeoneElse={readBySomeoneElse}
+                own={own}
+              />
+            </div>
           ) : (
             <>
               {showTextContent && (
@@ -481,6 +494,7 @@ export function MessageBubble({
                   message={message}
                   own={own}
                   onForward={handleForwardMessage}
+                  onMediaClick={onMediaClick}
                 />
               )}
             </>
@@ -490,7 +504,7 @@ export function MessageBubble({
           {(!isMedia || showTextContent) && !isCustomRichCard && (
             <div
               className={cn(
-                "mt-1 flex items-center justify-end gap-1 text-[10px]",
+                "mt-1 flex items-center justify-end gap-1 text-[10px] whitespace-nowrap",
                 isVoiceNote && !showTextContent
                   ? "px-2.5 pb-1.5 -mt-0.5"
                   : "pt-0.5",
@@ -515,13 +529,13 @@ export function MessageBubble({
                   aria-label="Starred message"
                 />
               )}
-              <time>{formatMessageTime(message.created_at)}</time>
-              {message.edited_at && <span>· edited</span>}
+              <time className="whitespace-nowrap">{formatMessageTime(message.created_at)}</time>
+              {message.edited_at && <span className="whitespace-nowrap">· edited</span>}
               {own && showReceipt && (
                 readBySomeoneElse ? (
-                  <CheckCheck className={cn("size-3.5", own && !isMedia ? "text-primary-foreground/90" : "text-primary")} aria-label="Read" />
+                  <CheckCheck className={cn("size-3.5 shrink-0 whitespace-nowrap", own && !isMedia ? "text-primary-foreground/90" : "text-primary")} aria-label="Read" />
                 ) : (
-                  <Check className={cn("size-3.5", own && !isMedia ? "text-primary-foreground/60" : "text-muted-foreground")} aria-label="Sent" />
+                  <Check className={cn("size-3.5 shrink-0 whitespace-nowrap", own && !isMedia ? "text-primary-foreground/60" : "text-muted-foreground")} aria-label="Sent" />
                 )
               )}
             </div>

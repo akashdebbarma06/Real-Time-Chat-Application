@@ -130,9 +130,9 @@ export function ChangeEmailDialog({
         ) : (
           /* Success state */
           <div className="space-y-4 pt-2">
-            <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-center">
-              <div className="mx-auto mb-3 inline-flex size-12 items-center justify-center rounded-full bg-emerald-500/20">
-                <Mail className="size-5 text-emerald-500" />
+            <div className="rounded-xl border border-primary/30 bg-primary/10 p-4 text-center">
+              <div className="mx-auto mb-3 inline-flex size-12 items-center justify-center rounded-full bg-primary/20">
+                <Mail className="size-5 text-primary" />
               </div>
               <p className="text-sm font-medium text-foreground">
                 Confirmation emails sent!

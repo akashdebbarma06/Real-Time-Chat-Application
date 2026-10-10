@@ -136,7 +136,7 @@ export function ContactsView({ currentUserId, onlineUserIds, onConversationCreat
               tab === "online" ? "bg-background font-semibold text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <Zap className="size-3.5 text-emerald-500" />
+            <Zap className="size-3.5 text-primary" />
             <span>Online ({onlineUserIds.size})</span>
           </button>
 

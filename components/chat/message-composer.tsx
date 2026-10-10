@@ -32,6 +32,8 @@ import {
   CameraCaptureDialog,
   type CameraMode,
 } from "./composer/camera-capture-dialog";
+import { PhotosVideosPreviewDialog } from "./composer/photos-videos-preview-dialog";
+import { DocumentPreviewDialog } from "./composer/document-preview-dialog";
 import { VoiceRecorder } from "./composer/voice-recorder";
 
 type OverlayMenu = "none" | "add" | "attachment" | "camera" | "media-drawer";
@@ -44,6 +46,8 @@ interface MessageComposerProps {
   onSendText: (content: string) => Promise<void>;
   onSendFile: (file: File, caption: string, messageType?: string) => Promise<void>;
   onTyping: (isTyping: boolean) => void;
+  onSelectPhotosVideos?: (files: File[]) => void;
+  onSelectDocument?: (file: File) => void;
 }
 
 export function MessageComposer({
@@ -54,10 +58,20 @@ export function MessageComposer({
   onSendText,
   onSendFile,
   onTyping,
+  onSelectPhotosVideos,
+  onSelectDocument,
 }: MessageComposerProps) {
   const [content, setContent] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  // WhatsApp Web Preview / MediaEditorModal States (Unified selectedMedia state)
+  const [photosVideosModalOpen, setPhotosVideosModalOpen] = useState(false);
+  const [selectedMedia, setSelectedMedia] = useState<File[]>([]);
+  const photosVideosFiles = selectedMedia;
+  const setPhotosVideosFiles = setSelectedMedia;
+  const [documentModalOpen, setDocumentModalOpen] = useState(false);
+  const [documentFile, setDocumentFile] = useState<File | null>(null);
 
   // Overlay state: mutually exclusive ('none' | 'add' | 'attachment' | 'camera' | 'media-drawer')
   const [activeMenu, setActiveMenu] = useState<OverlayMenu>("none");
@@ -172,6 +186,42 @@ export function MessageComposer({
     setPreviewUrl(null);
     if (galleryInputRef.current) galleryInputRef.current.value = "";
     if (documentInputRef.current) documentInputRef.current.value = "";
+  }
+
+  function handlePhotosVideosSelect(files: File[]) {
+    const validFiles = files.filter((f) => {
+      const v = validateUploadFile(f);
+      if (!v.valid) {
+        toast.error(v.error || "Invalid file selection");
+        return false;
+      }
+      return true;
+    });
+    if (validFiles.length > 0) {
+      if (onSelectPhotosVideos) {
+        onSelectPhotosVideos(validFiles);
+      } else {
+        setPhotosVideosFiles(validFiles);
+        setPhotosVideosModalOpen(true);
+      }
+      setActiveMenu("none");
+    }
+  }
+
+  function handleDocumentSelect(file?: File) {
+    if (!file) return;
+    const v = validateUploadFile(file);
+    if (!v.valid) {
+      toast.error(v.error || "Invalid document selection");
+      return;
+    }
+    if (onSelectDocument) {
+      onSelectDocument(file);
+    } else {
+      setDocumentFile(file);
+      setDocumentModalOpen(true);
+    }
+    setActiveMenu("none");
   }
 
   // 3. Location sharing with GPS permission request
@@ -351,6 +401,10 @@ export function MessageComposer({
 
         {activeMenu === "attachment" && (
           <AttachmentGridMenu
+            onSelectPhotosAndVideos={() => {
+              setActiveMenu("none");
+              galleryInputRef.current?.click();
+            }}
             onSelectGallery={() => {
               setActiveMenu("none");
               galleryInputRef.current?.click();
@@ -511,17 +565,69 @@ export function MessageComposer({
       <input
         ref={galleryInputRef}
         type="file"
+        multiple
         accept="image/*,video/*"
         className="hidden"
-        onChange={(e) => void handleFileSelect(e.target.files?.[0])}
+        onChange={(e) => {
+          if (e.target.files && e.target.files.length > 0) {
+            handlePhotosVideosSelect(Array.from(e.target.files));
+          }
+          e.target.value = "";
+        }}
       />
       <input
         ref={documentInputRef}
         type="file"
-        accept=".pdf,.doc,.docx,.txt,.xls,.xlsx,.zip"
+        accept=".pdf,.docx,.doc,.txt,.zip,.rar,.xls,.xlsx,.ppt,.pptx,application/*,*/*"
         className="hidden"
-        onChange={(e) => void handleFileSelect(e.target.files?.[0])}
+        onChange={(e) => {
+          if (e.target.files && e.target.files[0]) {
+            handleDocumentSelect(e.target.files[0]);
+          }
+          e.target.value = "";
+        }}
       />
+
+      {/* WhatsApp Web Preview Modals (Fallback when not handled by chat pane) */}
+      {!onSelectPhotosVideos && (
+        <PhotosVideosPreviewDialog
+          open={photosVideosModalOpen}
+          files={photosVideosFiles}
+          onClose={() => {
+            setPhotosVideosModalOpen(false);
+            setPhotosVideosFiles([]);
+          }}
+          onSend={async (items) => {
+            for (const item of items) {
+              const isVid =
+                item.file.type.startsWith("video/") ||
+                Boolean(item.file.name.match(/\.(mp4|mov|mkv|webm)$/i));
+              await onSendFile(
+                item.file,
+                item.caption,
+                isVid ? "video" : "image"
+              );
+            }
+          }}
+          onAddMoreFiles={(newFiles) => {
+            setPhotosVideosFiles((prev) => [...prev, ...newFiles]);
+          }}
+        />
+      )}
+
+      {!onSelectDocument && (
+        <DocumentPreviewDialog
+          open={documentModalOpen}
+          file={documentFile}
+          onClose={() => {
+            setDocumentModalOpen(false);
+            setDocumentFile(null);
+          }}
+          onSend={async (file, caption) => {
+            await onSendFile(file, caption, "file");
+          }}
+        />
+      )}
 
       {/* Interactive Modals */}
       <PollCreatorDialog
@@ -547,13 +653,9 @@ export function MessageComposer({
         mode={cameraMode}
         onOpenChange={setCameraDialogOpen}
         onCaptureMedia={(file) => {
-          const isPhoto = cameraMode === "photo" || file.type.startsWith("image/");
-          const isVideoNote = cameraMode === "video-note";
-          void onSendFile(
-            file,
-            isVideoNote ? "Video Note" : isPhoto ? "Photo" : "Camera Capture",
-            isVideoNote ? "video_note" : isPhoto ? "image" : "video"
-          );
+          // Unified Capture Pipeline:
+          // Do NOT upload immediately. Route to gallery media preview & edit modal!
+          handlePhotosVideosSelect([file]);
         }}
       />
     </div>

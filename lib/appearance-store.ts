@@ -7,6 +7,7 @@ export type AppIconChoice = "classic" | "neon" | "emerald" | "sunset" | "midnigh
 export type ChatBackground = "default" | "dots" | "grid" | "stars" | "mesh";
 export type BubbleStyle = "rounded" | "classic" | "minimal" | "pill";
 export type FontSizeChoice = "normal" | "compact" | "large";
+export type ChatViewMode = "single" | "multi";
 
 export interface AppearancePreferences {
   accentColor: AccentColor;
@@ -14,6 +15,7 @@ export interface AppearancePreferences {
   chatBackground: ChatBackground;
   bubbleStyle: BubbleStyle;
   fontSize: FontSizeChoice;
+  chatViewMode?: ChatViewMode;
 }
 
 export const DEFAULT_APPEARANCE: AppearancePreferences = {
@@ -22,6 +24,7 @@ export const DEFAULT_APPEARANCE: AppearancePreferences = {
   chatBackground: "default",
   bubbleStyle: "rounded",
   fontSize: "normal",
+  chatViewMode: "single",
 };
 
 const STORAGE_KEY = "aether_appearance_preferences";
@@ -34,12 +37,12 @@ export const ACCENT_COLORS: {
   gradient: string;
   description: string;
 }[] = [
-  { id: "purple", label: "Aether Purple", hex: "#8b5cf6", gradient: "from-purple-500 to-indigo-600", description: "Signature cosmic violet" },
-  { id: "blue", label: "Electric Blue", hex: "#3b82f6", gradient: "from-blue-500 to-cyan-600", description: "Vibrant high-contrast electric blue" },
-  { id: "emerald", label: "Emerald Matrix", hex: "#10b981", gradient: "from-emerald-500 to-teal-600", description: "Cybernetic mint & emerald" },
-  { id: "rose", label: "Sunset Rose", hex: "#f43f5e", gradient: "from-rose-500 to-pink-600", description: "Warm glowing crimson & rose" },
-  { id: "amber", label: "Solar Amber", hex: "#f59e0b", gradient: "from-amber-500 to-orange-600", description: "Warm radiant golden amber" },
-  { id: "cyan", label: "Cyber Cyan", hex: "#06b6d4", gradient: "from-cyan-500 to-teal-500", description: "Futuristic neon cyan glow" },
+  { id: "emerald", label: "Emerald", hex: "#10b981", gradient: "from-emerald-500 to-teal-600", description: "Cybernetic mint & emerald" },
+  { id: "blue", label: "Ocean", hex: "#3b82f6", gradient: "from-blue-500 to-cyan-600", description: "Vibrant ocean blue" },
+  { id: "cyan", label: "Teal", hex: "#06b6d4", gradient: "from-cyan-500 to-teal-500", description: "Modern luminous teal" },
+  { id: "purple", label: "Violet", hex: "#8b5cf6", gradient: "from-purple-500 to-indigo-600", description: "Signature cosmic violet" },
+  { id: "rose", label: "Rose", hex: "#f43f5e", gradient: "from-rose-500 to-pink-600", description: "Warm glowing crimson & rose" },
+  { id: "amber", label: "Amber", hex: "#f59e0b", gradient: "from-amber-500 to-orange-600", description: "Warm radiant golden amber" },
 ];
 
 export const APP_ICONS: {
@@ -75,10 +78,10 @@ export const BUBBLE_STYLES: {
   ownClass: string;
   peerClass: string;
 }[] = [
-  { id: "rounded", label: "Modern Rounded", description: "Balanced 12px curved corners with soft subtle tail", ownClass: "rounded-xl rounded-br-xs", peerClass: "rounded-xl rounded-bl-xs" },
-  { id: "classic", label: "Classic Chat", description: "Traditional 12px chat bubble with subtle tail", ownClass: "rounded-xl rounded-br-none", peerClass: "rounded-xl rounded-bl-none" },
-  { id: "minimal", label: "Sharp Minimal", description: "Subtle 8px rounded corners, sleek technical look", ownClass: "rounded-lg rounded-br-none", peerClass: "rounded-lg rounded-bl-none" },
-  { id: "pill", label: "Smooth Pill", description: "Soft 12px curvature with slim profile", ownClass: "rounded-xl rounded-br-sm", peerClass: "rounded-xl rounded-bl-sm" },
+  { id: "rounded", label: "Default", description: "Balanced curved corners with soft subtle tail", ownClass: "rounded-2xl rounded-br-xs", peerClass: "rounded-2xl rounded-bl-xs" },
+  { id: "classic", label: "Classic", description: "Traditional chat bubble with sharp corner", ownClass: "rounded-2xl rounded-br-none", peerClass: "rounded-2xl rounded-bl-none" },
+  { id: "pill", label: "Pill", description: "Soft elongated pill curvature", ownClass: "rounded-full px-4 py-2", peerClass: "rounded-full px-4 py-2" },
+  { id: "minimal", label: "Minimal", description: "Subtle 8px rounded corners", ownClass: "rounded-lg rounded-br-none", peerClass: "rounded-lg rounded-bl-none" },
 ];
 
 export function getStoredAppearance(): AppearancePreferences {
@@ -93,6 +96,7 @@ export function getStoredAppearance(): AppearancePreferences {
       chatBackground: parsed.chatBackground || DEFAULT_APPEARANCE.chatBackground,
       bubbleStyle: parsed.bubbleStyle || DEFAULT_APPEARANCE.bubbleStyle,
       fontSize: parsed.fontSize || DEFAULT_APPEARANCE.fontSize,
+      chatViewMode: parsed.chatViewMode || DEFAULT_APPEARANCE.chatViewMode,
     };
   } catch {
     return DEFAULT_APPEARANCE;
@@ -106,6 +110,7 @@ export function applyAppearanceToDOM(prefs: AppearancePreferences) {
   root.setAttribute("data-bubble-style", prefs.bubbleStyle);
   root.setAttribute("data-chat-bg", prefs.chatBackground);
   root.setAttribute("data-font-size", prefs.fontSize);
+  root.setAttribute("data-chat-view", prefs.chatViewMode || "single");
 }
 
 export function saveAppearancePreferences(prefs: AppearancePreferences) {
@@ -174,6 +179,7 @@ export function useAppearance() {
     setChatBackground: (chatBackground: ChatBackground) => updateAppearancePreferences({ chatBackground }),
     setBubbleStyle: (bubbleStyle: BubbleStyle) => updateAppearancePreferences({ bubbleStyle }),
     setFontSize: (fontSize: FontSizeChoice) => updateAppearancePreferences({ fontSize }),
+    setChatViewMode: (chatViewMode: ChatViewMode) => updateAppearancePreferences({ chatViewMode }),
     updatePreferences: updateAppearancePreferences,
     resetPreferences: resetAppearancePreferences,
   };

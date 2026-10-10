@@ -150,7 +150,7 @@ export function NewGroupDialog({
       <DialogContent className="max-w-md p-6 rounded-3xl sm:rounded-3xl border shadow-2xl">
         <DialogHeader className="space-y-1.5 pb-1 text-left">
           <div className="flex items-center gap-2.5">
-            <div className="grid size-9 place-items-center rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
+            <div className="grid size-9 place-items-center rounded-xl bg-primary/10 text-primary">
               <Users className="size-5" />
             </div>
             <div>
@@ -175,7 +175,7 @@ export function NewGroupDialog({
               onChange={(e) => setGroupName(e.target.value)}
               placeholder="e.g. Design Team, Family, Book Club..."
               maxLength={80}
-              className="h-10 text-sm rounded-xl bg-muted/40 border-muted focus-visible:ring-purple-500/30"
+              className="h-10 text-sm rounded-xl bg-muted/40 border-muted focus-visible:ring-primary/30"
               autoFocus
             />
           </div>
@@ -190,13 +190,13 @@ export function NewGroupDialog({
                 {selectedProfiles.map((p) => (
                   <span
                     key={p.id}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-purple-500/15 text-purple-700 dark:text-purple-300 px-2.5 py-0.5 text-xs font-medium"
+                    className="inline-flex items-center gap-1.5 rounded-full bg-primary/15 text-primary px-2.5 py-0.5 text-xs font-medium"
                   >
                     <span>{p.display_name}</span>
                     <button
                       type="button"
                       onClick={() => removeSelected(p.id)}
-                      className="rounded-full hover:bg-purple-500/20 p-0.5"
+                      className="rounded-full hover:bg-primary/20 p-0.5"
                       aria-label={`Remove ${p.display_name}`}
                     >
                       <X className="size-3" />
@@ -218,7 +218,7 @@ export function NewGroupDialog({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search people by name or @username..."
-                className="pl-10 h-10 text-sm rounded-xl bg-muted/40 border-muted focus-visible:ring-purple-500/30"
+                className="pl-10 h-10 text-sm rounded-xl bg-muted/40 border-muted focus-visible:ring-primary/30"
               />
             </div>
           </div>
@@ -227,7 +227,7 @@ export function NewGroupDialog({
           <ScrollArea className="h-56 rounded-2xl border bg-card p-1">
             {loading ? (
               <div className="flex h-48 flex-col items-center justify-center gap-2 text-muted-foreground">
-                <Loader2 className="size-5 animate-spin text-purple-600" />
+                <Loader2 className="size-5 animate-spin text-primary" />
                 <p className="text-xs">Loading contacts...</p>
               </div>
             ) : users.length === 0 ? (
@@ -244,15 +244,15 @@ export function NewGroupDialog({
                       type="button"
                       onClick={() => toggleUser(user.id)}
                       className={cn(
-                        "flex w-full items-center gap-3 rounded-xl p-2 text-left transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500",
-                        isChecked ? "bg-purple-500/10" : "hover:bg-muted/70"
+                        "flex w-full items-center gap-3 rounded-xl p-2 text-left transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                        isChecked ? "bg-primary/10" : "hover:bg-muted/70"
                       )}
                     >
                       <div
                         className={cn(
-                          "grid size-5 place-items-center rounded-md border text-white transition-colors shrink-0",
+                          "grid size-5 place-items-center rounded-md border transition-colors shrink-0",
                           isChecked
-                            ? "bg-purple-600 border-purple-600"
+                            ? "bg-primary border-primary text-primary-foreground"
                             : "border-muted-foreground/30 bg-background"
                         )}
                       >
@@ -295,7 +295,7 @@ export function NewGroupDialog({
             type="button"
             onClick={() => void handleCreateGroup()}
             disabled={submitting || !groupName.trim() || selectedIds.size === 0}
-            className="rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold shadow-xs"
+            className="rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-xs"
           >
             {submitting ? (
               <>

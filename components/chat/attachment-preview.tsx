@@ -15,12 +15,14 @@ interface AttachmentPreviewProps {
   message: ChatMessage;
   own?: boolean;
   onForward?: (message: ChatMessage) => void;
+  onMediaClick?: (message: ChatMessage, url: string) => void;
 }
 
 export function AttachmentPreview({
   message,
   own = false,
   onForward,
+  onMediaClick,
 }: AttachmentPreviewProps) {
   const [url, setUrl] = useState<string | null>(null);
 
@@ -56,7 +58,7 @@ export function AttachmentPreview({
   const readBySomeoneElse = message.read_receipts?.some((r) => r.user_id !== message.sender_id);
   const handleForward = () => onForward?.(message);
 
-  // 1. Sleek Photo Attachment Media Card (16px radius, 2px solid #ff3b30, HD & time badges)
+  // 1. Sleek Photo Attachment Media Card (16px radius, dynamic border, HD & time badges)
   const isPhoto = Boolean(
     message.message_type === "image" ||
     msgType === "image" ||
@@ -74,11 +76,12 @@ export function AttachmentPreview({
         readBySomeoneElse={readBySomeoneElse}
         own={own}
         onForward={handleForward}
+        onMediaClick={() => onMediaClick?.(message, url)}
       />
     );
   }
 
-  // 2. Telegram-Style Standalone Circular Video Note (1:1, 3px solid #ff3b30, tap-to-play)
+  // 2. Telegram-Style Standalone Circular Video Note (1:1, primary border, tap-to-play)
   if (
     msgType === "video_note" ||
     msgMessageType === "video_note" ||
@@ -97,7 +100,7 @@ export function AttachmentPreview({
     );
   }
 
-  // 3. Camera Capture & Video (Sleek Media Card with 16px radius, 2px solid #ff3b30, HD & time badges)
+  // 3. Camera Capture & Video (Sleek Media Card with 16px radius, dynamic border, HD & time badges)
   const isVideo = Boolean(
     !isPhoto &&
     (msgType === "video" ||
@@ -122,6 +125,7 @@ export function AttachmentPreview({
         readBySomeoneElse={readBySomeoneElse}
         own={own}
         onForward={handleForward}
+        onMediaClick={() => onMediaClick?.(message, url)}
       />
     );
   }

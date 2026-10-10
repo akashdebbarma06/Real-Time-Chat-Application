@@ -50,15 +50,15 @@ export function StatusView({ profile, conversations }: StatusViewProps) {
       <div className="px-5 pt-4 pb-3 border-b border-border/50">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold tracking-tight">Status</h2>
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 font-semibold border border-purple-500/20">
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold border border-primary/20">
             Preview
           </span>
         </div>
       </div>
 
       {/* Notice */}
-      <div className="mx-4 mt-3 rounded-2xl border border-purple-500/20 bg-purple-500/5 p-3 text-xs text-muted-foreground space-y-1">
-        <div className="flex items-center gap-1.5 font-semibold text-purple-600 dark:text-purple-400">
+      <div className="mx-4 mt-3 rounded-2xl border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground space-y-1">
+        <div className="flex items-center gap-1.5 font-semibold text-primary">
           <Info className="size-3.5" />
           <span>Stories & Ephemeral Status</span>
         </div>
@@ -68,7 +68,7 @@ export function StatusView({ profile, conversations }: StatusViewProps) {
       </div>
 
       <ScrollArea className="flex-1 px-4 mt-3">
-        <div className="space-y-4 pb-4">
+        <div className="space-y-4 pb-28 md:pb-6">
           {/* My Status Card */}
           <div className="space-y-2">
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">My Status</p>
@@ -81,11 +81,11 @@ export function StatusView({ profile, conversations }: StatusViewProps) {
               className="flex w-full items-center gap-3 rounded-2xl border border-border/60 bg-card p-3 hover:bg-muted/40 transition text-left cursor-pointer"
             >
               <div className="relative">
-                <Avatar className="size-11 ring-2 ring-purple-500/30">
+                <Avatar className="size-11 ring-2 ring-primary/30">
                   <AvatarImage src={profile.avatar_url || undefined} />
                   <AvatarFallback className="text-xs">{getInitials(profile.display_name)}</AvatarFallback>
                 </Avatar>
-                <span className="absolute bottom-0 right-0 grid size-4 place-items-center rounded-full bg-purple-600 text-white text-[10px] shadow-xs">
+                <span className="absolute bottom-0 right-0 grid size-4 place-items-center rounded-full bg-primary text-primary-foreground text-[10px] shadow-xs">
                   <Plus className="size-3" />
                 </span>
               </div>
@@ -112,7 +112,7 @@ export function StatusView({ profile, conversations }: StatusViewProps) {
                   key={contact.id}
                   className="flex items-center gap-3 rounded-xl p-2.5 transition hover:bg-muted/40 border border-transparent hover:border-border/40"
                 >
-                  <div className="rounded-full p-0.5 ring-2 ring-purple-500/60">
+                  <div className="rounded-full p-0.5 ring-2 ring-primary/60">
                     <Avatar className="size-10">
                       <AvatarImage src={contact.avatar_url || undefined} />
                       <AvatarFallback className="text-xs">{getInitials(contact.display_name)}</AvatarFallback>
@@ -154,7 +154,7 @@ export function StatusView({ profile, conversations }: StatusViewProps) {
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl text-xs">
                 Cancel
               </Button>
-              <Button type="submit" className="rounded-xl text-xs bg-purple-600 hover:bg-purple-500 text-white">
+              <Button type="submit" className="rounded-xl text-xs bg-primary hover:bg-primary/90 text-primary-foreground">
                 Save Status
               </Button>
             </div>

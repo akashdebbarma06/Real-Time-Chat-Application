@@ -101,7 +101,7 @@ export function NotificationSettings({ onBack }: NotificationSettingsProps) {
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-3.5 space-y-4">
+        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-3.5 space-y-4 pb-28 md:pb-6">
           <div className="flex items-center justify-between rounded-2xl border bg-card/60 p-3.5 shadow-xs">
             <div className="pr-4">
               <p className="text-sm font-medium text-foreground">Message notifications</p>
@@ -170,7 +170,7 @@ export function NotificationSettings({ onBack }: NotificationSettingsProps) {
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-3.5 space-y-4">
+        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-3.5 space-y-4 pb-28 md:pb-6">
           <div className="flex items-center justify-between rounded-2xl border bg-card/60 p-3.5 shadow-xs">
             <div className="pr-4">
               <p className="text-sm font-medium text-foreground">Group notifications</p>
@@ -239,7 +239,7 @@ export function NotificationSettings({ onBack }: NotificationSettingsProps) {
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-3.5 space-y-4">
+        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-3.5 space-y-4 pb-28 md:pb-6">
           <div className="flex items-center justify-between rounded-2xl border bg-card/60 p-3.5 shadow-xs">
             <div className="pr-4">
               <p className="text-sm font-medium text-foreground">Status update notifications</p>
@@ -273,7 +273,7 @@ export function NotificationSettings({ onBack }: NotificationSettingsProps) {
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-3.5 space-y-4">
+        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-3.5 space-y-4 pb-28 md:pb-6">
           <div className="flex items-center justify-between rounded-2xl border bg-card/60 p-3.5 shadow-xs">
             <div className="pr-4">
               <p className="text-sm font-medium text-foreground">Call alerts</p>
@@ -330,28 +330,28 @@ export function NotificationSettings({ onBack }: NotificationSettingsProps) {
   ];
 
   return (
-    <div className="flex h-full flex-col bg-[#111b21] text-[#e9edef] min-h-0 select-none">
+    <div className="flex h-full flex-col bg-background text-foreground min-h-0 select-none">
       {/* Header */}
-      <div className="flex items-center gap-3 p-3.5 border-b border-[#222e35] shrink-0 bg-[#111b21] backdrop-blur-md">
+      <div className="flex items-center gap-3 p-3.5 border-b border-border/80 shrink-0 bg-background/80 backdrop-blur-md">
         <Button
           type="button"
           variant="ghost"
           size="icon-sm"
           onClick={onBack}
-          className="rounded-xl size-8 shrink-0 hover:bg-[#202c33] text-[#e9edef]"
+          className="rounded-xl size-8 shrink-0 hover:bg-muted text-foreground"
           aria-label="Back to settings"
         >
           <ArrowLeft className="size-4" />
         </Button>
         <div className="min-w-0">
-          <h2 className="text-sm font-semibold text-white truncate">Notifications</h2>
-          <p className="text-[11px] text-[#8696a0] truncate">Alerts, tones & background sync</p>
+          <h2 className="text-sm font-semibold text-foreground truncate">Notifications</h2>
+          <p className="text-[11px] text-muted-foreground truncate">Alerts, tones & background sync</p>
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-3.5 space-y-4">
+      <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-3.5 space-y-4 pb-28 md:pb-6">
         {/* 1. Category Navigation Rows */}
-        <div className="rounded-2xl border border-[#222e35] bg-[#202c33]/60 divide-y divide-[#222e35] overflow-hidden shadow-xs">
+        <div className="rounded-2xl border border-border bg-card/60 divide-y divide-border overflow-hidden shadow-xs">
           {categoryNavItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -359,30 +359,30 @@ export function NotificationSettings({ onBack }: NotificationSettingsProps) {
                 key={item.id}
                 type="button"
                 onClick={() => setActiveSubMenu(item.id)}
-                className="flex items-center justify-between w-full py-3.5 px-4 hover:bg-[#202c33] transition-colors group text-left cursor-pointer"
+                className="flex items-center justify-between w-full py-3.5 px-4 hover:bg-muted transition-colors group text-left cursor-pointer"
               >
                 <div className="flex items-center gap-4 min-w-0">
-                  <Icon className="text-[#8696a0] group-hover:text-[#d1d7db] shrink-0 size-5" />
+                  <Icon className="text-muted-foreground group-hover:text-foreground shrink-0 size-5" />
                   <div className="min-w-0">
-                    <p className="text-[15px] font-normal text-[#e9edef] leading-snug">{item.label}</p>
-                    <p className="text-xs text-[#8696a0] font-normal mt-0.5">{item.state}</p>
+                    <p className="text-[15px] font-normal text-foreground leading-snug">{item.label}</p>
+                    <p className="text-xs text-muted-foreground font-normal mt-0.5">{item.state}</p>
                   </div>
                 </div>
-                <ChevronRight className="size-4 text-[#8696a0] group-hover:text-[#d1d7db] transition-colors shrink-0 ml-2" />
+                <ChevronRight className="size-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0 ml-2" />
               </button>
             );
           })}
         </div>
 
         {/* Divider */}
-        <div className="h-px bg-[#222e35] my-2" />
+        <div className="h-px bg-border my-2" />
 
         {/* 2. Global Toggle Switches */}
-        <div className="rounded-2xl border border-[#222e35] bg-[#202c33]/60 p-4 space-y-4 shadow-xs">
+        <div className="rounded-2xl border border-border bg-card/60 p-4 space-y-4 shadow-xs">
           <div className="flex items-center justify-between gap-3">
             <div className="pr-2 min-w-0">
-              <p className="text-[15px] font-normal text-[#e9edef] leading-snug">Show previews</p>
-              <p className="text-xs text-[#8696a0] mt-0.5">Preview message text inside message notifications.</p>
+              <p className="text-[15px] font-normal text-foreground leading-snug">Show previews</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Preview message text inside message notifications.</p>
             </div>
             <Switch
               checked={showPreviews}
@@ -391,12 +391,12 @@ export function NotificationSettings({ onBack }: NotificationSettingsProps) {
             />
           </div>
 
-          <div className="h-px bg-[#222e35]/60" />
+          <div className="h-px bg-border/60" />
 
           <div className="flex items-center justify-between gap-3">
             <div className="pr-2 min-w-0">
-              <p className="text-[15px] font-normal text-[#e9edef] leading-snug">Play sound for outgoing messages</p>
-              <p className="text-xs text-[#8696a0] mt-0.5">Audible click tone when your messages deliver.</p>
+              <p className="text-[15px] font-normal text-foreground leading-snug">Play sound for outgoing messages</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Audible click tone when your messages deliver.</p>
             </div>
             <Switch
               checked={outgoingSound}
@@ -405,12 +405,12 @@ export function NotificationSettings({ onBack }: NotificationSettingsProps) {
             />
           </div>
 
-          <div className="h-px bg-[#222e35]/60" />
+          <div className="h-px bg-border/60" />
 
           <div className="flex items-center justify-between gap-3">
             <div className="pr-2 min-w-0">
-              <p className="text-[15px] font-normal text-[#e9edef] leading-snug">Background sync</p>
-              <p className="text-xs text-[#8696a0] mt-0.5">Get faster performance by syncing messages in the background.</p>
+              <p className="text-[15px] font-normal text-foreground leading-snug">Background sync</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Get faster performance by syncing messages in the background.</p>
             </div>
             <Switch
               checked={bgSync}
@@ -421,24 +421,24 @@ export function NotificationSettings({ onBack }: NotificationSettingsProps) {
         </div>
 
         {/* Divider */}
-        <div className="h-px bg-[#222e35] my-2" />
+        <div className="h-px bg-border my-2" />
 
         {/* 3. Diagnostic & System Permission note */}
-        <div className="rounded-2xl border border-[#222e35] bg-[#202c33]/60 p-4 space-y-3 shadow-xs">
+        <div className="rounded-2xl border border-border bg-card/60 p-4 space-y-3 shadow-xs">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[15px] font-normal text-[#e9edef] leading-snug">Send test notification</p>
-              <p className="text-xs text-[#8696a0] mt-0.5">Verify browser and audio permission setup</p>
+              <p className="text-[15px] font-normal text-foreground leading-snug">Send test notification</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Verify browser and audio permission setup</p>
             </div>
             <button
               type="button"
               onClick={sendTestNotification}
-              className="px-4 py-1.5 text-xs bg-white/10 hover:bg-white/20 text-[#00a884] font-medium rounded-full transition-colors cursor-pointer shrink-0"
+              className="px-4 py-1.5 text-xs bg-primary/10 hover:bg-primary/20 text-primary font-medium rounded-full transition-colors cursor-pointer shrink-0"
             >
               Send
             </button>
           </div>
-          <p className="text-xs text-[#8696a0] leading-relaxed pt-1">
+          <p className="text-xs text-muted-foreground leading-relaxed pt-1">
             To get notifications, make sure they&apos;re allowed in your browser and device settings.
           </p>
         </div>

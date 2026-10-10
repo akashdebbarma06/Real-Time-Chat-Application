@@ -12,6 +12,7 @@ interface ImageMediaCardProps {
   readBySomeoneElse?: boolean;
   own?: boolean;
   onForward?: () => void;
+  onMediaClick?: () => void;
 }
 
 export function ImageMediaCard({
@@ -22,6 +23,7 @@ export function ImageMediaCard({
   readBySomeoneElse = false,
   own = false,
   onForward,
+  onMediaClick,
 }: ImageMediaCardProps) {
   return (
     <div className={cn("flex items-end gap-2", own ? "justify-end" : "justify-start")}>
@@ -39,18 +41,33 @@ export function ImageMediaCard({
       )}
 
       {/* Sleek Media Card with 16px radius, strict 4:3 aspect ratio and accent border */}
-      <a
-        href={url}
-        target="_blank"
-        rel="noreferrer"
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (onMediaClick) {
+            onMediaClick();
+          } else {
+            window.open(url, "_blank");
+          }
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            e.stopPropagation();
+            if (onMediaClick) onMediaClick();
+          }
+        }}
         style={{
           borderRadius: "16px",
-          border: "2px solid #ff3b30",
+          border: "2px solid var(--border)",
           overflow: "hidden",
           maxWidth: "320px",
           aspectRatio: "4 / 3",
         }}
-        className="relative block w-[280px] sm:w-[320px] max-w-[320px] aspect-[4/3] rounded-[16px] overflow-hidden bg-black/40 shadow-lg group select-none transition-transform hover:scale-[1.01]"
+        className="relative block w-[280px] sm:w-[320px] max-w-[320px] aspect-[4/3] rounded-[16px] overflow-hidden bg-black/40 shadow-lg group select-none transition-transform hover:scale-[1.01] cursor-pointer"
       >
         <Image
           src={url}
@@ -96,7 +113,7 @@ export function ImageMediaCard({
             )}
           </div>
         )}
-      </a>
+      </div>
     </div>
   );
 }

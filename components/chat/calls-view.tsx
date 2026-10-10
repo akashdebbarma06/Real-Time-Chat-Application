@@ -61,7 +61,7 @@ export function CallsView({ conversations, profile, onlineUserIds }: CallsViewPr
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold tracking-tight">Calls</h2>
           <div className="flex items-center gap-1.5">
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 font-semibold border border-purple-500/20">
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold border border-primary/20">
               WebRTC Preview
             </span>
           </div>
@@ -80,8 +80,8 @@ export function CallsView({ conversations, profile, onlineUserIds }: CallsViewPr
       </div>
 
       {/* Transparent Functionality Notice */}
-      <div className="mx-4 mt-3 rounded-2xl border border-purple-500/20 bg-purple-500/5 p-3 text-xs text-muted-foreground space-y-1">
-        <div className="flex items-center gap-1.5 font-semibold text-purple-600 dark:text-purple-400">
+      <div className="mx-4 mt-3 rounded-2xl border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground space-y-1">
+        <div className="flex items-center gap-1.5 font-semibold text-primary">
           <Info className="size-3.5" />
           <span>Calls (Developer Preview)</span>
         </div>
@@ -121,8 +121,7 @@ export function CallsView({ conversations, profile, onlineUserIds }: CallsViewPr
       {/* Contacts Available to Call */}
       <ScrollArea className="flex-1 w-full overflow-x-hidden mt-2">
         <div
-          className="w-full space-y-1 py-1 box-border overflow-x-hidden"
-          style={{ padding: "0 12px", boxSizing: "border-box" }}
+          className="w-full space-y-1 py-1 pb-28 md:pb-6 box-border overflow-x-hidden px-3"
         >
           <p className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
             Contacts ({peers.length})
@@ -152,7 +151,7 @@ export function CallsView({ conversations, profile, onlineUserIds }: CallsViewPr
                       </Avatar>
                       <span
                         className={`absolute bottom-0 right-0 size-2.5 rounded-full border-2 border-background ${
-                          isOnline ? "bg-emerald-500" : "bg-zinc-400"
+                          isOnline ? "bg-emerald-500" : "bg-muted-foreground/60"
                         }`}
                       />
                     </div>
@@ -181,7 +180,7 @@ export function CallsView({ conversations, profile, onlineUserIds }: CallsViewPr
                       onClick={() => initiateCall(peer, "video")}
                       title="Video Call"
                       aria-label={`Video call ${peer.display_name}`}
-                      className="rounded-lg text-purple-600 dark:text-purple-400 hover:bg-purple-500/10"
+                      className="rounded-lg text-primary hover:bg-primary/10"
                     >
                       <Video className="size-3.5" />
                     </Button>

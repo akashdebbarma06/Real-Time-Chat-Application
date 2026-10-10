@@ -11,13 +11,14 @@ import {
   Settings,
   ShieldCheck,
   User,
+  Vault,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn, getInitials } from "@/lib/utils";
 import { APP_ICONS, useAppearance } from "@/lib/appearance-store";
 import type { Profile } from "@/types/chat";
 
-export type RailTab = "chats" | "calls" | "status" | "archive" | "media" | "settings";
+export type RailTab = "chats" | "calls" | "status" | "archive" | "vault" | "media" | "settings";
 
 interface NavigationRailProps {
   profile: Profile;
@@ -75,10 +76,10 @@ export function NavigationRail({
     tooltip: string;
   }> = [
     {
-      id: "media",
-      label: "Media",
-      icon: ImageIcon,
-      tooltip: "Shared Media & Attachments",
+      id: "vault",
+      label: "Vault",
+      icon: Vault,
+      tooltip: "Shared Vault (Media, Docs & Links)",
     },
     {
       id: "settings",
@@ -131,16 +132,16 @@ export function NavigationRail({
               type="button"
               onClick={() => onTabChange(item.id)}
               className={cn(
-                "group relative flex flex-col items-center justify-center gap-1 w-16 py-2 rounded-2xl transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500",
+                "group relative flex flex-col items-center justify-center gap-1 w-16 py-2 rounded-2xl transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                 isActive
-                  ? "bg-purple-600/15 text-purple-600 dark:bg-purple-500/20 dark:text-purple-300 font-semibold shadow-xs border border-purple-500/30"
+                  ? "bg-primary/15 text-primary font-semibold shadow-xs border border-primary/30"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
               )}
             >
-              {/* Active Purple Indicator Pill */}
+              {/* Active Indicator Pill */}
               {isActive && (
                 <span
-                  className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full bg-purple-600 dark:bg-purple-400 shadow-sm shadow-purple-500/50"
+                  className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full bg-primary shadow-sm shadow-primary/50"
                   aria-hidden="true"
                 />
               )}
@@ -149,11 +150,11 @@ export function NavigationRail({
                 <Icon
                   className={cn(
                     "size-5 transition-transform group-hover:scale-110",
-                    isActive ? "text-purple-600 dark:text-purple-300" : "text-muted-foreground group-hover:text-foreground"
+                    isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
                   )}
                 />
                 {item.badge !== undefined && item.badge > 0 && (
-                  <span className="absolute -top-1.5 -right-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-purple-600 px-1 text-[9px] font-bold text-white shadow-xs">
+                  <span className="absolute -top-1.5 -right-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground shadow-xs">
                     {item.badge}
                   </span>
                 )}
@@ -172,7 +173,7 @@ export function NavigationRail({
       <div className="flex flex-col items-center gap-1.5 w-full px-2" role="tablist" aria-orientation="vertical">
         {bottomNavItems.map((item) => {
           const Icon = item.icon;
-          const isActive = activeTab === item.id;
+          const isActive = activeTab === item.id || (item.id === "vault" && (activeTab as string) === "media");
 
           return (
             <button
@@ -184,21 +185,21 @@ export function NavigationRail({
               type="button"
               onClick={() => onTabChange(item.id)}
               className={cn(
-                "group relative flex flex-col items-center justify-center gap-1 w-16 py-2 rounded-2xl transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500",
+                "group relative flex flex-col items-center justify-center gap-1 w-16 py-2 rounded-2xl transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                 isActive
-                  ? "bg-purple-600/15 text-purple-600 dark:bg-purple-500/20 dark:text-purple-300 font-semibold shadow-xs border border-purple-500/30"
+                  ? "bg-primary/15 text-primary font-semibold shadow-xs border border-primary/30"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
               )}
             >
               {isActive && (
                 <span
-                  className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full bg-purple-600 dark:bg-purple-400 shadow-sm shadow-purple-500/50"
+                  className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full bg-primary shadow-sm shadow-primary/50"
                   aria-hidden="true"
                 />
               )}
 
               {item.id === "settings" ? (
-                <Avatar className="size-6 border border-border group-hover:border-purple-500 transition-colors">
+                <Avatar className="size-6 border border-border group-hover:border-primary transition-colors">
                   <AvatarImage src={profile.avatar_url || undefined} alt={profile.display_name} />
                   <AvatarFallback className="text-[10px] font-bold">
                     {getInitials(profile.display_name)}
@@ -208,7 +209,7 @@ export function NavigationRail({
                 <Icon
                   className={cn(
                     "size-5 transition-transform group-hover:scale-110",
-                    isActive ? "text-purple-600 dark:text-purple-300" : "text-muted-foreground group-hover:text-foreground"
+                    isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
                   )}
                 />
               )}

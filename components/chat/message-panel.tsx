@@ -18,6 +18,7 @@ import {
   Bell,
   BellOff,
   Download,
+  Lock,
   MessageCircleMore,
   MoreVertical,
   Phone,
@@ -34,6 +35,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ConversationAvatar } from "@/components/chat/conversation-avatar";
 import { MessageBubble } from "@/components/chat/message-bubble";
+import { PhotosVideosPreviewDialog } from "@/components/chat/composer/photos-videos-preview-dialog";
+import { DocumentPreviewDialog } from "@/components/chat/composer/document-preview-dialog";
+import { WhatsAppMediaLightbox } from "@/components/chat/media/whatsapp-media-lightbox";
 import { CHAT_BACKGROUNDS, useAppearance } from "@/lib/appearance-store";
 import {
   DropdownMenu,
@@ -110,6 +114,19 @@ export function MessagePanel({
 
   // Single active message menu ID across the entire chat
   const [activeMenuMessageId, setActiveMenuMessageId] = useState<string | null>(null);
+
+  // WhatsApp Web Preview / MediaEditorModal States scoped to active chat pane (Unified selectedMedia state)
+  const [photosVideosModalOpen, setPhotosVideosModalOpen] = useState(false);
+  const [selectedMedia, setSelectedMedia] = useState<File[]>([]);
+  const photosVideosFiles = selectedMedia;
+  const setPhotosVideosFiles = setSelectedMedia;
+  const [documentModalOpen, setDocumentModalOpen] = useState(false);
+  const [documentFile, setDocumentFile] = useState<File | null>(null);
+
+  // WhatsApp Web In-App Media Lightbox Modal states
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxActiveMessageId, setLightboxActiveMessageId] = useState<string | null>(null);
+  const [lightboxInitialUrl, setLightboxInitialUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -348,6 +365,34 @@ export function MessagePanel({
         m.sender.display_name.toLowerCase().includes(q)
     );
   }, [inChatQuery, messages]);
+
+  const conversationMediaMessages = useMemo(() => {
+    return messages.filter((msg) => {
+      if (!msg.attachment_path) return false;
+      const fileName = msg.attachment_name || "";
+      const isPhoto = Boolean(
+        msg.message_type === "image" ||
+        msg.type === "image" ||
+        msg.type === "photo" ||
+        Boolean(fileName.match(/\.(jpg|jpeg|png|gif|webp|svg|heic)$/i))
+      );
+      const isVideo = Boolean(
+        (msg.message_type as string) === "video" ||
+        msg.type === "video" ||
+        msg.type === "camera_capture" ||
+        fileName.startsWith("video-") ||
+        fileName.includes("camera-capture") ||
+        Boolean(fileName.match(/\.(mp4|mov|mkv|webm|avi)$/i))
+      );
+      return isPhoto || isVideo;
+    });
+  }, [messages]);
+
+  const handleOpenMediaLightbox = useCallback((message: ChatMessage, url?: string) => {
+    setLightboxActiveMessageId(message.id);
+    setLightboxInitialUrl(url || null);
+    setLightboxOpen(true);
+  }, []);
 
   function broadcastTyping(isTyping: boolean) {
     if (typingTimer.current) clearTimeout(typingTimer.current);
@@ -602,7 +647,7 @@ export function MessagePanel({
   }
 
   return (
-    <section className="flex h-svh min-h-0 flex-col bg-background">
+    <section className="flex h-svh min-h-0 flex-col bg-background relative overflow-hidden">
       {/* HEADER COMPONENT INLINED */}
       <header className="flex h-16 shrink-0 items-center justify-between border-b bg-background px-3 sm:px-5">
         <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -725,7 +770,7 @@ export function MessagePanel({
                 }}
                 className="flex items-center gap-2 text-xs rounded-xl cursor-pointer"
               >
-                {isMuted ? <Bell className="size-4 text-emerald-500" /> : <BellOff className="size-4 text-amber-500" />}
+                {isMuted ? <Bell className="size-4 text-primary" /> : <BellOff className="size-4 text-amber-500" />}
                 <span>{isMuted ? "Unmute Notifications" : "Mute Notifications"}</span>
               </DropdownMenuItem>
 
@@ -784,10 +829,10 @@ export function MessagePanel({
 
       {/* MESSAGE LIST AND FLOATING COMPOSER OVER CHAT BACKGROUND */}
       <div className={cn("relative flex-1 min-h-0 flex flex-col overflow-hidden transition-colors duration-200", chatBgClass)}>
-        <ScrollArea className="min-h-0 flex-1 bg-transparent">
+        <ScrollArea className="min-h-0 flex-1 bg-transparent overflow-x-hidden overflow-y-auto">
           <div
             className={cn(
-              "mx-auto max-w-6xl px-3 sm:px-5",
+              "mx-auto max-w-6xl px-4 overflow-x-hidden overflow-y-auto",
               displayMessages.length > 0 ? "flex flex-col py-4" : "flex min-h-full flex-col items-center justify-center py-5"
             )}
           >
@@ -801,6 +846,14 @@ export function MessagePanel({
               </div>
             ) : displayMessages.length ? (
               <div className="space-y-5 sm:space-y-6">
+                {/* System Banner: End-to-End Encryption Pill */}
+                <div className="my-2 flex items-center justify-center px-4">
+                  <div className="flex items-center gap-1.5 rounded-xl border border-amber-500/25 bg-amber-500/10 px-3.5 py-1.5 text-center text-[11px] font-medium text-amber-800 dark:text-amber-200 shadow-xs max-w-md backdrop-blur-sm">
+                    <Lock className="size-3 shrink-0 text-amber-600 dark:text-amber-400" />
+                    <span>Messages and calls are end-to-end encrypted. No one outside of this chat can read them.</span>
+                  </div>
+                </div>
+
                 {displayMessages.map((message, index) => {
                   const currentDateLabel = formatMessageDateSeparator(message.created_at);
                   const prevMessage = index > 0 ? displayMessages[index - 1] : null;
@@ -818,7 +871,7 @@ export function MessagePanel({
                     >
                       {showDateSeparator && (
                         <div className="my-6 flex items-center justify-center">
-                          <span className="rounded-full bg-muted px-3.5 py-1 text-[11px] font-medium text-muted-foreground">
+                          <span className="rounded-full bg-muted/90 backdrop-blur-md border border-border/60 px-3.5 py-1 text-[11px] font-medium text-muted-foreground shadow-xs">
                             {currentDateLabel}
                           </span>
                         </div>
@@ -836,6 +889,7 @@ export function MessagePanel({
                         onEdit={handleEditMessage}
                         onDelete={handleDeleteMessage}
                         onForward={(msg) => setReplyingToMessage(msg)}
+                        onMediaClick={handleOpenMediaLightbox}
                         isMenuOpen={activeMenuMessageId === message.id}
                         onOpenMenu={() => setActiveMenuMessageId(message.id)}
                         onCloseMenu={() => setActiveMenuMessageId(null)}
@@ -884,6 +938,14 @@ export function MessagePanel({
           onSendText={sendText}
           onSendFile={sendFile}
           onTyping={broadcastTyping}
+          onSelectPhotosVideos={(files) => {
+            setPhotosVideosFiles(files);
+            setPhotosVideosModalOpen(true);
+          }}
+          onSelectDocument={(file) => {
+            setDocumentFile(file);
+            setDocumentModalOpen(true);
+          }}
         />
       </div>
 
@@ -919,6 +981,62 @@ export function MessagePanel({
         open={comingSoonOpen}
         onOpenChange={setComingSoonOpen}
         featureName={comingSoonFeature}
+      />
+
+      {/* WhatsApp Web Active Chat Column Overlays */}
+      <PhotosVideosPreviewDialog
+        open={photosVideosModalOpen}
+        files={photosVideosFiles}
+        onClose={() => {
+          setPhotosVideosModalOpen(false);
+          setPhotosVideosFiles([]);
+        }}
+        onSend={async (items) => {
+          for (const item of items) {
+            const isVid =
+              item.file.type.startsWith("video/") ||
+              Boolean(item.file.name.match(/\.(mp4|mov|mkv|webm)$/i));
+            await sendFile(
+              item.file,
+              item.caption,
+              isVid ? "video" : "image"
+            );
+          }
+        }}
+        onAddMoreFiles={(newFiles) => {
+          setPhotosVideosFiles((prev) => [...prev, ...newFiles]);
+        }}
+      />
+
+      <DocumentPreviewDialog
+        open={documentModalOpen}
+        file={documentFile}
+        onClose={() => {
+          setDocumentModalOpen(false);
+          setDocumentFile(null);
+        }}
+        onSend={async (file, caption) => {
+          await sendFile(file, caption, "file");
+        }}
+      />
+
+      {/* WhatsApp Web In-App Media Lightbox Modal */}
+      <WhatsAppMediaLightbox
+        open={lightboxOpen}
+        activeMessageId={lightboxActiveMessageId}
+        initialUrl={lightboxInitialUrl}
+        conversationMediaMessages={conversationMediaMessages}
+        currentUserId={profile.id}
+        conversationId={conversationId}
+        onClose={() => {
+          setLightboxOpen(false);
+          setLightboxActiveMessageId(null);
+          setLightboxInitialUrl(null);
+        }}
+        onReply={(msg) => setReplyingToMessage(msg)}
+        onToggleReaction={handleToggleReaction}
+        onForward={(msg) => setReplyingToMessage(msg)}
+        onDelete={handleDeleteMessage}
       />
     </section>
   );

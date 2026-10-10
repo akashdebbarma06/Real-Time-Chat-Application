@@ -1,14 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Archive,
   ArchiveRestore,
+  BellOff,
   Check,
   CheckCheck,
   CheckSquare,
+  ChevronDown,
+  Heart,
   LogOut,
   Mail,
   MessageCircleMore,
@@ -27,13 +30,15 @@ import {
   UsersRound,
   X,
 } from "lucide-react";
+import { ConversationContextMenu } from "@/components/chat/conversation-context-menu";
+import { getMockConversations } from "@/lib/mock-chats";
 import { toast } from "@/lib/toast";
 import { useTheme } from "next-themes";
 import { CallsView } from "@/components/chat/calls-view";
 import { ContactsView } from "@/components/chat/contacts-view";
 import { ConversationAvatar } from "@/components/chat/conversation-avatar";
 import { ArchiveView } from "@/components/chat/archive-view";
-import { MediaView } from "@/components/chat/media-view";
+import { VaultView } from "@/components/chat/vault-view";
 import { MobileBottomNav } from "@/components/chat/mobile-bottom-nav";
 import { NewDirectChatDialog } from "@/components/chat/new-direct-chat-dialog";
 import { NewGroupDialog } from "@/components/chat/new-group-dialog";
@@ -93,6 +98,14 @@ export function ConversationSidebar({
   const currentTab = activeTabProp ?? internalTab;
   const setTab = onTabChangeProp ?? setInternalTab;
 
+  // Track active settings sub-section to hide floating nav on sub-pages
+  const [settingsSection, setSettingsSection] = useState<string | null>(null);
+
+  const handleTabChange = (tab: RailTab) => {
+    setSettingsSection(null);
+    setTab(tab);
+  };
+
   // In-panel subviews for chats tab: "chats" | "new-direct" | "new-group" | "starred"
   const [sidebarView, setSidebarView] = useState<"chats" | "new-direct" | "new-group" | "starred">("chats");
 
@@ -137,23 +150,66 @@ export function ConversationSidebar({
     return new Set();
   });
 
+  // Muted & Favourites ID Sets
+  const [mutedIds, setMutedIds] = useState<Set<string>>(() => {
+    if (typeof window === "undefined" || !profile?.id) return new Set();
+    try {
+      const raw = localStorage.getItem(`aether_muted_${profile.id}`);
+      if (raw) return new Set(JSON.parse(raw));
+    } catch {}
+    return new Set();
+  });
+
+  const [favouriteIds, setFavouriteIds] = useState<Set<string>>(() => {
+    if (typeof window === "undefined" || !profile?.id) return new Set();
+    try {
+      const raw = localStorage.getItem(`aether_favourites_${profile.id}`);
+      if (raw) return new Set(JSON.parse(raw));
+    } catch {}
+    return new Set();
+  });
+
+  // Custom Options Popup Menu State
+  const [contextMenu, setContextMenu] = useState<{
+    conversation: ConversationSummary;
+    position: { x: number; y: number };
+  } | null>(null);
+
+  // Mobile Touch Long-Press (500ms) Refs
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const touchStartPosRef = useRef({ x: 0, y: 0 });
+  const longPressFiredRef = useRef(false);
+
   // Coming Soon Dialog state
   const [comingSoonOpen, setComingSoonOpen] = useState(false);
   const [comingSoonFeature, setComingSoonFeature] = useState("Feature");
 
+  // Merge real conversations with rich mock data containing both groups & 1-on-1 chats
+  const allConversations = useMemo(() => {
+    const mockList = getMockConversations(profile.id);
+    if (!conversations || conversations.length === 0) {
+      return mockList;
+    }
+    const existingIds = new Set(conversations.map((c) => c.id));
+    const supplementary = mockList.filter((m) => !existingIds.has(m.id));
+    return [...conversations, ...supplementary];
+  }, [conversations, profile.id]);
+
   const filteredConversations = useMemo(() => {
-    return conversations.filter((conversation) => {
+    return allConversations.filter((conversation) => {
       const isArchived = archivedIds.has(conversation.id);
 
       if (chatFilter === "unread") return conversation.unread_count > 0 && !isArchived;
       if (chatFilter === "groups") return conversation.type === "group" && !isArchived;
       return !isArchived;
     });
-  }, [archivedIds, chatFilter, conversations]);
+  }, [allConversations, archivedIds, chatFilter]);
 
-  function togglePin(id: string, event: React.MouseEvent) {
-    event.preventDefault();
-    event.stopPropagation();
+  function togglePin(id: string, event?: React.MouseEvent) {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
     setPinnedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -179,6 +235,68 @@ export function ConversationSidebar({
       } catch {}
       return next;
     });
+  }
+
+  function toggleMute(id: string) {
+    setMutedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      try {
+        localStorage.setItem(`aether_muted_${profile.id}`, JSON.stringify([...next]));
+      } catch {}
+      return next;
+    });
+  }
+
+  function toggleFavourite(id: string) {
+    setFavouriteIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      try {
+        localStorage.setItem(`aether_favourites_${profile.id}`, JSON.stringify([...next]));
+      } catch {}
+      return next;
+    });
+  }
+
+  function toggleUnread(id: string) {
+    const conv = allConversations.find((c) => c.id === id);
+    if (conv) {
+      conv.unread_count = conv.unread_count > 0 ? 0 : 1;
+      onConversationCreated();
+    }
+  }
+
+  function handleClearChat(id: string) {
+    const conv = allConversations.find((c) => c.id === id);
+    if (conv) {
+      conv.last_message = null;
+      onConversationCreated();
+    }
+  }
+
+  function handleExitGroup(id: string) {
+    toggleArchive(id);
+  }
+
+  function handleBlockContact(id: string) {
+    try {
+      const stored = localStorage.getItem(`aether_blocked_${profile.id}`);
+      const blocked = stored ? new Set(JSON.parse(stored)) : new Set();
+      blocked.add(id);
+      localStorage.setItem(`aether_blocked_${profile.id}`, JSON.stringify([...blocked]));
+    } catch {}
+  }
+
+  function handleDeleteChat(id: string) {
+    toggleArchive(id);
+  }
+
+  function handleAddToList(id: string) {
+    setComingSoonFeature("Add to Custom List");
+    setComingSoonOpen(true);
   }
 
   function toggleSelectChat(id: string) {
@@ -336,7 +454,7 @@ export function ConversationSidebar({
             <button
               type="button"
               onClick={toggleSelectAll}
-              className="text-xs font-semibold text-purple-600 dark:text-purple-400 hover:underline cursor-pointer"
+              className="text-xs font-semibold text-primary hover:underline cursor-pointer"
             >
               {selectedChatIds.size === filteredConversations.length && filteredConversations.length > 0
                 ? "Deselect All"
@@ -400,7 +518,7 @@ export function ConversationSidebar({
                       onSelect={() => setSidebarView("new-group")}
                       className="flex items-center gap-2.5 text-xs rounded-xl cursor-pointer p-2 hover:bg-muted font-medium"
                     >
-                      <Users className="size-4 text-purple-600 dark:text-purple-400" />
+                      <Users className="size-4 text-primary" />
                       <span>New Group</span>
                     </DropdownMenuItem>
 
@@ -419,7 +537,7 @@ export function ConversationSidebar({
                       }}
                       className="flex items-center gap-2.5 text-xs rounded-xl cursor-pointer p-2 hover:bg-muted font-medium"
                     >
-                      <CheckSquare className="size-4 text-purple-600 dark:text-purple-400" />
+                      <CheckSquare className="size-4 text-primary" />
                       <span>Select Chats</span>
                     </DropdownMenuItem>
 
@@ -510,8 +628,7 @@ export function ConversationSidebar({
             {/* Active Chats List */}
             <ScrollArea className="flex-1 w-full min-w-0 overflow-x-hidden">
               <div
-                className="w-full min-w-0 space-y-1 pb-4 pt-1 box-border overflow-hidden"
-                style={{ padding: "0 12px", boxSizing: "border-box" }}
+                className="w-full min-w-0 space-y-1 pb-28 md:pb-6 pt-1 box-border overflow-hidden px-3"
               >
                 {filteredConversations.map((conversation) => {
                   const title = getConversationTitle(conversation, profile.id);
@@ -537,6 +654,8 @@ export function ConversationSidebar({
                   const isSelected = conversation.id === selectedConversationId;
                   const isPinned = pinnedIds.has(conversation.id);
                   const isArchived = archivedIds.has(conversation.id);
+                  const isMuted = mutedIds.has(conversation.id);
+                  const isFavourite = favouriteIds.has(conversation.id);
 
                   const isSelectedInBatch = selectedChatIds.has(conversation.id);
 
@@ -557,16 +676,16 @@ export function ConversationSidebar({
                         className={cn(
                           "group relative flex items-center gap-3 w-full overflow-hidden box-border rounded-[14px] p-3 transition-all cursor-pointer select-none",
                           isSelectedInBatch
-                            ? "bg-purple-500/15 border border-purple-500/30 shadow-xs"
+                            ? "bg-primary/15 border border-primary/30 shadow-xs"
                             : "hover:bg-muted/60 text-foreground"
                         )}
                       >
                         {/* Checkbox */}
                         <div
                           className={cn(
-                            "grid size-5 place-items-center rounded-md border text-white transition-colors shrink-0 flex-shrink-0",
+                            "grid size-5 place-items-center rounded-md border transition-colors shrink-0 flex-shrink-0",
                             isSelectedInBatch
-                              ? "bg-purple-600 border-purple-600"
+                              ? "bg-primary border-primary text-primary-foreground"
                               : "border-muted-foreground/30 bg-background"
                           )}
                         >
@@ -592,21 +711,21 @@ export function ConversationSidebar({
                           {/* Top Row: Name + Badges + Timestamp */}
                           <div className="flex items-center justify-between gap-2 w-full min-w-0">
                             <div className="flex items-center gap-1 min-w-0">
-                              <span className="user-name text-sm font-semibold truncate block">
+                              <span className="user-name text-[15px] sm:text-base font-semibold truncate block">
                                 {title}
                               </span>
                               {isPinned && (
                                 <Pin className="size-3 text-primary shrink-0 flex-shrink-0 rotate-45" />
                               )}
                             </div>
-                            <span className="chat-time text-[11px] text-muted-foreground shrink-0 flex-shrink-0 font-medium">
+                            <span className="chat-time text-xs text-neutral-400 shrink-0 flex-shrink-0 font-medium">
                               {formatConversationTime(lastMessage?.created_at || conversation.updated_at)}
                             </span>
                           </div>
 
                           {/* Bottom Row: Checkmark / Icon + Truncated Preview Text */}
                           <div className="chat-preview flex items-center gap-1.5 w-full min-w-0">
-                            <p className="sidebar-last-message sidebar-message-preview preview-text text-xs text-muted-foreground truncate block w-full min-w-0">
+                            <p className="sidebar-last-message sidebar-message-preview preview-text text-xs text-neutral-400 truncate block w-full min-w-0">
                               {preview}
                             </p>
                           </div>
@@ -616,16 +735,78 @@ export function ConversationSidebar({
                   }
 
                   return (
-                    <Link
+                    <div
                       key={conversation.id}
-                      href={`/chat/${conversation.id}`}
+                      role="button"
+                      tabIndex={0}
                       style={{ width: "100%", boxSizing: "border-box", borderRadius: "14px" }}
                       className={cn(
-                        "group relative flex items-center gap-3 p-3 w-full overflow-hidden box-border rounded-[14px] transition-all cursor-pointer",
+                        "group relative flex items-center gap-3 p-3 w-full overflow-hidden box-border rounded-[14px] transition-all cursor-pointer select-none",
                         isSelected
                           ? "bg-muted shadow-xs"
                           : "hover:bg-muted/60 text-foreground"
                       )}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        // Left-Click (Desktop & Mobile Tap): Opens the active chat window
+                        setContextMenu(null);
+                        router.push(`/chat/${conversation.id}`);
+                      }}
+                      onContextMenu={(e) => {
+                        // Right-Click (contextmenu on Desktop): Prevents native context menu and opens custom options popup menu
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setContextMenu({
+                          conversation,
+                          position: { x: e.clientX, y: e.clientY },
+                        });
+                      }}
+                      onTouchStart={(e) => {
+                        if (e.touches.length !== 1) return;
+                        const touch = e.touches[0];
+                        touchStartPosRef.current = { x: touch.clientX, y: touch.clientY };
+                        longPressFiredRef.current = false;
+                        if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+                        longPressTimerRef.current = setTimeout(() => {
+                          longPressFiredRef.current = true;
+                          setContextMenu({
+                            conversation,
+                            position: { x: touchStartPosRef.current.x, y: touchStartPosRef.current.y },
+                          });
+                        }, 500);
+                      }}
+                      onTouchMove={(e) => {
+                        if (!longPressTimerRef.current) return;
+                        const touch = e.touches[0];
+                        const dx = Math.abs(touch.clientX - touchStartPosRef.current.x);
+                        const dy = Math.abs(touch.clientY - touchStartPosRef.current.y);
+                        if (dx > 10 || dy > 10) {
+                          clearTimeout(longPressTimerRef.current);
+                          longPressTimerRef.current = null;
+                        }
+                      }}
+                      onTouchEnd={(e) => {
+                        if (longPressTimerRef.current) {
+                          clearTimeout(longPressTimerRef.current);
+                          longPressTimerRef.current = null;
+                        }
+                        if (longPressFiredRef.current) {
+                          e.preventDefault();
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          router.push(`/chat/${conversation.id}`);
+                        } else if (e.key === "ContextMenu" || (e.shiftKey && e.key === "F10")) {
+                          e.preventDefault();
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          setContextMenu({
+                            conversation,
+                            position: { x: rect.left + 50, y: rect.top + 30 },
+                          });
+                        }
+                      }}
                     >
                       {/* 1. Avatar (Fixed size, never shrinks) */}
                       <div className="relative shrink-0 flex-shrink-0">
@@ -645,15 +826,21 @@ export function ConversationSidebar({
                       <div className="sidebar-item-content chat-info flex-1 min-w-0 flex flex-col justify-center gap-0.5 overflow-hidden">
                         {/* Top Row: Name + Badges + Timestamp */}
                         <div className="flex items-center justify-between gap-2 w-full min-w-0">
-                          <div className="flex items-center gap-1 min-w-0">
-                            <span className="user-name text-sm font-semibold truncate block">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="user-name text-[15px] sm:text-base font-semibold truncate block">
                               {title}
                             </span>
                             {isPinned && (
                               <Pin className="size-3 text-primary shrink-0 flex-shrink-0 rotate-45" />
                             )}
+                            {isFavourite && (
+                              <Heart className="size-3 fill-emerald-500 text-emerald-500 shrink-0 flex-shrink-0" />
+                            )}
+                            {isMuted && (
+                              <BellOff className="size-3 text-muted-foreground shrink-0 flex-shrink-0" />
+                            )}
                           </div>
-                          <span className="chat-time text-[11px] text-muted-foreground shrink-0 flex-shrink-0 font-medium">
+                          <span className="chat-time text-xs text-neutral-400 shrink-0 flex-shrink-0 font-medium">
                             {formatConversationTime(lastMessage?.created_at || conversation.updated_at)}
                           </span>
                         </div>
@@ -661,18 +848,18 @@ export function ConversationSidebar({
                         {/* Bottom Row: Checkmark / Icon + Truncated Preview Text */}
                         <div className="chat-preview flex items-center gap-1.5 w-full min-w-0">
                           {ownLastMessage && (
-                            <span className="text-xs text-muted-foreground shrink-0 flex-shrink-0 flex items-center">
+                            <span className="text-xs text-neutral-400 shrink-0 flex-shrink-0 flex items-center">
                               {readBySomeoneElse ? (
                                 <CheckCheck className="size-3.5 text-primary" aria-label="Read" />
                               ) : (
-                                <Check className="size-3.5 text-muted-foreground" aria-label="Sent" />
+                                <Check className="size-3.5 text-neutral-400" aria-label="Sent" />
                               )}
                             </span>
                           )}
 
                           <p
                             className={cn(
-                              "sidebar-last-message sidebar-message-preview preview-text text-xs text-muted-foreground truncate block w-full min-w-0 flex-1",
+                              "sidebar-last-message sidebar-message-preview preview-text text-xs text-neutral-400 truncate block w-full min-w-0 flex-1",
                               conversation.unread_count > 0 && "font-semibold text-foreground"
                             )}
                           >
@@ -687,24 +874,24 @@ export function ConversationSidebar({
                         </div>
                       </div>
 
-                      {/* Hover Actions: Pin & Archive */}
+                      {/* Hover Actions: Dropdown chevron for quick menu access */}
                       <div className="absolute right-2 top-2 hidden group-hover:flex items-center gap-1 bg-background/90 backdrop-blur-md rounded-full border p-1 shadow-md z-10">
                         <button
-                          onClick={(e) => togglePin(conversation.id, e)}
-                          title={isPinned ? "Unpin chat" : "Pin chat"}
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setContextMenu({
+                              conversation,
+                              position: { x: e.clientX, y: e.clientY },
+                            });
+                          }}
+                          title="Chat options"
                           className="p-1 hover:text-primary transition-colors text-muted-foreground"
                         >
-                          {isPinned ? <PinOff className="size-3" /> : <Pin className="size-3" />}
-                        </button>
-                        <button
-                          onClick={(e) => toggleArchive(conversation.id, e)}
-                          title={isArchived ? "Unarchive chat" : "Archive chat"}
-                          className="p-1 hover:text-primary transition-colors text-muted-foreground"
-                        >
-                          {isArchived ? <ArchiveRestore className="size-3" /> : <Archive className="size-3" />}
+                          <ChevronDown className="size-3.5" />
                         </button>
                       </div>
-                    </Link>
+                    </div>
                   );
                 })}
 
@@ -735,7 +922,7 @@ export function ConversationSidebar({
                   className="flex-1 rounded-xl text-xs font-medium gap-1.5 h-9"
                   title="Archive selected chats"
                 >
-                  <Archive className="size-3.5 text-purple-600" />
+                  <Archive className="size-3.5 text-primary" />
                   <span>Archive</span>
                 </Button>
 
@@ -747,7 +934,7 @@ export function ConversationSidebar({
                   className="flex-1 rounded-xl text-xs font-medium gap-1.5 h-9"
                   title="Mark selected as unread"
                 >
-                  <Mail className="size-3.5 text-purple-600" />
+                  <Mail className="size-3.5 text-primary" />
                   <span>Mark Unread</span>
                 </Button>
 
@@ -795,26 +982,37 @@ export function ConversationSidebar({
           />
         )}
 
-        {/* 5. MEDIA TAB */}
-        {currentTab === "media" && (
-          <MediaView
+        {/* 5. VAULT TAB */}
+        {(currentTab === "vault" || (currentTab as string) === "media") && (
+          <VaultView
             conversations={conversations}
             profile={profile}
           />
         )}
 
         {/* 6. SETTINGS TAB */}
-        {currentTab === "settings" && <SettingsView profile={profile} />}
+        {currentTab === "settings" && (
+          <SettingsView
+            profile={profile}
+            activeSection={settingsSection}
+            onSectionChange={setSettingsSection}
+          />
+        )}
       </div>
 
-      {/* MOBILE ONLY: Compact Bottom Navigation Bar */}
-      <div className="md:hidden">
-        <MobileBottomNav
-          activeTab={currentTab}
-          onTabChange={setTab}
-          unreadChatsCount={totalUnreadCount}
-        />
-      </div>
+      {/* MOBILE ONLY: Compact Bottom Navigation Bar (Root tabs only) */}
+      {((currentTab === "chats" && !selectedConversationId && sidebarView === "chats") ||
+        currentTab === "calls" ||
+        currentTab === "status" ||
+        (currentTab === "settings" && !settingsSection)) && (
+        <div className="md:hidden">
+          <MobileBottomNav
+            activeTab={currentTab}
+            onTabChange={handleTabChange}
+            unreadChatsCount={totalUnreadCount}
+          />
+        </div>
+      )}
 
       {/* Action Dialogs */}
       <NewDirectChatDialog
@@ -864,6 +1062,29 @@ export function ConversationSidebar({
         onOpenChange={setComingSoonOpen}
         featureName={comingSoonFeature}
       />
+
+      {contextMenu && (
+        <ConversationContextMenu
+          conversation={contextMenu.conversation}
+          position={contextMenu.position}
+          isOpen={Boolean(contextMenu)}
+          isPinned={pinnedIds.has(contextMenu.conversation.id)}
+          isArchived={archivedIds.has(contextMenu.conversation.id)}
+          isMuted={mutedIds.has(contextMenu.conversation.id)}
+          isFavourite={favouriteIds.has(contextMenu.conversation.id)}
+          onClose={() => setContextMenu(null)}
+          onToggleArchive={(id) => toggleArchive(id)}
+          onToggleMute={(id) => toggleMute(id)}
+          onTogglePin={(id) => togglePin(id)}
+          onToggleUnread={(id) => toggleUnread(id)}
+          onToggleFavourite={(id) => toggleFavourite(id)}
+          onAddToList={(id) => handleAddToList(id)}
+          onClearChat={(id) => handleClearChat(id)}
+          onExitGroup={(id) => handleExitGroup(id)}
+          onBlockContact={(id) => handleBlockContact(id)}
+          onDeleteChat={(id) => handleDeleteChat(id)}
+        />
+      )}
     </aside>
   );
 }

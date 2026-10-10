@@ -22,7 +22,7 @@ export function AddQuickMenu({ onSelectTab }: AddQuickMenuProps) {
     <div
       role="menu"
       aria-label="Media options"
-      className="absolute bottom-full left-0 mb-3 z-30 w-44 rounded-2xl border border-white/20 dark:border-white/10 bg-background/85 dark:bg-card/90 backdrop-blur-2xl p-1.5 shadow-2xl shadow-black/10 dark:shadow-black/40 animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-200"
+      className="absolute bottom-full left-0 mb-3 z-30 w-44 rounded-2xl border border-border bg-popover/95 text-popover-foreground backdrop-blur-2xl p-1.5 shadow-2xl animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-200"
     >
       <div className="space-y-0.5">
         <button
@@ -144,9 +144,9 @@ export function FullMediaDrawer({
   }, [search]);
 
   return (
-    <div className="absolute bottom-full left-0 mb-3 z-30 w-full sm:w-96 rounded-3xl border border-white/20 dark:border-white/10 bg-background/85 dark:bg-card/90 backdrop-blur-2xl shadow-2xl shadow-black/10 dark:shadow-black/40 overflow-hidden animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-200">
+    <div className="absolute bottom-full left-0 mb-3 z-30 w-full sm:w-96 rounded-3xl border border-border bg-popover/95 text-popover-foreground backdrop-blur-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-200">
       {/* Header Tabs & Close */}
-      <div className="flex items-center justify-between border-b px-4 py-3 bg-muted/30">
+      <div className="flex items-center justify-between border-b border-border px-4 py-3 bg-muted/30">
         <div className="flex items-center gap-1.5">
           <button
             type="button"
@@ -195,14 +195,14 @@ export function FullMediaDrawer({
       </div>
 
       {/* Search Input */}
-      <div className="p-3 border-b">
+      <div className="p-3 border-b border-border">
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
           <Input
             placeholder={`Search ${activeTab}...`}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="h-8 pl-8 rounded-xl text-xs bg-muted/40 border-border/60"
+            className="h-8 pl-8 rounded-xl text-xs bg-muted/40 border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-primary/40"
           />
         </div>
       </div>

@@ -196,8 +196,8 @@ export function PhoneVerificationDialog({
 
         {step === "success" && (
           <div className="space-y-4 pt-2">
-            <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-5 text-center">
-              <div className="mx-auto mb-3 inline-flex size-12 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-500">
+            <div className="rounded-xl border border-primary/30 bg-primary/10 p-5 text-center">
+              <div className="mx-auto mb-3 inline-flex size-12 items-center justify-center rounded-full bg-primary/20 text-primary">
                 <CheckCircle2 className="size-6" />
               </div>
               <p className="text-sm font-semibold text-foreground">Phone Verified!</p>

@@ -173,7 +173,7 @@ export function TwoFactorDialog({
                 <div
                   className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
                     isEnabled
-                      ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
+                      ? "bg-primary/10 text-primary border border-primary/20"
                       : "bg-muted text-muted-foreground"
                   }`}
                 >
@@ -298,8 +298,8 @@ export function TwoFactorDialog({
 
         {step === "success" && (
           <div className="space-y-4 pt-2">
-            <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-5 text-center">
-              <div className="mx-auto mb-3 inline-flex size-12 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-500">
+            <div className="rounded-xl border border-primary/30 bg-primary/10 p-5 text-center">
+              <div className="mx-auto mb-3 inline-flex size-12 items-center justify-center rounded-full bg-primary/20 text-primary">
                 <CheckCircle2 className="size-6" />
               </div>
               <p className="text-sm font-semibold text-foreground">2FA is Now Active!</p>

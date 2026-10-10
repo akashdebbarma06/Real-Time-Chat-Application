@@ -119,9 +119,8 @@ export function PollCard({
 
   return (
     <div
-      style={{ maxWidth: "340px", minWidth: "260px" }}
       className={cn(
-        "relative w-[280px] sm:w-[320px] rounded-2xl border border-border/70 bg-card/95 text-card-foreground shadow-md p-4 transition-all select-none backdrop-blur-md",
+        "relative w-full max-w-[360px] sm:max-w-[400px] box-border rounded-2xl border border-border/70 bg-card/95 text-card-foreground shadow-md p-4 transition-all select-none backdrop-blur-md",
         own ? "border-primary/30" : "border-border"
       )}
     >
@@ -211,13 +210,13 @@ export function PollCard({
         </span>
 
         {timestamp && (
-          <div className="flex items-center gap-1">
-            <span>{timestamp}</span>
+          <div className="flex items-center gap-1 whitespace-nowrap">
+            <span className="whitespace-nowrap">{timestamp}</span>
             {own && showReceipt && (
               readBySomeoneElse ? (
-                <CheckCheck className="size-3 text-primary" aria-label="Read" />
+                <CheckCheck className="size-3 text-primary shrink-0" aria-label="Read" />
               ) : (
-                <Check className="size-3 text-muted-foreground" aria-label="Sent" />
+                <Check className="size-3 text-muted-foreground shrink-0" aria-label="Sent" />
               )
             )}
           </div>

@@ -41,7 +41,7 @@ export function ArchiveView({
       <div className="px-5 pt-4 pb-3 border-b border-border/50">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold tracking-tight">Archived Chats</h2>
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 font-semibold border border-purple-500/20">
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold border border-primary/20">
             {archivedConversations.length} Archived
           </span>
         </div>

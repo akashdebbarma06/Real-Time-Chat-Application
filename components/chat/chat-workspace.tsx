@@ -230,7 +230,7 @@ export function ChatWorkspace({ profile, selectedConversationId }: ChatWorkspace
       </div>
 
       {/* 3. Chat Content: remaining width flex-1 */}
-      <div className={sideDetailView ? "hidden md:block flex-1 min-w-0 h-full min-h-0" : "flex-1 min-w-0 h-full min-h-0"}>
+      <div className={sideDetailView ? "hidden md:block flex-1 min-w-0 h-full min-h-0 relative overflow-hidden" : "flex-1 min-w-0 h-full min-h-0 relative overflow-hidden"}>
         {selectedConversationId ? (
           <MessagePanel
             key={selectedConversationId}

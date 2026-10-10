@@ -102,7 +102,7 @@ export function NewDirectChatDialog({
       <DialogContent className="max-w-md p-6 rounded-3xl sm:rounded-3xl border shadow-2xl">
         <DialogHeader className="space-y-1.5 pb-2 text-left">
           <div className="flex items-center gap-2.5">
-            <div className="grid size-9 place-items-center rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
+            <div className="grid size-9 place-items-center rounded-xl bg-primary/10 text-primary">
               <MessageSquarePlus className="size-5" />
             </div>
             <div>
@@ -123,7 +123,7 @@ export function NewDirectChatDialog({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search by name or @username..."
-            className="pl-10 h-10 text-sm rounded-xl bg-muted/50 border-muted focus-visible:ring-purple-500/30"
+            className="pl-10 h-10 text-sm rounded-xl bg-muted/50 border-muted focus-visible:ring-primary/30"
             autoFocus
           />
         </div>
@@ -132,7 +132,7 @@ export function NewDirectChatDialog({
         <ScrollArea className="h-72 rounded-2xl border bg-card p-1">
           {loading ? (
             <div className="flex h-64 flex-col items-center justify-center gap-2 text-muted-foreground">
-              <Loader2 className="size-6 animate-spin text-purple-600" />
+              <Loader2 className="size-6 animate-spin text-primary" />
               <p className="text-xs">Finding contacts...</p>
             </div>
           ) : users.length === 0 ? (
@@ -153,9 +153,9 @@ export function NewDirectChatDialog({
                     disabled={creatingId !== null}
                     onClick={() => void handleSelectUser(user)}
                     className={cn(
-                      "flex w-full items-center gap-3 rounded-xl p-2.5 text-left transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500",
+                      "flex w-full items-center gap-3 rounded-xl p-2.5 text-left transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                       isSelected
-                        ? "bg-purple-500/10 text-purple-600"
+                        ? "bg-primary/10 text-primary"
                         : "hover:bg-muted/80 text-foreground"
                     )}
                   >
@@ -176,7 +176,7 @@ export function NewDirectChatDialog({
                     </div>
 
                     {isSelected ? (
-                      <Loader2 className="size-4 animate-spin text-purple-600 shrink-0" />
+                      <Loader2 className="size-4 animate-spin text-primary shrink-0" />
                     ) : (
                       <span className="text-[11px] font-medium text-muted-foreground opacity-0 group-hover:opacity-100">
                         Chat

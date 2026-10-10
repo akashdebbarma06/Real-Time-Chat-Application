@@ -91,13 +91,19 @@ describe("Appearance Store and Personalization", () => {
   });
 
   it("provides valid configurations for accents, backgrounds, bubbles, and app icons", () => {
-    expect(ACCENT_COLORS.length).toBeGreaterThanOrEqual(5);
-    expect(APP_ICONS.length).toBeGreaterThanOrEqual(4);
-    expect(BUBBLE_STYLES.length).toBeGreaterThanOrEqual(4);
-    expect(CHAT_BACKGROUNDS.length).toBeGreaterThanOrEqual(4);
-
-    expect(ACCENT_COLORS.some((c) => c.id === "purple")).toBe(true);
-    expect(BUBBLE_STYLES.some((b) => b.id === "rounded")).toBe(true);
+    expect(ACCENT_COLORS.length).toBe(6);
+    expect(ACCENT_COLORS.map((c) => c.label)).toEqual([
+      "Emerald",
+      "Ocean",
+      "Teal",
+      "Violet",
+      "Rose",
+      "Amber",
+    ]);
+    expect(BUBBLE_STYLES.some((b) => b.label === "Default")).toBe(true);
+    expect(BUBBLE_STYLES.some((b) => b.label === "Classic")).toBe(true);
+    expect(BUBBLE_STYLES.some((b) => b.label === "Pill")).toBe(true);
     expect(CHAT_BACKGROUNDS.some((g) => g.id === "default")).toBe(true);
   });
 });
+

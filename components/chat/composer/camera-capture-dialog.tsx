@@ -25,7 +25,7 @@ interface CameraCaptureDialogProps {
   open: boolean;
   mode: CameraMode;
   onOpenChange: (open: boolean) => void;
-  onCaptureMedia: (file: File) => void;
+  onCaptureMedia: (file: File, objectUrl?: string) => void;
 }
 
 export function CameraCaptureDialog({
@@ -143,9 +143,10 @@ export function CameraCaptureDialog({
         const file = new File([blob], `photo-${Date.now()}.jpg`, {
           type: "image/jpeg",
         });
-        onCaptureMedia(file);
+        const objectUrl = URL.createObjectURL(file);
+        stopCamera();
         onOpenChange(false);
-        toast.success("Photo captured and attached!");
+        onCaptureMedia(file, objectUrl);
       },
       "image/jpeg",
       0.9
@@ -173,9 +174,10 @@ export function CameraCaptureDialog({
         const file = new File([blob], `${prefix}-${Date.now()}.webm`, {
           type: "video/webm",
         });
-        onCaptureMedia(file);
+        const objectUrl = URL.createObjectURL(file);
+        stopCamera();
         onOpenChange(false);
-        toast.success(`${mode === "video-note" ? "Video Note" : "Camera Capture"} attached!`);
+        onCaptureMedia(file, objectUrl);
       };
 
       recorder.start(250);

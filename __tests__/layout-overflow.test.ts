@@ -49,8 +49,35 @@ describe("Chat Layout Overflow Protection Rules", () => {
     // Middle container flex-1 min-w-0 overflow-hidden
     expect(sidebarContent).toContain("sidebar-item-content chat-info flex-1 min-w-0 flex flex-col justify-center gap-0.5 overflow-hidden");
     // Timestamp shrink-0
-    expect(sidebarContent).toContain("chat-time text-[11px] text-muted-foreground shrink-0 flex-shrink-0");
+    expect(sidebarContent).toContain("chat-time text-xs text-neutral-400 shrink-0 flex-shrink-0 font-medium");
     // Preview truncate block w-full min-w-0
     expect(sidebarContent).toContain("truncate block w-full min-w-0");
+    // Contact title scaled up
+    expect(sidebarContent).toContain("user-name text-[15px] sm:text-base font-semibold truncate block");
+    // Bottom padding pb-28 md:pb-6 for floating nav clearance
+    expect(sidebarContent).toContain("pb-28 md:pb-6");
+  });
+
+  it("prevents text bubble collapsing on short messages with min-w-[90px] w-fit max-w-[75%] and break-words", () => {
+    const bubblePath = path.resolve(__dirname, "../components/chat/message-bubble.tsx");
+    const bubbleContent = fs.readFileSync(bubblePath, "utf-8");
+
+    expect(bubbleContent).toContain("min-w-[90px] w-fit max-w-[75%]");
+    expect(bubbleContent).toContain("break-words");
+    expect(bubbleContent).toContain("whitespace-nowrap");
+  });
+
+  it("ensures Poll card has responsive width with box-border and chat container has px-4 and overflow-x-hidden", () => {
+    const pollPath = path.resolve(__dirname, "../components/chat/media/poll-card.tsx");
+    const pollContent = fs.readFileSync(pollPath, "utf-8");
+
+    expect(pollContent).toContain("w-full max-w-[360px] sm:max-w-[400px]");
+    expect(pollContent).toContain("box-border");
+
+    const panelPath = path.resolve(__dirname, "../components/chat/message-panel.tsx");
+    const panelContent = fs.readFileSync(panelPath, "utf-8");
+
+    expect(panelContent).toContain("px-4");
+    expect(panelContent).toContain("overflow-x-hidden overflow-y-auto");
   });
 });
