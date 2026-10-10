@@ -16,6 +16,12 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
     }
 
+    @Override
+    protected void onNewIntent(android.content.Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+    }
+
     @CapacitorPlugin(name = "AppIcon")
     public static class AppIconPlugin extends Plugin {
         @PluginMethod

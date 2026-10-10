@@ -75,10 +75,25 @@ export function AuthForm({ mode }: AuthFormProps) {
         ? window.location.origin
         : siteUrl;
 
+    let isNative = false;
+    try {
+      if (typeof window !== "undefined") {
+        const win = window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } };
+        isNative =
+          Boolean(win.Capacitor?.isNativePlatform?.()) ||
+          localStorage.getItem("aether_is_native") === "true";
+      }
+    } catch {}
+
+    const callbackUrl = new URL(`${origin}/auth/callback`);
+    if (isNative) {
+      callbackUrl.searchParams.set("source", "app");
+    }
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${origin}/auth/callback`,
+        redirectTo: callbackUrl.toString(),
       },
     });
     if (error) {
