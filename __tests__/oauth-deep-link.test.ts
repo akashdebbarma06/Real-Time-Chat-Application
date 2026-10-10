@@ -37,14 +37,7 @@ describe("OAuth Deep Link & Mobile Auth Flow", () => {
   });
 
   it("returns the HTML mobile app bridge with deep links when source=app is specified", async () => {
-    const mockExchange = vi.fn().mockResolvedValue({
-      data: {
-        session: { access_token: "secret-token-123", refresh_token: "refresh-token-456" },
-        user: { id: "user-123" },
-      },
-      error: null,
-    });
-
+    const mockExchange = vi.fn();
     vi.mocked(createClient).mockResolvedValue({
       auth: { exchangeCodeForSession: mockExchange },
     } as unknown as Awaited<ReturnType<typeof createClient>>);
@@ -54,12 +47,14 @@ describe("OAuth Deep Link & Mobile Auth Flow", () => {
     );
     const response = await GET(request);
 
+    // Ensure server DOES NOT attempt code exchange on server (preserving PKCE verifier for client)
+    expect(mockExchange).not.toHaveBeenCalled();
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toContain("text/html");
 
     const html = await response.text();
-    expect(html).toContain("aetherchat://auth-callback?access_token=secret-token-123&refresh_token=refresh-token-456");
-    expect(html).toContain("intent://auth-callback?access_token=secret-token-123&refresh_token=refresh-token-456#Intent;scheme=aetherchat;package=com.aetherchat.app;end");
+    expect(html).toContain("aetherchat://auth-callback?code=valid-code");
+    expect(html).toContain("intent://auth-callback?code=valid-code#Intent;scheme=aetherchat;package=com.aetherchat.app;end");
     expect(html).toContain("Open Aether Chat App");
   });
 
@@ -74,7 +69,7 @@ describe("OAuth Deep Link & Mobile Auth Flow", () => {
     expect(html).toContain("aetherchat://auth-callback?error=");
   });
 
-  it("handles OAuth exchange error and provides app return link", async () => {
+  it("handles web OAuth exchange error by redirecting to login with error parameter", async () => {
     const mockExchange = vi.fn().mockResolvedValue({
       data: null,
       error: new Error("Invalid or expired OAuth grant"),
@@ -85,14 +80,12 @@ describe("OAuth Deep Link & Mobile Auth Flow", () => {
     } as unknown as Awaited<ReturnType<typeof createClient>>);
 
     const request = new Request(
-      "https://chatsphere-tan.vercel.app/auth/callback?code=expired-code&source=app"
+      "https://chatsphere-tan.vercel.app/auth/callback?code=expired-code",
+      { headers: { host: "chatsphere-tan.vercel.app" } }
     );
     const response = await GET(request);
 
-    expect(response.status).toBe(200);
-    const html = await response.text();
-    expect(html).toContain("Sign-in Failed");
-    expect(html).toContain("Invalid or expired OAuth grant");
-    expect(html).toContain("aetherchat://auth-callback?error=Invalid%20or%20expired%20OAuth%20grant");
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe("https://chatsphere-tan.vercel.app/login?error=callback");
   });
 });

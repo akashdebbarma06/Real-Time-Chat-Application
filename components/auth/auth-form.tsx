@@ -78,18 +78,67 @@ export function AuthForm({ mode }: AuthFormProps) {
     let isNative = false;
     try {
       if (typeof window !== "undefined") {
+        const { Capacitor } = await import("@capacitor/core");
+        isNative =
+          Boolean(Capacitor.isNativePlatform()) ||
+          localStorage.getItem("aether_is_native") === "true";
+      }
+    } catch {
+      if (typeof window !== "undefined") {
         const win = window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } };
         isNative =
           Boolean(win.Capacitor?.isNativePlatform?.()) ||
           localStorage.getItem("aether_is_native") === "true";
       }
-    } catch {}
-
-    const callbackUrl = new URL(`${origin}/auth/callback`);
-    if (isNative) {
-      callbackUrl.searchParams.set("source", "app");
     }
 
+    if (isNative) {
+      try {
+        const customSchemeUrl = "aetherchat://auth-callback";
+        const webFallbackUrl = new URL(`${origin}/auth/callback`);
+        webFallbackUrl.searchParams.set("source", "app");
+
+        // Try direct custom scheme first; fallback to web bridge if Supabase redirect allowlist requires web URL
+        let { data, error } = await supabase.auth.signInWithOAuth({
+          provider,
+          options: {
+            redirectTo: customSchemeUrl,
+            skipBrowserRedirect: true,
+          },
+        });
+
+        if (error && /redirect.*(not allowed|url)/i.test(error.message)) {
+          const retry = await supabase.auth.signInWithOAuth({
+            provider,
+            options: {
+              redirectTo: webFallbackUrl.toString(),
+              skipBrowserRedirect: true,
+            },
+          });
+          data = retry.data;
+          error = retry.error;
+        }
+
+        if (error) {
+          toast.error(error.message);
+          setLoading(false);
+          return;
+        }
+
+        if (data?.url) {
+          const { Browser } = await import("@capacitor/browser");
+          await Browser.open({ url: data.url, windowName: "_self" });
+        }
+      } catch (err) {
+        console.error("Native OAuth error:", err);
+        const msg = err instanceof Error ? err.message : "Failed to open authentication browser";
+        toast.error(msg);
+        setLoading(false);
+      }
+      return;
+    }
+
+    const callbackUrl = new URL(`${origin}/auth/callback`);
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {

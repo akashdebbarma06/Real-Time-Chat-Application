@@ -255,7 +255,15 @@ Run the SQL migration script located in [`supabase/migrations/001_aether_chat.sq
 - Storage bucket permissions (`chat-files`, `avatars`).
 - Real-time notification triggers and RPC functions.
 
-### 4. Start the Dev Server
+### 4. Supabase OAuth Configuration (Web & Mobile)
+Under **Authentication -> URL Configuration** in your Supabase Dashboard, register the following:
+- **Site URL**: `https://chatsphere-tan.vercel.app` (or your production domain)
+- **Redirect URLs**:
+  - `aetherchat://auth-callback` (native Android custom scheme)
+  - `https://chatsphere-tan.vercel.app/auth/callback`
+  - `http://localhost:3000/auth/callback`
+
+### 5. Start the Dev Server
 ```bash
 npm run dev
 ```

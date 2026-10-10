@@ -6,12 +6,17 @@ interface SessionPayload {
   refresh_token: string;
 }
 
+interface BridgePayload {
+  session?: SessionPayload | null;
+  code?: string | null;
+}
+
 function renderMobileBridge(
-  session: SessionPayload | null,
+  payload: BridgePayload | null,
   errorMsg: string | null,
   next: string = "/chat"
 ) {
-  if (errorMsg || !session) {
+  if (errorMsg || (!payload?.session && !payload?.code)) {
     const errorParam = encodeURIComponent(errorMsg || "Authentication failed");
     const appErrorScheme = `aetherchat://auth-callback?error=${errorParam}`;
     const html = `<!DOCTYPE html>
@@ -49,11 +54,18 @@ function renderMobileBridge(
     return new NextResponse(html, { headers: { "Content-Type": "text/html; charset=utf-8" } });
   }
 
-  const accessToken = encodeURIComponent(session.access_token);
-  const refreshToken = encodeURIComponent(session.refresh_token);
-  const appScheme = `aetherchat://auth-callback?access_token=${accessToken}&refresh_token=${refreshToken}`;
-  const appPkgScheme = `com.aetherchat.app://auth-callback?access_token=${accessToken}&refresh_token=${refreshToken}`;
-  const chromeIntent = `intent://auth-callback?access_token=${accessToken}&refresh_token=${refreshToken}#Intent;scheme=aetherchat;package=com.aetherchat.app;end`;
+  let queryParams = "";
+  if (payload.code) {
+    queryParams = `code=${encodeURIComponent(payload.code)}`;
+  } else if (payload.session) {
+    const accessToken = encodeURIComponent(payload.session.access_token);
+    const refreshToken = encodeURIComponent(payload.session.refresh_token);
+    queryParams = `access_token=${accessToken}&refresh_token=${refreshToken}`;
+  }
+
+  const appScheme = `aetherchat://auth-callback?${queryParams}`;
+  const appPkgScheme = `com.aetherchat.app://auth-callback?${queryParams}`;
+  const chromeIntent = `intent://auth-callback?${queryParams}#Intent;scheme=aetherchat;package=com.aetherchat.app;end`;
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -156,28 +168,26 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL("/login?error=missing_code", baseUrl));
   }
 
+  // If request originated from mobile app, do not exchange code on the server.
+  // The PKCE code verifier is stored in the mobile client's WebView storage,
+  // so exchanging it on the server triggers "PKCE code verifier not found in storage".
+  // Bridge the authorization code directly to the native app for client-side exchange.
+  if (source === "app") {
+    return renderMobileBridge({ code }, null, next);
+  }
+
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (error) {
       console.error("OAuth callback session exchange failed", error);
-      if (source === "app") {
-        return renderMobileBridge(null, error.message);
-      }
       return NextResponse.redirect(new URL("/login?error=callback", baseUrl));
-    }
-
-    if (source === "app" && data?.session) {
-      return renderMobileBridge(data.session, null, next);
     }
 
     return NextResponse.redirect(new URL(next, baseUrl));
   } catch (error) {
     console.error("Unhandled exception in OAuth callback", error);
-    if (source === "app") {
-      return renderMobileBridge(null, "Internal authentication error");
-    }
     return NextResponse.redirect(new URL("/login?error=callback", baseUrl));
   }
 }

@@ -29,26 +29,34 @@ export function useAuthDeepLink() {
         const handleAuthUrl = async (rawUrl: string) => {
           if (!rawUrl) return;
 
-          // Check if this is an auth callback URL
+          // Check if this is an auth callback URL or carries auth tokens/code
           if (
             !rawUrl.includes("auth-callback") &&
             !rawUrl.includes("access_token") &&
-            !rawUrl.includes("refresh_token")
+            !rawUrl.includes("refresh_token") &&
+            !rawUrl.includes("code=")
           ) {
             return;
           }
+
+          // Close the In-App Browser / Custom Tab if it's currently open
+          try {
+            const { Browser } = await import("@capacitor/browser");
+            await Browser.close();
+          } catch {}
 
           try {
             // Normalize custom scheme into standard URL structure
             const normalized = rawUrl.replace(/^[a-zA-Z0-9._-]+:\/\//, "https://app.local/");
             const url = new URL(normalized);
 
-            // Extract tokens from query parameters or hash fragment
+            // Extract tokens, code, and errors from query parameters or hash fragment
             const queryParams = url.searchParams;
             const hashParams = new URLSearchParams(
               url.hash ? url.hash.replace(/^#/, "?") : ""
             );
 
+            const code = queryParams.get("code") || hashParams.get("code");
             const accessToken = queryParams.get("access_token") || hashParams.get("access_token");
             const refreshToken = queryParams.get("refresh_token") || hashParams.get("refresh_token");
             const error = queryParams.get("error") || hashParams.get("error");
@@ -60,8 +68,25 @@ export function useAuthDeepLink() {
               return;
             }
 
+            const supabase = createClient();
+
+            // 1. PKCE Code flow: Exchange code for session in the local client context
+            if (code) {
+              const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+              if (exchangeError) {
+                console.error("[AuthDeepLink] Failed to exchange code for session:", exchangeError);
+                toast.error(exchangeError.message || "Failed to complete mobile sign-in");
+                return;
+              }
+
+              toast.success("Signed in successfully!");
+              router.replace("/chat");
+              router.refresh();
+              return;
+            }
+
+            // 2. Direct session token payload flow
             if (accessToken && refreshToken) {
-              const supabase = createClient();
               const { error: sessionError } = await supabase.auth.setSession({
                 access_token: accessToken,
                 refresh_token: refreshToken,
