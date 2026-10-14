@@ -601,7 +601,7 @@ export function SettingsView({
 
   // ═══════════ IN-PANEL SUB-VIEWS ═══════════
 
-  // 0. Profile Sub-panel (Full in-panel WhatsApp Web Profile View)
+  // 0. Profile Sub-panel (Full in-panel Profile View)
   if (selectedSection === "profile") {
     const bioWordCount = countWords(bioInput);
 
@@ -626,7 +626,7 @@ export function SettingsView({
         </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-5 space-y-5 pb-28 md:pb-6">
-          {/* 1. Centered Large Avatar & Camera Badge matching WhatsApp */}
+          {/* 1. Centered Large Avatar & Camera Badge */}
           <div className="flex flex-col items-center justify-center pt-4 pb-2">
             <div className="relative">
               <button
@@ -652,7 +652,7 @@ export function SettingsView({
                 </div>
               </button>
 
-              {/* Pink/Coral Camera Badge Button (matching WhatsApp) */}
+              {/* Coral/Accent Camera Badge Button */}
               <button
                 type="button"
                 onClick={(e) => {
@@ -1628,7 +1628,7 @@ export function SettingsView({
       {/* Settings Navigation List (Scrollable Hero Banner + Settings Items) */}
       <ScrollArea className="flex-1">
         <div className="flex flex-col py-2 pb-28 md:pb-6">
-          {/* Centered WhatsApp-Style Hero Profile Banner (Scrollable) */}
+          {/* Centered Hero Profile Banner (Scrollable) */}
           <div className="w-full px-6 pt-2 pb-5 flex flex-col items-center justify-center border-b border-border bg-gradient-to-b from-card/40 via-card/20 to-transparent text-center select-none shrink-0 relative">
             {/* Thought Cloud Bubble for 24h Note Status (Up to 60 chars) */}
             <div className="relative mb-2 flex flex-col items-center">

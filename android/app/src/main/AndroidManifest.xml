@@ -185,7 +185,7 @@
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
         </provider>
 
-        <!-- Dedicated Native WhatsApp-Style Camera Activity -->
+        <!-- Dedicated Native In-App Camera Activity -->
         <activity
             android:name=".CameraActivity"
             android:theme="@style/AppTheme.NoActionBar"

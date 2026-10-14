@@ -91,7 +91,7 @@ export function getMockConversations(currentUserId: string): ConversationSummary
       ],
       last_message: {
         id: "msg-g2",
-        content: "Updated WhatsApp Web dark mode tokens in Figma.",
+        content: "Updated AetherChat dark mode tokens in Figma.",
         message_type: "text",
         sender_id: pAlex.id,
         created_at: timeMinus(45),

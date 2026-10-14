@@ -639,7 +639,7 @@ export function MessageBubble({
           />
         )}
 
-        {/* WhatsApp Web Centered Reaction Details Modal */}
+        {/* Centered Reaction Details Modal */}
         <ReactionDetailsDialog
           open={reactionDetailsOpen}
           onOpenChange={setReactionDetailsOpen}

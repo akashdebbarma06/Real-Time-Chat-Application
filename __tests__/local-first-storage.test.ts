@@ -15,7 +15,7 @@ import type { ChatMessage } from "@/types/chat";
 // Mock IndexedDB in JSDOM / Node environment
 import "fake-indexeddb/auto";
 
-describe("WhatsApp-Style Local-First Storage Architecture", () => {
+describe("Local-First Storage Architecture Suite", () => {
   beforeEach(async () => {
     await clearAllLocalData();
   });

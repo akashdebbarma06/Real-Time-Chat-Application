@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { getMockConversations } from "@/lib/mock-chats";
 import type { ConversationSummary } from "@/types/chat";
 
-describe("WhatsApp Web Dark-Themed Chat List & Context Menu Specifications", () => {
+describe("Dark-Themed Chat List & Context Menu Specifications", () => {
   const currentUserId = "user-test-123";
   const mockList = getMockConversations(currentUserId);
 
@@ -34,7 +34,7 @@ describe("WhatsApp Web Dark-Themed Chat List & Context Menu Specifications", () 
   });
 
   describe("Dynamic Menu Options Specification", () => {
-    // Helper defining the allowed menu options according to WhatsApp Web spec
+    // Helper defining the allowed menu options according to context menu specification
     function getMenuOptionsForConversation(conversation: ConversationSummary) {
       const baseOptions = [
         "Archive chat",

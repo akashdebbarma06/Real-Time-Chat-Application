@@ -20,7 +20,10 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.JSObject;
@@ -46,6 +49,39 @@ public class MainActivity extends BridgeActivity {
 
         setupNotificationChannel();
         applyStoredSystemBarsTheme();
+        setupWindowInsets();
+    }
+
+    private void setupWindowInsets() {
+        try {
+            Window window = getWindow();
+            ViewCompat.setOnApplyWindowInsetsListener(window.getDecorView(), (v, windowInsets) -> {
+                Insets statusInsets = windowInsets.getInsets(WindowInsetsCompat.Type.statusBars());
+                Insets navInsets = windowInsets.getInsets(WindowInsetsCompat.Type.navigationBars());
+                Insets displayCutoutInsets = windowInsets.getInsets(WindowInsetsCompat.Type.displayCutout());
+
+                int topPx = Math.max(statusInsets.top, displayCutoutInsets.top);
+                int bottomPx = Math.max(navInsets.bottom, displayCutoutInsets.bottom);
+
+                float density = getResources().getDisplayMetrics().density;
+                final int topDp = density > 0 ? Math.round(topPx / density) : 0;
+                final int bottomDp = density > 0 ? Math.round(bottomPx / density) : 0;
+
+                if (getBridge() != null && getBridge().getWebView() != null) {
+                    getBridge().getWebView().post(() -> {
+                        try {
+                            String js = String.format(
+                                "document.documentElement.style.setProperty('--safe-area-inset-top', '%dpx');" +
+                                "document.documentElement.style.setProperty('--safe-area-inset-bottom', '%dpx');",
+                                topDp, bottomDp
+                            );
+                            getBridge().getWebView().evaluateJavascript(js, null);
+                        } catch (Exception ignored) {}
+                    });
+                }
+                return windowInsets;
+            });
+        } catch (Exception ignored) {}
     }
 
     private void setupNotificationChannel() {

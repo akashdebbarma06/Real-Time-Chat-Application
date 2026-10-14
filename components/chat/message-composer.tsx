@@ -66,7 +66,7 @@ export function MessageComposer({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  // WhatsApp Web Preview / MediaEditorModal States (Unified selectedMedia state)
+  // Media Preview and Editor Modal States (Unified selectedMedia state)
   const [photosVideosModalOpen, setPhotosVideosModalOpen] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<File[]>([]);
   const photosVideosFiles = selectedMedia;
@@ -669,7 +669,7 @@ export function MessageComposer({
         }}
       />
 
-      {/* WhatsApp Web Preview Modals (Fallback when not handled by chat pane) */}
+      {/* Media Preview Modals (Fallback when not handled by chat pane) */}
       {!onSelectPhotosVideos && (
         <PhotosVideosPreviewDialog
           open={photosVideosModalOpen}

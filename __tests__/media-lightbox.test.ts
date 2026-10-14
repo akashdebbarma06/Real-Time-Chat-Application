@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-describe("WhatsApp Web Media Lightbox Modal & Click Interception Specifications", () => {
+describe("Media Lightbox Modal & Click Interception Specifications", () => {
   describe("1. Click Interception & Storage URL Prevention", () => {
     it("prevents default navigation and opens lightbox when clicking an image card", () => {
       const mockEvent = {
@@ -65,7 +65,7 @@ describe("WhatsApp Web Media Lightbox Modal & Click Interception Specifications"
       "close",
     ];
 
-    it("contains all required WhatsApp Web top header controls", () => {
+    it("contains all required media lightbox top header controls", () => {
       expect(requiredHeaderControls).toContain("avatar");
       expect(requiredHeaderControls).toContain("sender_name");
       expect(requiredHeaderControls).toContain("timestamp");

@@ -190,7 +190,7 @@ export function AttachmentPreview({
     );
   }
 
-  // 2. Telegram-Style Standalone Circular Video Note (1:1, primary border, tap-to-play)
+  // 2. Standalone Circular Video Note (1:1, primary border, tap-to-play)
   if (
     msgType === "video_note" ||
     msgMessageType === "video_note" ||
@@ -239,7 +239,7 @@ export function AttachmentPreview({
     );
   }
 
-  // 4. WhatsApp-Style Voice Note Bubble (Custom waveform, time, speed multiplier)
+  // 4. Voice Note Bubble (Custom waveform, time, speed multiplier)
   const isAudio = Boolean(
     !isPhoto &&
     (msgType === "voice_note" ||

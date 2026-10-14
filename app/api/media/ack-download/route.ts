@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 /**
  * Ephemeral Media Delivery Queue - Acknowledgment & Purge Handler
  *
- * WhatsApp Architecture:
+ * Store-and-Forward Architecture:
  * Once the recipient client confirms downloading the media file to local device storage,
  * it sends this ACK. The server immediately deletes the media binary from object storage.
  * The server retains 0 persistent media files.

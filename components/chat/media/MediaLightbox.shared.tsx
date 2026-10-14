@@ -1,11 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import Image from "next/image";
 import {
   ChevronLeft,
   ChevronRight,
-  CornerUpLeft,
   Download,
   MoreVertical,
   Pin,
@@ -31,25 +29,12 @@ import { toggleMessagePin, usePinnedMessageIds } from "@/lib/pinned-store";
 import { toggleMessageStar, useStarredIds } from "@/lib/starred-store";
 import { cn, formatMessageTime, getInitials } from "@/lib/utils";
 import { useBackHandler } from "@/hooks/use-back-handler";
-import type { ChatMessage, Profile } from "@/types/chat";
-
-interface WhatsAppMediaLightboxProps {
-  open: boolean;
-  activeMessageId: string | null;
-  initialUrl?: string | null;
-  conversationMediaMessages: ChatMessage[];
-  currentUserId: string;
-  conversationId: string;
-  onClose: () => void;
-  onReply?: (message: ChatMessage) => void;
-  onToggleReaction?: (messageId: string, emoji: string) => void;
-  onForward?: (message: ChatMessage) => void;
-  onDelete?: (messageId: string) => void;
-}
+import type { ChatMessage } from "@/types/chat";
+import type { MediaLightboxProps } from "./MediaLightbox.types";
 
 const EMOJI_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
 
-export function WhatsAppMediaLightbox({
+export function MediaLightbox({
   open,
   activeMessageId,
   initialUrl,
@@ -61,7 +46,7 @@ export function WhatsAppMediaLightbox({
   onToggleReaction,
   onForward,
   onDelete,
-}: WhatsAppMediaLightboxProps) {
+}: MediaLightboxProps) {
   // Track selected message ID
   const [currentId, setCurrentId] = useState<string | null>(activeMessageId);
   const [zoomLevel, setZoomLevel] = useState(1);
@@ -77,7 +62,7 @@ export function WhatsAppMediaLightbox({
 
   // Priority 1: Media Lightbox overlay
   useBackHandler({
-    id: "whatsapp-media-lightbox",
+    id: "media-lightbox",
     priority: 100,
     enabled: open,
     pushHistory: true,
@@ -488,7 +473,7 @@ export function WhatsAppMediaLightbox({
           ref={carouselContainerRef}
           className="flex w-full items-center gap-3 overflow-x-auto py-2 scrollbar-none"
         >
-          {conversationMediaMessages.map((msg, index) => {
+          {conversationMediaMessages.map((msg) => {
             const thumbUrl = urlCache[msg.id];
             const msgFileName = msg.attachment_name || "";
             const isMsgVideo = Boolean(
@@ -552,4 +537,3 @@ export function WhatsAppMediaLightbox({
   );
 }
 
-export const MediaLightbox = WhatsAppMediaLightbox;

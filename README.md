@@ -15,7 +15,7 @@
 
 <br/>
 
-**Aether Chat** is a WhatsApp-grade, full-stack real-time communication platform engineered with Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS, Supabase PostgreSQL with strict Row Level Security (RLS), and Capacitor 7 for cross-platform Android mobile deployment.
+**Aether Chat** is a production-grade, full-stack real-time communication platform engineered with Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS, Supabase PostgreSQL with strict Row Level Security (RLS), and Capacitor 7 for cross-platform Android mobile deployment.
 
 [📱 Download Android APK](#-download-mobile-app) • [✨ Key Features](#-key-feature-breakdown) • [🏗️ Architecture](#%EF%B8%8F-system-architecture) • [🚀 Quick Start](#-local-development-setup) • [🤖 Android Build](#-android-apk-build-guide)
 
@@ -170,7 +170,7 @@ erDiagram
   - **Text Stickers & Overlays**: Drag, position, rotate, and style moveable caption labels directly on media.
   - **Live Image Filters**: Normal, Grayscale, Sepia, Vibrant, Invert presets.
   - **Video Previews**: Inline HTML5 video playback and thumbnail slicing before transmission.
-- **WhatsApp Media Lightbox**: Immersive full-screen media viewer with double-tap zoom, pinch-to-zoom, panning, download actions, and keyboard navigation (`←` / `→` / `Esc`).
+- **Media Lightbox**: Immersive full-screen media viewer with double-tap zoom, pinch-to-zoom, panning, download actions, and keyboard navigation (`←` / `→` / `Esc`).
 
 ### 🗄️ 3. Media Vault
 A dedicated 3-tab media repository per conversation with live search and filtering:
@@ -191,11 +191,11 @@ A dedicated 3-tab media repository per conversation with live search and filteri
 ### 🎨 5. Theming, Appearance & Dynamic Design Tokens
 - **Theme Modes**: Seamless Dark, Light, and System modes.
 - **Curated Accent Palette**: Purple, Blue, Emerald, Rose, Amber, and Cyan themes applied via dynamic CSS variables across all components.
-- **Custom Bubble Geometries**: Rounded, Classic WhatsApp, Minimalist, and Pill chat bubbles.
-- **Doodle Wallpaper Overlays**: WhatsApp-style vector chat background doodle pattern with adjustable contrast and opacity.
+- **Custom Bubble Geometries**: Rounded, Classic Chat, Minimalist, and Pill chat bubbles.
+- **Doodle Wallpaper Overlays**: Vector chat background doodle pattern with adjustable contrast and opacity.
 - **Dynamic App Branding**: Live browser favicon and PWA icon switching based on selected accent color.
 
-### 👤 6. WhatsApp-Style Profile Hub
+### 👤 6. Comprehensive Profile Hub
 - **Bottom Slide-Up Action Sheet**: Quick avatar customization trigger (`profile-photo-sheet`).
 - **3 Avatar Sources**: Direct Camera snapshot, Local Device Gallery upload, and curated vector sticker presets.
 - **Profile Metadata**: Live display name, `@username` handle, status notes (24h expiring status), and phone verification status.

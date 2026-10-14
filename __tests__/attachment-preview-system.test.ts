@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-describe("WhatsApp Web Attachment & Preview System Specifications", () => {
+describe("Attachment & Preview System Specifications", () => {
   describe("1. Attachment Dropdown Specifications", () => {
     const attachmentOptions = [
       { id: "photos_and_videos", label: "Photos & videos", accept: "image/*,video/*" },
@@ -67,7 +67,7 @@ describe("WhatsApp Web Attachment & Preview System Specifications", () => {
         captionPlaceholder: "Type a message",
         hasThumbnailTray: true,
         hasAddMoreButton: true,
-        sendButtonColor: "#00a884", // WhatsApp Emerald Green
+        sendButtonColor: "#00a884", // Aether Primary Emerald Green
       };
 
       expect(bottomAreaSpecs.captionPlaceholder).toBe("Type a message");

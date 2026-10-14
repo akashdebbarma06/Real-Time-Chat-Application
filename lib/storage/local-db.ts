@@ -124,7 +124,7 @@ export async function getLocalConversations(): Promise<ConversationSummary[]> {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   2. MESSAGES STORAGE (WhatsApp-Style Local First)
+   2. MESSAGES STORAGE (Local-First Architecture)
    ───────────────────────────────────────────────────────────── */
 
 export async function saveLocalMessage(msg: ChatMessage): Promise<void> {

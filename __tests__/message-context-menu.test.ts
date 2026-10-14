@@ -79,7 +79,7 @@ describe("Message Pinning & Context Menu Store", () => {
       expect(bubbleContent).toContain("ReactionDetailsDialog");
     });
 
-    it("verifies ReactionDetailsDialog matches WhatsApp Web structure", () => {
+    it("verifies ReactionDetailsDialog matches structure specifications", () => {
       const dialogPath = path.resolve(__dirname, "../components/chat/reaction-details-dialog.tsx");
       const dialogContent = fs.readFileSync(dialogPath, "utf-8");
 

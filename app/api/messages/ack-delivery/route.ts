@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 /**
  * Ephemeral Message Delivery Queue - Acknowledgment & Purge Handler
  *
- * WhatsApp Architecture:
+ * Store-and-Forward Architecture:
  * The backend acts as a store-and-forward relay.
  * When the recipient client confirms receipt (delivery ACK),
  * the server immediately deletes the message row from the backend database.

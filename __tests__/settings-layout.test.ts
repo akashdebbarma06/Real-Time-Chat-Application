@@ -2,16 +2,16 @@ import { describe, expect, it } from "vitest";
 import fs from "fs";
 import path from "path";
 
-describe("WhatsApp Web Settings Panel Layout & Styling", () => {
+describe("Settings Panel Layout & Styling", () => {
   const settingsPath = path.resolve(__dirname, "../components/chat/settings-view.tsx");
   const settingsContent = fs.readFileSync(settingsPath, "utf-8");
 
-  it("includes WhatsApp-style search settings input", () => {
+  it("includes search settings input", () => {
     expect(settingsContent).toContain("Search settings");
     expect(settingsContent).toContain("searchQuery");
   });
 
-  it("renders a scrollable WhatsApp-style hero profile banner opening in side panel with 24h note cloud bubble and 96px avatar", () => {
+  it("renders a scrollable hero profile banner opening in side panel with 24h note cloud bubble and 96px avatar", () => {
     expect(settingsContent).not.toContain('href="/profile"');
     expect(settingsContent).toContain('setSelectedSection("profile")');
     expect(settingsContent).toContain("selectedSection === \"profile\"");
@@ -23,7 +23,7 @@ describe("WhatsApp Web Settings Panel Layout & Styling", () => {
     expect(settingsContent).toContain("›");
   });
 
-  it("orders settings items in official WhatsApp Web sequence", () => {
+  it("orders settings items in standard sequence", () => {
     const accountIndex = settingsContent.indexOf('id: "account"');
     const privacyIndex = settingsContent.indexOf('id: "privacy"');
     const appearanceIndex = settingsContent.indexOf('id: "appearance"');
@@ -116,7 +116,7 @@ describe("WhatsApp Web Settings Panel Layout & Styling", () => {
     expect(settingsContent).toMatch(/Privacy & Security[\s\S]*?pb-28 md:pb-6/);
   });
 
-  it("integrates WhatsApp profile picture slide-up action sheet in Profile view and settings banner", () => {
+  it("integrates profile picture slide-up action sheet in Profile view and settings banner", () => {
     expect(settingsContent).toContain("ProfilePhotoSheet");
     expect(settingsContent).toContain("photoSheetOpen");
     expect(settingsContent).toContain("setPhotoSheetOpen(true)");

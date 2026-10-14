@@ -37,7 +37,7 @@ import { ConversationAvatar } from "@/components/chat/conversation-avatar";
 import { MessageBubble } from "@/components/chat/message-bubble";
 import { PhotosVideosPreviewDialog } from "@/components/chat/composer/photos-videos-preview-dialog";
 import { DocumentPreviewDialog } from "@/components/chat/composer/document-preview-dialog";
-import { WhatsAppMediaLightbox } from "@/components/chat/media/whatsapp-media-lightbox";
+import { MediaLightbox } from "@/components/chat/media/MediaLightbox.shared";
 import { CHAT_BACKGROUNDS, useAppearance } from "@/lib/appearance-store";
 import {
   getLocalMessages,
@@ -122,7 +122,7 @@ export function MessagePanel({
   // Single active message menu ID across the entire chat
   const [activeMenuMessageId, setActiveMenuMessageId] = useState<string | null>(null);
 
-  // WhatsApp Web Preview / MediaEditorModal States scoped to active chat pane (Unified selectedMedia state)
+  // Media preview and editor modal states scoped to active chat pane
   const [photosVideosModalOpen, setPhotosVideosModalOpen] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<File[]>([]);
   const photosVideosFiles = selectedMedia;
@@ -130,7 +130,7 @@ export function MessagePanel({
   const [documentModalOpen, setDocumentModalOpen] = useState(false);
   const [documentFile, setDocumentFile] = useState<File | null>(null);
 
-  // WhatsApp Web In-App Media Lightbox Modal states
+  // In-App Media Lightbox Modal states
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxActiveMessageId, setLightboxActiveMessageId] = useState<string | null>(null);
   const [lightboxInitialUrl, setLightboxInitialUrl] = useState<string | null>(null);
@@ -165,7 +165,7 @@ export function MessagePanel({
   const notifiedMessageKeys = useRef<Set<string>>(new Set());
 
   const loadMessages = useCallback(async () => {
-    // 1. WhatsApp Architecture: Load immediately from Client IndexedDB (0 network latency)
+    // 1. Local-First Architecture: Load immediately from Client IndexedDB (0 network latency)
     const localMsgs = await getLocalMessages(conversationId);
     if (localMsgs.length > 0) {
       setMessages(localMsgs);
@@ -764,7 +764,7 @@ export function MessagePanel({
   }
 
   return (
-    <section className="flex h-svh min-h-0 flex-col bg-background relative overflow-hidden">
+    <section className="flex h-full min-h-0 flex-1 flex-col bg-background relative overflow-hidden">
       {/* HEADER COMPONENT INLINED */}
       <header className="flex h-16 shrink-0 items-center justify-between border-b bg-background px-3 sm:px-5">
         <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -1102,7 +1102,7 @@ export function MessagePanel({
         featureName={comingSoonFeature}
       />
 
-      {/* WhatsApp Web Active Chat Column Overlays */}
+      {/* Active Chat Column Overlays */}
       <PhotosVideosPreviewDialog
         open={photosVideosModalOpen}
         files={photosVideosFiles}
@@ -1139,8 +1139,8 @@ export function MessagePanel({
         }}
       />
 
-      {/* WhatsApp Web In-App Media Lightbox Modal */}
-      <WhatsAppMediaLightbox
+      {/* In-App Media Lightbox Modal */}
+      <MediaLightbox
         open={lightboxOpen}
         activeMessageId={lightboxActiveMessageId}
         initialUrl={lightboxInitialUrl}

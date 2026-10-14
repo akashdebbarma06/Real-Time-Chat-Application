@@ -13,7 +13,7 @@ export function EmptyChat({ currentUserId, onCreated }: EmptyChatProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
 
   return (
-    <section className="hidden h-svh min-h-0 flex-1 items-center justify-center bg-[radial-gradient(circle_at_center,color-mix(in_oklab,var(--primary)_12%,transparent),transparent_60%)] bg-background p-8 md:flex">
+    <section className="hidden h-full min-h-0 flex-1 items-center justify-center bg-[radial-gradient(circle_at_center,color-mix(in_oklab,var(--primary)_12%,transparent),transparent_60%)] bg-background p-8 md:flex">
       <div className="max-w-md text-center">
         {/* Large 💬 Icon Badge */}
         <div className="mx-auto grid size-24 place-items-center rounded-3xl border border-primary/20 bg-primary/10 text-primary shadow-2xl shadow-primary/15 backdrop-blur-md animate-in fade-in zoom-in duration-300">

@@ -23,7 +23,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { createClient } from "@/lib/supabase/client";
 import { formatConversationTime, formatFileSize, getConversationTitle } from "@/lib/utils";
-import { WhatsAppMediaLightbox } from "@/components/chat/media/whatsapp-media-lightbox";
+import { MediaLightbox } from "@/components/chat/media/MediaLightbox.shared";
 import { cn } from "@/lib/utils";
 import type { ChatMessage, ConversationSummary, Profile } from "@/types/chat";
 import { getAllLocalVaultMedia } from "@/lib/storage/local-db";
@@ -88,7 +88,7 @@ export function VaultView({ conversations, profile }: VaultViewProps) {
     async function loadVault() {
       setLoading(true);
 
-      // 1. WhatsApp Architecture: Load persistent media and files directly from user device IndexedDB
+      // 1. Local-First Architecture: Load persistent media and files directly from user device IndexedDB
       try {
         const localVault = await getAllLocalVaultMedia();
         if (active && (localVault.media.length > 0 || localVault.docs.length > 0 || localVault.links.length > 0)) {
@@ -591,7 +591,7 @@ export function VaultView({ conversations, profile }: VaultViewProps) {
       </ScrollArea>
 
       {/* Full-Screen Media Lightbox */}
-      <WhatsAppMediaLightbox
+      <MediaLightbox
         open={lightboxOpen}
         activeMessageId={activeMediaId}
         initialUrl={activeMediaUrl}

@@ -144,7 +144,7 @@ export function ConversationContextMenu({
         }}
       />
 
-      {/* WhatsApp Web Themed Popup Menu with dynamic tokens */}
+      {/* Themed Popup Menu with dynamic tokens */}
       <div
         ref={menuRef}
         role="menu"

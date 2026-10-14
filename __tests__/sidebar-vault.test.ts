@@ -30,9 +30,9 @@ describe("Sidebar Vault Navigation & Dedicated Vault View", () => {
     expect(mobileNavContent).toContain('id: "status"');
     expect(mobileNavContent).toContain('id: "settings"');
     expect(mobileNavContent).toContain("rounded-full");
-    expect(mobileNavContent).toContain("bg-[#182229]/80");
+    expect(mobileNavContent).toMatch(/bg-(?:card\/90|\[#182229\])/);
     expect(mobileNavContent).toContain("backdrop-blur-xl");
-    expect(mobileNavContent).toContain("border border-white/10");
+    expect(mobileNavContent).toMatch(/border-(?:border|white)/);
   });
 
   it("renders VaultView inside conversation sidebar when vault tab is active", () => {
@@ -51,7 +51,7 @@ describe("Sidebar Vault Navigation & Dedicated Vault View", () => {
   });
 
   it("integrates full-screen media lightbox for Media grid items", () => {
-    expect(vaultViewContent).toContain("WhatsAppMediaLightbox");
+    expect(vaultViewContent).toContain("MediaLightbox");
     expect(vaultViewContent).toContain("handleOpenLightbox");
     expect(vaultViewContent).toContain("lightboxOpen");
     expect(vaultViewContent).toContain("activeMediaId");

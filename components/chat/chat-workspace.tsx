@@ -10,6 +10,7 @@ import { MessagePanel } from "@/components/chat/message-panel";
 import { NavigationRail, type RailTab } from "@/components/chat/navigation-rail";
 import { NewChatDialog } from "@/components/chat/new-chat-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { BrandedLoadingScreen } from "@/components/ui/branded-loading-screen";
 import { usePresence } from "@/hooks/use-presence";
 import { useBackHandler } from "@/hooks/use-back-handler";
 import { createClient } from "@/lib/supabase/client";
@@ -19,6 +20,7 @@ import { InPanelGroupInfo } from "@/components/chat/in-panel-group-info";
 import { PermissionModal } from "@/components/permissions/permission-modal";
 import { hasPromptedInitialPermissions } from "@/lib/permissions/device-permissions";
 import { notifyIncomingMessage } from "@/lib/notifications";
+import { useUnreadTabIndicator } from "@/features/notifications/UnreadTabIndicator.shared";
 import type { ConversationSummary, Profile } from "@/types/chat";
 
 interface ChatWorkspaceProps {
@@ -215,28 +217,13 @@ export function ChatWorkspace({ profile, selectedConversationId }: ChatWorkspace
     [conversations]
   );
 
+  // Dynamic unread browser tab title and favicon badge (active on desktop web)
+  useUnreadTabIndicator(totalUnread, () => {
+    void loadConversations();
+  });
+
   if (loading) {
-    return (
-      <div className="flex h-svh w-full bg-background safe-area-pt">
-        <div className="hidden md:flex w-20 shrink-0 border-r p-3 flex-col items-center gap-3">
-          <Skeleton className="size-11 rounded-2xl" />
-          <Skeleton className="size-12 rounded-xl mt-4" />
-          <Skeleton className="size-12 rounded-xl" />
-          <Skeleton className="size-12 rounded-xl" />
-        </div>
-        <div className="w-full md:w-[460px] md:min-w-[460px] shrink-0 border-r p-4">
-          <Skeleton className="h-12 w-full rounded-xl" />
-          <div className="mt-6 space-y-3">
-            {Array.from({ length: 8 }).map((_, index) => (
-              <Skeleton key={index} className="h-16 w-full rounded-xl" />
-            ))}
-          </div>
-        </div>
-        <div className="hidden flex-1 items-center justify-center md:flex min-w-0">
-          <Skeleton className="h-48 w-80 rounded-3xl" />
-        </div>
-      </div>
-    );
+    return <BrandedLoadingScreen fullScreen message="Loading conversations..." />;
   }
 
   return (

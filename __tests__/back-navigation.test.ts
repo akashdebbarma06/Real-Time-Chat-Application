@@ -179,9 +179,9 @@ describe("Mobile Hardware and Browser Back-Button Navigation Stack", () => {
     });
 
     it("verifies Overlays register with Priority 100", () => {
-      const lightboxPath = path.resolve(__dirname, "../components/chat/media/whatsapp-media-lightbox.tsx");
+      const lightboxPath = path.resolve(__dirname, "../components/chat/media/MediaLightbox.shared.tsx");
       const lightboxContent = fs.readFileSync(lightboxPath, "utf-8");
-      expect(lightboxContent).toContain('id: "whatsapp-media-lightbox"');
+      expect(lightboxContent).toContain('id: "media-lightbox"');
       expect(lightboxContent).toContain("priority: 100");
 
       const photoSheetPath = path.resolve(__dirname, "../components/settings/profile-photo-sheet.tsx");

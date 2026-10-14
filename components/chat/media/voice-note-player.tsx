@@ -9,7 +9,7 @@ interface VoiceNotePlayerProps {
   own?: boolean;
 }
 
-// WhatsApp-style normalized waveform bar heights (percentage of max height)
+// Normalized waveform bar heights (percentage of max height)
 const WAVEFORM_HEIGHTS = [
   35, 50, 75, 40, 85, 100, 65, 45, 90, 80, 55, 70, 95, 60, 40, 75, 90, 85,
   60, 45, 70, 85, 95, 60, 40, 55, 75, 50, 35, 30,

@@ -30,7 +30,7 @@ export function MobileBottomNav({
 
   return (
     <nav
-      className="md:hidden fixed bottom-[calc(1rem+var(--safe-area-bottom))] inset-x-0 max-w-sm mx-auto w-[calc(100%-2rem)] rounded-full bg-[#182229]/80 backdrop-blur-xl border border-white/10 shadow-lg z-40 select-none flex items-center justify-around px-3 py-2"
+      className="md:hidden fixed bottom-[calc(1rem+var(--safe-area-bottom))] inset-x-0 max-w-sm mx-auto w-[calc(100%-2rem)] rounded-full bg-card/90 dark:bg-[#182229]/90 backdrop-blur-xl border border-border/80 dark:border-white/10 shadow-lg z-40 select-none flex items-center justify-around px-3 py-2"
       aria-label="Mobile navigation"
     >
       {items.map((item) => {
@@ -46,7 +46,7 @@ export function MobileBottomNav({
               "group relative flex flex-col items-center justify-center py-1 px-3.5 rounded-full transition-all duration-200 text-xs cursor-pointer",
               isActive
                 ? "text-primary scale-105 font-semibold"
-                : "text-zinc-400 hover:text-zinc-200"
+                : "text-muted-foreground hover:text-foreground"
             )}
             aria-label={item.label}
           >
@@ -54,7 +54,7 @@ export function MobileBottomNav({
               <Icon
                 className={cn(
                   "size-5 transition-transform duration-200",
-                  isActive ? "scale-110 text-primary" : "text-zinc-400"
+                  isActive ? "scale-110 text-primary" : "text-muted-foreground group-hover:text-foreground"
                 )}
               />
               {item.badge !== undefined && item.badge > 0 && (
