@@ -54,7 +54,7 @@ describe("OAuth Deep Link & Mobile Auth Flow", () => {
 
     const html = await response.text();
     expect(html).toContain("aetherchat://auth-callback?code=valid-code");
-    expect(html).toContain("intent://auth-callback?code=valid-code#Intent;scheme=aetherchat;package=com.aetherchat.app;end");
+    expect(html).toContain("intent://auth-callback?code=valid-code#Intent;scheme=aetherchat;package=com.aetherchat.app;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;end");
     expect(html).toContain("Open Aether Chat App");
   });
 

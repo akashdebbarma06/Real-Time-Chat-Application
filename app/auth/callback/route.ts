@@ -65,7 +65,7 @@ function renderMobileBridge(
 
   const appScheme = `aetherchat://auth-callback?${queryParams}`;
   const appPkgScheme = `com.aetherchat.app://auth-callback?${queryParams}`;
-  const chromeIntent = `intent://auth-callback?${queryParams}#Intent;scheme=aetherchat;package=com.aetherchat.app;end`;
+  const chromeIntent = `intent://auth-callback?${queryParams}#Intent;scheme=aetherchat;package=com.aetherchat.app;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;end`;
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -100,7 +100,7 @@ function renderMobileBridge(
     .btn {
       display: inline-block; width: 100%; padding: 0.875rem 1.5rem; background: #8b5cf6;
       color: #ffffff; text-decoration: none; border-radius: 0.75rem; font-weight: 600; font-size: 0.95rem;
-      transition: background-color 0.2s;
+      transition: background-color 0.2s; cursor: pointer;
     }
     .btn:hover { background: #7c3aed; }
     .secondary-link {
@@ -125,9 +125,13 @@ function renderMobileBridge(
     const pkgLink = "${appPkgScheme}";
 
     function launchApp() {
-      if (/android/i.test(navigator.userAgent)) {
-        window.location.href = chromeIntent;
-      } else {
+      try {
+        if (/android/i.test(navigator.userAgent)) {
+          window.location.href = chromeIntent;
+        } else {
+          window.location.href = deepLink;
+        }
+      } catch (e) {
         window.location.href = deepLink;
       }
     }
@@ -138,7 +142,22 @@ function renderMobileBridge(
     // Fallback retries
     setTimeout(function() {
       window.location.href = deepLink;
-    }, 600);
+    }, 500);
+
+    setTimeout(function() {
+      window.location.href = pkgLink;
+    }, 1200);
+
+    const btn = document.getElementById("launch-btn");
+    if (btn) {
+      btn.addEventListener("click", function(e) {
+        if (/android/i.test(navigator.userAgent)) {
+          window.location.href = chromeIntent;
+        } else {
+          window.location.href = deepLink;
+        }
+      });
+    }
   </script>
 </body>
 </html>`;

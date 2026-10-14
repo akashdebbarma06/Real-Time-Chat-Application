@@ -22,6 +22,14 @@ public class MainActivity extends BridgeActivity {
         setIntent(intent);
     }
 
+    @Override
+    public void onPause() {
+        super.onPause();
+        try {
+            android.webkit.CookieManager.getInstance().flush();
+        } catch (Exception ignored) {}
+    }
+
     @CapacitorPlugin(name = "AppIcon")
     public static class AppIconPlugin extends Plugin {
         @PluginMethod

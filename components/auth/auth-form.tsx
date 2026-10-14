@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, Lock, MessageCircleMore, ShieldCheck } from "lucide-react";
 import { toast } from "@/lib/toast";
@@ -24,6 +24,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState<"google" | "github" | false>(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [emailLoading, setEmailLoading] = useState(false);
 
@@ -35,6 +36,44 @@ export function AuthForm({ mode }: AuthFormProps) {
 
   const isLogin = mode === "login";
 
+  useEffect(() => {
+    const handleAuthComplete = (e: Event) => {
+      const customEvent = e as CustomEvent<{ success: boolean; error?: string }>;
+      setLoading(false);
+      if (!customEvent.detail?.success && customEvent.detail?.error) {
+        setAuthError(customEvent.detail.error);
+      } else {
+        setAuthError(null);
+      }
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible" && loading) {
+        // If user returned to app while loading, check if session was established in background
+        const supabase = createClient();
+        void supabase.auth.getSession().then(({ data }) => {
+          if (data.session) {
+            setLoading(false);
+            router.replace("/chat");
+            router.refresh();
+          } else {
+            // Dismiss spinner if user came back without completing
+            setTimeout(() => {
+              setLoading(false);
+            }, 2000);
+          }
+        });
+      }
+    };
+
+    window.addEventListener("aether:auth-complete", handleAuthComplete);
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      window.removeEventListener("aether:auth-complete", handleAuthComplete);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [loading, router]);
+
   async function handleEmailAuth(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const cleanEmail = email.trim();
@@ -43,6 +82,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       return;
     }
     setEmailLoading(true);
+    setAuthError(null);
     const supabase = createClient();
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
     const origin =
@@ -59,6 +99,7 @@ export function AuthForm({ mode }: AuthFormProps) {
 
     setEmailLoading(false);
     if (error) {
+      setAuthError(error.message);
       toast.error(error.message);
     } else {
       toast.success("Magic sign-in link sent! Please check your email inbox.");
@@ -68,6 +109,7 @@ export function AuthForm({ mode }: AuthFormProps) {
 
   async function handleSocialAuth(provider: "google" | "github") {
     setLoading(provider);
+    setAuthError(null);
     const supabase = createClient();
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
     const origin =
@@ -94,32 +136,19 @@ export function AuthForm({ mode }: AuthFormProps) {
 
     if (isNative) {
       try {
-        const customSchemeUrl = "aetherchat://auth-callback";
-        const webFallbackUrl = new URL(`${origin}/auth/callback`);
-        webFallbackUrl.searchParams.set("source", "app");
+        const callbackUrl = new URL(`${origin}/auth/callback`);
+        callbackUrl.searchParams.set("source", "app");
 
-        // Try direct custom scheme first; fallback to web bridge if Supabase redirect allowlist requires web URL
-        let { data, error } = await supabase.auth.signInWithOAuth({
+        const { data, error } = await supabase.auth.signInWithOAuth({
           provider,
           options: {
-            redirectTo: customSchemeUrl,
+            redirectTo: callbackUrl.toString(),
             skipBrowserRedirect: true,
           },
         });
 
-        if (error && /redirect.*(not allowed|url)/i.test(error.message)) {
-          const retry = await supabase.auth.signInWithOAuth({
-            provider,
-            options: {
-              redirectTo: webFallbackUrl.toString(),
-              skipBrowserRedirect: true,
-            },
-          });
-          data = retry.data;
-          error = retry.error;
-        }
-
         if (error) {
+          setAuthError(error.message);
           toast.error(error.message);
           setLoading(false);
           return;
@@ -127,11 +156,22 @@ export function AuthForm({ mode }: AuthFormProps) {
 
         if (data?.url) {
           const { Browser } = await import("@capacitor/browser");
+
+          // Listen for user dismissing / closing the Custom Tab
+          let browserListener: { remove: () => Promise<void> } | null = null;
+          browserListener = await Browser.addListener("browserFinished", () => {
+            setLoading(false);
+            if (browserListener) {
+              void browserListener.remove();
+            }
+          });
+
           await Browser.open({ url: data.url, windowName: "_self" });
         }
       } catch (err) {
         console.error("Native OAuth error:", err);
         const msg = err instanceof Error ? err.message : "Failed to open authentication browser";
+        setAuthError(msg);
         toast.error(msg);
         setLoading(false);
       }
@@ -146,6 +186,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       },
     });
     if (error) {
+      setAuthError(error.message);
       toast.error(error.message);
       setLoading(false);
     }
@@ -264,6 +305,23 @@ export function AuthForm({ mode }: AuthFormProps) {
             </p>
           </div>
         </div>
+
+        {/* Error Alert Banner */}
+        {authError && (
+          <div className="mb-6 rounded-xl border border-destructive/40 bg-destructive/10 p-3.5 text-xs text-destructive flex items-start justify-between gap-2 animate-in fade-in slide-in-from-top-1">
+            <div className="flex-1">
+              <p className="font-semibold">Authentication failed</p>
+              <p className="mt-0.5 text-destructive/80">{authError}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setAuthError(null)}
+              className="text-xs font-medium underline hover:text-destructive shrink-0"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
 
         {/* Email Magic Link Sign-In Form */}
         <form onSubmit={handleEmailAuth} className="space-y-3">
