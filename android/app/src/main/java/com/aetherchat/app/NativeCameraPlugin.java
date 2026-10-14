@@ -22,6 +22,8 @@ import com.getcapacitor.annotation.PermissionCallback;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.Locale;
 
 @CapacitorPlugin(
     name = "NativeCamera",
@@ -119,26 +121,106 @@ public class NativeCameraPlugin extends Plugin {
         }
     }
 
+    private static final long MAX_FILE_SIZE = 100 * 1024 * 1024L; // 100 MB max media file
+    private static final long MAX_WHOLE_FILE_BASE64_SIZE = 15 * 1024 * 1024L; // 15 MB max for whole base64 payload
+    private static final int MAX_CHUNK_SIZE = 1024 * 1024; // 1 MB max chunk
+    private static final int DEFAULT_CHUNK_SIZE = 512 * 1024; // 512 KB
+
+    private File validateAndResolveMediaFile(String rawPath, PluginCall call) throws IOException {
+        if (rawPath == null || rawPath.trim().isEmpty()) {
+            call.reject("Path is required");
+            return null;
+        }
+
+        File file = new File(rawPath.trim());
+        String canonicalPath = file.getCanonicalPath();
+
+        // Restrict reads strictly to canonical paths inside app-owned media directories
+        File cacheDir = getContext().getCacheDir();
+        File externalCacheDir = getContext().getExternalCacheDir();
+        File filesDir = getContext().getFilesDir();
+
+        boolean isInsideAllowedDir = false;
+        if (cacheDir != null && canonicalPath.startsWith(cacheDir.getCanonicalPath() + File.separator)) {
+            isInsideAllowedDir = true;
+        } else if (externalCacheDir != null && canonicalPath.startsWith(externalCacheDir.getCanonicalPath() + File.separator)) {
+            isInsideAllowedDir = true;
+        } else if (filesDir != null && canonicalPath.startsWith(filesDir.getCanonicalPath() + File.separator)) {
+            isInsideAllowedDir = true;
+        }
+
+        if (!isInsideAllowedDir) {
+            call.reject("Access denied: Path is outside authorized app-owned media directories");
+            return null;
+        }
+
+        if (!file.exists() || !file.isFile()) {
+            call.reject("File does not exist or is not a regular file");
+            return null;
+        }
+
+        // Restrict access to legitimate media file types created by camera / picker features
+        String lowerName = file.getName().toLowerCase(Locale.ROOT);
+        boolean isMediaExtension = lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg")
+                || lowerName.endsWith(".png") || lowerName.endsWith(".mp4")
+                || lowerName.endsWith(".webm") || lowerName.endsWith(".mov");
+
+        if (!isMediaExtension) {
+            call.reject("Access denied: Only media files (.jpg, .jpeg, .png, .mp4, .webm, .mov) can be accessed");
+            return null;
+        }
+
+        if (file.length() > MAX_FILE_SIZE) {
+            call.reject("File size exceeds maximum allowed limit (" + (MAX_FILE_SIZE / (1024 * 1024)) + "MB)");
+            return null;
+        }
+
+        return file;
+    }
+
+    private static void safeSkip(FileInputStream fis, long bytesToSkip) throws IOException {
+        long remaining = bytesToSkip;
+        while (remaining > 0) {
+            long skipped = fis.skip(remaining);
+            if (skipped <= 0) {
+                if (fis.read() == -1) {
+                    break;
+                }
+                remaining--;
+            } else {
+                remaining -= skipped;
+            }
+        }
+    }
+
     @PluginMethod
     public void getFileBase64(PluginCall call) {
         String path = call.getString("path");
-        if (path == null) {
-            call.reject("Path is required");
-            return;
-        }
         try {
-            File file = new File(path);
-            if (!file.exists()) {
-                call.reject("File does not exist: " + path);
+            File file = validateAndResolveMediaFile(path, call);
+            if (file == null) return;
+
+            long totalSize = file.length();
+            if (totalSize > MAX_WHOLE_FILE_BASE64_SIZE) {
+                call.reject("File too large for single base64 payload (" + totalSize + " bytes > "
+                        + MAX_WHOLE_FILE_BASE64_SIZE + " bytes). Use readFileChunk to stream in chunks.");
                 return;
             }
-            byte[] bytes = new byte[(int) file.length()];
+
+            byte[] bytes = new byte[(int) totalSize];
             try (FileInputStream fis = new FileInputStream(file)) {
-                fis.read(bytes);
+                int totalRead = 0;
+                while (totalRead < bytes.length) {
+                    int r = fis.read(bytes, totalRead, bytes.length - totalRead);
+                    if (r == -1) break;
+                    totalRead += r;
+                }
             }
+
             String base64 = Base64.encodeToString(bytes, Base64.NO_WRAP);
             JSObject ret = new JSObject();
             ret.put("base64", base64);
+            ret.put("size", totalSize);
             call.resolve(ret);
         } catch (Exception e) {
             call.reject("Failed to read file: " + e.getMessage(), e);
@@ -149,19 +231,17 @@ public class NativeCameraPlugin extends Plugin {
     public void readFileChunk(PluginCall call) {
         String path = call.getString("path");
         int offset = call.getInt("offset", 0);
-        int chunkSize = call.getInt("chunkSize", 512 * 1024);
+        int requestedChunkSize = call.getInt("chunkSize", DEFAULT_CHUNK_SIZE);
 
-        if (path == null) {
-            call.reject("Path is required");
+        if (offset < 0) {
+            call.reject("Offset must be non-negative");
             return;
         }
 
         try {
-            File file = new File(path);
-            if (!file.exists()) {
-                call.reject("File does not exist");
-                return;
-            }
+            File file = validateAndResolveMediaFile(path, call);
+            if (file == null) return;
+
             long totalSize = file.length();
             if (offset >= totalSize) {
                 JSObject ret = new JSObject();
@@ -172,17 +252,26 @@ public class NativeCameraPlugin extends Plugin {
                 return;
             }
 
+            // Enforce safe upper and lower bounds on chunk size (1KB to 1MB)
+            int chunkSize = Math.max(1024, Math.min(requestedChunkSize, MAX_CHUNK_SIZE));
             int toRead = (int) Math.min(chunkSize, totalSize - offset);
             byte[] buffer = new byte[toRead];
 
             try (FileInputStream fis = new FileInputStream(file)) {
-                long skipped = fis.skip(offset);
-                int read = fis.read(buffer, 0, toRead);
-                String base64 = Base64.encodeToString(buffer, 0, read > 0 ? read : 0, Base64.NO_WRAP);
+                safeSkip(fis, offset);
+
+                int totalRead = 0;
+                while (totalRead < toRead) {
+                    int r = fis.read(buffer, totalRead, toRead - totalRead);
+                    if (r == -1) break;
+                    totalRead += r;
+                }
+
+                String base64 = Base64.encodeToString(buffer, 0, totalRead > 0 ? totalRead : 0, Base64.NO_WRAP);
                 JSObject ret = new JSObject();
                 ret.put("base64", base64);
-                ret.put("bytesRead", read);
-                ret.put("done", (offset + read) >= totalSize);
+                ret.put("bytesRead", totalRead);
+                ret.put("done", (offset + totalRead) >= totalSize);
                 call.resolve(ret);
             }
         } catch (Exception e) {
