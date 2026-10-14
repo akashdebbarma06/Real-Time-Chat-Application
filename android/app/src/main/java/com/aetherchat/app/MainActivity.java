@@ -110,34 +110,6 @@ public class MainActivity extends BridgeActivity {
             @Permission(
                 alias = "microphone",
                 strings = { Manifest.permission.RECORD_AUDIO }
-            ),
-            @Permission(
-                alias = "notifications",
-                strings = { Manifest.permission.POST_NOTIFICATIONS }
-            ),
-            @Permission(
-                alias = "location",
-                strings = { Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION }
-            ),
-            @Permission(
-                alias = "contacts",
-                strings = { Manifest.permission.READ_CONTACTS }
-            ),
-            @Permission(
-                alias = "storageModern",
-                strings = { Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VIDEO }
-            ),
-            @Permission(
-                alias = "storageLegacy",
-                strings = { Manifest.permission.READ_EXTERNAL_STORAGE }
-            ),
-            @Permission(
-                alias = "nearbyModern",
-                strings = { Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_SCAN }
-            ),
-            @Permission(
-                alias = "nearbyLegacy",
-                strings = { Manifest.permission.BLUETOOTH }
             )
         }
     )
@@ -160,31 +132,16 @@ public class MainActivity extends BridgeActivity {
                 return;
             }
 
-            if ("phone".equalsIgnoreCase(alias)) {
-                JSObject ret = new JSObject();
-                ret.put("status", "granted");
-                call.resolve(ret);
+            if ("camera".equalsIgnoreCase(alias) || "microphone".equalsIgnoreCase(alias)) {
+                markRequested(alias);
+                requestPermissionForAlias(alias.toLowerCase(), call, "permissionCallback");
                 return;
             }
 
-            // Notifications on older Android
-            if ("notifications".equalsIgnoreCase(alias) && Build.VERSION.SDK_INT < 33) {
-                boolean enabled = NotificationManagerCompat.from(getContext()).areNotificationsEnabled();
-                JSObject ret = new JSObject();
-                ret.put("status", enabled ? "granted" : "settings-required");
-                call.resolve(ret);
-                return;
-            }
-
-            String targetAlias = alias;
-            if ("storage".equalsIgnoreCase(alias)) {
-                targetAlias = Build.VERSION.SDK_INT >= 33 ? "storageModern" : "storageLegacy";
-            } else if ("nearby".equalsIgnoreCase(alias)) {
-                targetAlias = Build.VERSION.SDK_INT >= 31 ? "nearbyModern" : "nearbyLegacy";
-            }
-
-            markRequested(alias);
-            requestPermissionForAlias(targetAlias, call, "permissionCallback");
+            // Storage, phone, location, contacts use system pickers/intents or are not runtime permissions
+            JSObject ret = new JSObject();
+            ret.put("status", "granted");
+            call.resolve(ret);
         }
 
         @PermissionCallback
@@ -226,29 +183,6 @@ public class MainActivity extends BridgeActivity {
         }
 
         private String computePermissionStatus(String alias) {
-            if ("phone".equalsIgnoreCase(alias)) {
-                return "granted";
-            }
-
-            if ("notifications".equalsIgnoreCase(alias)) {
-                boolean enabled = NotificationManagerCompat.from(getContext()).areNotificationsEnabled();
-                if (!enabled) {
-                    if (Build.VERSION.SDK_INT >= 33) {
-                        int check = ContextCompat.checkSelfPermission(getContext(), Manifest.permission.POST_NOTIFICATIONS);
-                        if (check == PackageManager.PERMISSION_GRANTED) {
-                            return "settings-required";
-                        }
-                        boolean rationale = ActivityCompat.shouldShowRequestPermissionRationale(getActivity(), Manifest.permission.POST_NOTIFICATIONS);
-                        if (hasBeenRequested("notifications") && !rationale) {
-                            return "settings-required";
-                        }
-                        return "prompt";
-                    }
-                    return "settings-required";
-                }
-                return "granted";
-            }
-
             if ("camera".equalsIgnoreCase(alias)) {
                 return checkSingle(Manifest.permission.CAMERA, "camera");
             }
@@ -257,58 +191,7 @@ public class MainActivity extends BridgeActivity {
                 return checkSingle(Manifest.permission.RECORD_AUDIO, "microphone");
             }
 
-            if ("location".equalsIgnoreCase(alias)) {
-                int fine = ContextCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION);
-                int coarse = ContextCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_COARSE_LOCATION);
-                if (fine == PackageManager.PERMISSION_GRANTED || coarse == PackageManager.PERMISSION_GRANTED) {
-                    return "granted";
-                }
-                boolean ratFine = ActivityCompat.shouldShowRequestPermissionRationale(getActivity(), Manifest.permission.ACCESS_FINE_LOCATION);
-                boolean ratCoarse = ActivityCompat.shouldShowRequestPermissionRationale(getActivity(), Manifest.permission.ACCESS_COARSE_LOCATION);
-                if (hasBeenRequested("location") && !ratFine && !ratCoarse) {
-                    return "settings-required";
-                }
-                return "prompt";
-            }
-
-            if ("contacts".equalsIgnoreCase(alias)) {
-                return checkSingle(Manifest.permission.READ_CONTACTS, "contacts");
-            }
-
-            if ("storage".equalsIgnoreCase(alias)) {
-                if (Build.VERSION.SDK_INT >= 33) {
-                    int img = ContextCompat.checkSelfPermission(getContext(), Manifest.permission.READ_MEDIA_IMAGES);
-                    int vid = ContextCompat.checkSelfPermission(getContext(), Manifest.permission.READ_MEDIA_VIDEO);
-                    if (img == PackageManager.PERMISSION_GRANTED || vid == PackageManager.PERMISSION_GRANTED) {
-                        return "granted";
-                    }
-                    boolean rat = ActivityCompat.shouldShowRequestPermissionRationale(getActivity(), Manifest.permission.READ_MEDIA_IMAGES);
-                    if (hasBeenRequested("storage") && !rat) {
-                        return "settings-required";
-                    }
-                    return "prompt";
-                } else {
-                    return checkSingle(Manifest.permission.READ_EXTERNAL_STORAGE, "storage");
-                }
-            }
-
-            if ("nearby".equalsIgnoreCase(alias)) {
-                if (Build.VERSION.SDK_INT >= 31) {
-                    int connect = ContextCompat.checkSelfPermission(getContext(), Manifest.permission.BLUETOOTH_CONNECT);
-                    if (connect == PackageManager.PERMISSION_GRANTED) {
-                        return "granted";
-                    }
-                    boolean rat = ActivityCompat.shouldShowRequestPermissionRationale(getActivity(), Manifest.permission.BLUETOOTH_CONNECT);
-                    if (hasBeenRequested("nearby") && !rat) {
-                        return "settings-required";
-                    }
-                    return "prompt";
-                } else {
-                    return checkSingle(Manifest.permission.BLUETOOTH, "nearby");
-                }
-            }
-
-            return "prompt";
+            return "granted";
         }
 
         private String checkSingle(String permString, String alias) {

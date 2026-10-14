@@ -51,14 +51,16 @@ public class NativeCameraPlugin extends Plugin {
     }
 
     @PermissionCallback
-    private void cameraPermCallback(PluginCall call) {
+    public void cameraPermCallback(PluginCall call) {
         if (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
             String mode = call.getString("mode", "photo");
             launchCamera(call, mode);
         } else {
+            boolean rationale = androidx.core.app.ActivityCompat.shouldShowRequestPermissionRationale(getActivity(), Manifest.permission.CAMERA);
             JSObject ret = new JSObject();
             ret.put("cancelled", true);
             ret.put("error", "permission_denied");
+            ret.put("settingsRequired", !rationale);
             ret.put("message", "Camera permission is required to capture photos and videos.");
             call.resolve(ret);
         }

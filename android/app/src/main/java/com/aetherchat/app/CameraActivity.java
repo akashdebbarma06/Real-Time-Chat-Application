@@ -131,7 +131,53 @@ public class CameraActivity extends AppCompatActivity {
         parseIntent();
         initGalleryLauncher();
         setupListeners();
-        startCamera();
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, REQUEST_CAMERA_PERM);
+        } else {
+            startCamera();
+        }
+    }
+
+    private static final int REQUEST_CAMERA_PERM = 2001;
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            if (cameraProvider == null) {
+                startCamera();
+            }
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_CAMERA_PERM) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                startCamera();
+            } else {
+                Toast.makeText(this, "Camera permission is required to capture photos and videos", Toast.LENGTH_LONG).show();
+                boolean rationale = ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.CAMERA);
+                if (!rationale) {
+                    try {
+                        Intent intent = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                        intent.setData(Uri.fromParts("package", getPackageName(), null));
+                        startActivity(intent);
+                    } catch (Exception ignored) {}
+                }
+                setResult(RESULT_CANCELED);
+                finish();
+            }
+        } else if (requestCode == REQUEST_AUDIO_PERM) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                toggleVideoRecording();
+            } else {
+                Toast.makeText(this, "Recording without audio (microphone permission denied)", Toast.LENGTH_SHORT).show();
+                toggleVideoRecording();
+            }
+        }
     }
 
     private void initViews() {
@@ -219,7 +265,11 @@ public class CameraActivity extends AppCompatActivity {
             if ("photo".equals(currentMode)) {
                 takePhoto();
             } else {
-                toggleVideoRecording();
+                if (!isRecording && ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                    ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, REQUEST_AUDIO_PERM);
+                } else {
+                    toggleVideoRecording();
+                }
             }
         });
 
@@ -241,11 +291,6 @@ public class CameraActivity extends AppCompatActivity {
             tabVideo.setTextColor(0xFFFFFFFF);
             shutterInner.setBackgroundResource(R.drawable.bg_shutter_video);
             btnFlash.setVisibility(View.VISIBLE);
-
-            // Check audio permission proactively for video mode
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, REQUEST_AUDIO_PERM);
-            }
         }
         bindCameraUseCases();
     }
