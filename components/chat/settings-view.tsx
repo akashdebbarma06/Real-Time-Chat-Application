@@ -60,6 +60,7 @@ import { LinkedDevicesDialog } from "@/components/settings/linked-devices-dialog
 import { NoteStatusDialog } from "@/components/settings/note-status-dialog";
 import { ProfilePhotoSheet } from "@/components/settings/profile-photo-sheet";
 import { CameraCaptureDialog } from "@/components/chat/composer/camera-capture-dialog";
+import { captureWithNativeCamera, isAndroidNative } from "@/lib/camera/native-camera";
 import { FaqSection } from "@/components/help/faq-section";
 import { InAppContactForm } from "@/components/help/in-app-contact-form";
 import { InAppPrivacyView } from "@/components/help/in-app-privacy-view";
@@ -1814,7 +1815,17 @@ export function SettingsView({
       <ProfilePhotoSheet
         open={photoSheetOpen}
         onOpenChange={setPhotoSheetOpen}
-        onSelectCamera={() => setCameraModalOpen(true)}
+        onSelectCamera={async () => {
+          if (isAndroidNative()) {
+            const file = await captureWithNativeCamera("photo");
+            if (file) {
+              setPhotoSheetOpen(false);
+              void handleAvatarUpload(file);
+            }
+          } else {
+            setCameraModalOpen(true);
+          }
+        }}
         onSelectFile={(file) => void handleAvatarUpload(file)}
         onSelectDefaultAvatar={(svgDataUrl) => void handleSelectDefaultAvatar(svgDataUrl)}
         onRemovePhoto={() => void handleRemoveAvatar()}

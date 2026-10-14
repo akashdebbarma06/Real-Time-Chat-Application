@@ -35,6 +35,7 @@ import {
 import { PhotosVideosPreviewDialog } from "./composer/photos-videos-preview-dialog";
 import { DocumentPreviewDialog } from "./composer/document-preview-dialog";
 import { VoiceRecorder } from "./composer/voice-recorder";
+import { captureWithNativeCamera, isAndroidNative } from "@/lib/camera/native-camera";
 
 type OverlayMenu = "none" | "add" | "attachment" | "camera" | "media-drawer";
 
@@ -298,8 +299,28 @@ export function MessageComposer({
   }
 
   // 6. Camera Actions
+  async function handleNativeCamera(mode: CameraMode) {
+    try {
+      const file = await captureWithNativeCamera(mode);
+      if (!file) return;
+
+      if (mode === "video-note") {
+        await onSendFile(file, "", "video-note");
+      } else {
+        handlePhotosVideosSelect([file]);
+      }
+    } catch (err) {
+      console.error("Native camera capture error:", err);
+      toast.error("Failed to capture media");
+    }
+  }
+
   function openCamera(mode: CameraMode) {
     setActiveMenu("none");
+    if (isAndroidNative()) {
+      void handleNativeCamera(mode);
+      return;
+    }
     setCameraMode(mode);
     setCameraDialogOpen(true);
   }
@@ -523,9 +544,15 @@ export function MessageComposer({
                   <button
                     type="button"
                     disabled={disabled || sending}
-                    onClick={toggleCameraMenu}
+                    onClick={() => {
+                      if (isAndroidNative()) {
+                        void handleNativeCamera("photo");
+                      } else {
+                        toggleCameraMenu();
+                      }
+                    }}
                     aria-label="Camera options"
-                    title="Camera & video notes"
+                    title={isAndroidNative() ? "Camera" : "Camera & video notes"}
                     className={cn(
                       "grid size-8 place-items-center rounded-full transition-all shrink-0 cursor-pointer",
                       activeMenu === "camera"

@@ -32,6 +32,7 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(AppIconPlugin.class);
         registerPlugin(NativePermissionsPlugin.class);
+        registerPlugin(NativeCameraPlugin.class);
         super.onCreate(savedInstanceState);
 
         // Ensure status bar and navigation bar icons are light (white) for the app's dark theme

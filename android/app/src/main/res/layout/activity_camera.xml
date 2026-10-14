@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000">
+
+    <!-- 1. Live Camera Viewfinder -->
+    <androidx.camera.view.PreviewView
+        android:id="@+id/viewFinder"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- 1b. Circular Mask Container for Video Notes -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/videoNoteContainer"
+        android:layout_width="300dp"
+        android:layout_height="300dp"
+        android:layout_gravity="center"
+        android:visibility="gone"
+        app:cardCornerRadius="150dp"
+        app:cardElevation="0dp"
+        app:cardBackgroundColor="#000000">
+        <androidx.camera.view.PreviewView
+            android:id="@+id/videoNoteFinder"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+    </androidx.cardview.widget.CardView>
+
+    <!-- 2. Photo Review Image -->
+    <ImageView
+        android:id="@+id/photoPreview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitCenter"
+        android:visibility="gone" />
+
+    <!-- 3. Video Review Player -->
+    <VideoView
+        android:id="@+id/videoPreview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_gravity="center"
+        android:visibility="gone" />
+
+    <!-- 4. Brief White Shutter Flash Effect -->
+    <View
+        android:id="@+id/flashOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#FFFFFFFF"
+        android:visibility="gone" />
+
+    <!-- 5. Top Bar: Close, Recording Timer, Flash -->
+    <RelativeLayout
+        android:id="@+id/topBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="36dp"
+        android:paddingBottom="12dp">
+
+        <ImageView
+            android:id="@+id/btnClose"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:background="@drawable/bg_circle_translucent"
+            android:contentDescription="Close camera"
+            android:padding="10dp"
+            android:src="@drawable/ic_close_white" />
+
+        <LinearLayout
+            android:id="@+id/timerBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:background="@drawable/bg_timer_pill"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <View
+                android:layout_width="8dp"
+                android:layout_height="8dp"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_shutter_video" />
+
+            <TextView
+                android:id="@+id/tvTimer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="00:00"
+                android:textColor="#FFFFFFFF"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/btnFlash"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:background="@drawable/bg_circle_translucent"
+            android:contentDescription="Toggle flash"
+            android:padding="10dp"
+            android:src="@drawable/ic_flash_off" />
+    </RelativeLayout>
+
+    <!-- 6. Bottom Controls (Live Viewfinder Mode) -->
+    <LinearLayout
+        android:id="@+id/bottomControls"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:background="#26000000"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:paddingTop="12dp"
+        android:paddingBottom="36dp">
+
+        <!-- Mode Toggle Tabs (PHOTO / VIDEO) -->
+        <LinearLayout
+            android:id="@+id/modeSelector"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:background="@drawable/bg_timer_pill"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tabPhoto"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingStart="16dp"
+                android:paddingTop="4dp"
+                android:paddingEnd="16dp"
+                android:paddingBottom="4dp"
+                android:text="PHOTO"
+                android:textColor="#FFFFFFFF"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tabVideo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingStart="16dp"
+                android:paddingTop="4dp"
+                android:paddingEnd="16dp"
+                android:paddingBottom="4dp"
+                android:text="VIDEO"
+                android:textColor="#88FFFFFF"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Main Actions Row: Gallery, Shutter, Flip Camera -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="80dp">
+
+            <ImageView
+                android:id="@+id/btnGallery"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:layout_marginStart="32dp"
+                android:background="@drawable/bg_circle_translucent"
+                android:contentDescription="Open gallery picker"
+                android:padding="11dp"
+                android:src="@drawable/ic_gallery" />
+
+            <FrameLayout
+                android:id="@+id/btnShutter"
+                android:layout_width="76dp"
+                android:layout_height="76dp"
+                android:layout_centerInParent="true"
+                android:background="@drawable/bg_shutter_ring">
+
+                <View
+                    android:id="@+id/shutterInner"
+                    android:layout_width="60dp"
+                    android:layout_height="60dp"
+                    android:layout_gravity="center"
+                    android:background="@drawable/bg_shutter_photo" />
+            </FrameLayout>
+
+            <ImageView
+                android:id="@+id/btnSwitchCamera"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:layout_marginEnd="32dp"
+                android:background="@drawable/bg_circle_translucent"
+                android:contentDescription="Switch camera"
+                android:padding="10dp"
+                android:src="@drawable/ic_camera_switch" />
+        </RelativeLayout>
+    </LinearLayout>
+
+    <!-- 7. Review Bar: Retake & Send Confirmation (Shown after Photo/Video Captured) -->
+    <RelativeLayout
+        android:id="@+id/reviewBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:paddingStart="32dp"
+        android:paddingEnd="32dp"
+        android:paddingBottom="40dp"
+        android:paddingTop="16dp"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/btnRetake"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:background="@drawable/bg_circle_translucent"
+            android:contentDescription="Retake"
+            android:padding="14dp"
+            android:src="@drawable/ic_retake_white" />
+
+        <ImageView
+            android:id="@+id/btnSend"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:background="@drawable/bg_send_button"
+            android:contentDescription="Send media"
+            android:elevation="6dp"
+            android:padding="16dp"
+            android:src="@drawable/ic_send_white" />
+    </RelativeLayout>
+</FrameLayout>
