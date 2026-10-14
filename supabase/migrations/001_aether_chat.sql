@@ -409,6 +409,17 @@ on public.messages for update to authenticated
 using (sender_id = (select auth.uid()))
 with check (sender_id = (select auth.uid()));
 
+-- Ephemeral Delivery Queue: Conversation members can delete messages upon delivery acknowledgement
+create policy "Members can delete messages upon delivery acknowledgement"
+on public.messages for delete to authenticated
+using (public.is_conversation_member(conversation_id, (select auth.uid())));
+
+-- Conversation members can clear attachment paths upon delivery acknowledgement
+create policy "Members can clear attachment paths upon delivery acknowledgement"
+on public.messages for update to authenticated
+using (public.is_conversation_member(conversation_id, (select auth.uid())))
+with check (public.is_conversation_member(conversation_id, (select auth.uid())));
+
 create policy "Members can see read receipts"
 on public.message_reads for select to authenticated
 using (
@@ -526,6 +537,90 @@ using (
   bucket_id = 'chat-files'
   and (storage.foldername(name))[2] = (select auth.uid())::text
 );
+
+-- Ephemeral Media Queue: Conversation members can purge delivered media binaries
+create policy "Members can purge conversation files upon delivery acknowledgement"
+on storage.objects for delete to authenticated
+using (
+  bucket_id = 'chat-files'
+  and public.is_conversation_member(
+    public.realtime_conversation_id('conversation:' || (storage.foldername(name))[1]),
+    (select auth.uid())
+  )
+);
+
+-- -----------------------------------------------------------------------------
+-- Ephemeral Delivery Queue & Purge RPC Functions
+-- -----------------------------------------------------------------------------
+
+-- Narrowly scoped RPC function for delivery acknowledgement and message purge.
+-- Verifies the caller is authenticated and is a confirmed member of the conversation.
+create or replace function public.acknowledge_and_purge_messages(p_message_ids uuid[])
+returns table (purged_id uuid)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_user_id uuid := auth.uid();
+begin
+  if v_user_id is null then
+    raise exception 'Unauthorized: Authentication required to acknowledge delivery' using errcode = '42501';
+  end if;
+
+  return query
+  delete from public.messages m
+  where m.id = any(p_message_ids)
+    and public.is_conversation_member(m.conversation_id, v_user_id)
+  returning m.id;
+end;
+$$;
+
+-- Narrowly scoped RPC function for media download acknowledgement.
+-- Verifies the caller is authenticated and is a confirmed member of the conversation containing the media.
+create or replace function public.acknowledge_and_purge_media(p_media_path text)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_conv_id uuid;
+begin
+  if v_user_id is null then
+    raise exception 'Unauthorized: Authentication required to acknowledge media download' using errcode = '42501';
+  end if;
+
+  -- 1. Check if an active message references this attachment_path
+  select conversation_id into v_conv_id
+  from public.messages
+  where attachment_path = p_media_path
+  limit 1;
+
+  if v_conv_id is not null then
+    if not public.is_conversation_member(v_conv_id, v_user_id) then
+      raise exception 'Forbidden: Caller is not a member of the conversation' using errcode = '42501';
+    end if;
+
+    update public.messages
+    set attachment_path = null
+    where attachment_path = p_media_path;
+  else
+    -- 2. If message row was already purged, verify conversation membership via storage path convention (<conversation_id>/...)
+    begin
+      v_conv_id := (regexp_match(p_media_path, '^([0-9a-fA-F-]{36})'))[1]::uuid;
+      if v_conv_id is not null and not public.is_conversation_member(v_conv_id, v_user_id) then
+        raise exception 'Forbidden: Caller is not a member of the conversation' using errcode = '42501';
+      end if;
+    exception when others then
+      raise exception 'Media attachment not found' using errcode = 'P0002';
+    end;
+  end if;
+
+  return true;
+end;
+$$;
 
 -- Broadcast durable database changes through private channels (recommended by Supabase for scale).
 create or replace function public.broadcast_conversation_list_update(p_conversation_id uuid)
