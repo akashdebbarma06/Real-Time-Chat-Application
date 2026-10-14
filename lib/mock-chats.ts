@@ -1,3 +1,9 @@
+/**
+ * Test Fixture Module
+ * NOTE: This module contains test fixtures exclusively for automated unit tests
+ * (__tests__/conversation-context-menu.test.ts). It is not used in production runtime paths.
+ */
+
 import type { ConversationSummary, Profile } from "@/types/chat";
 
 export function getMockConversations(currentUserId: string): ConversationSummary[] {

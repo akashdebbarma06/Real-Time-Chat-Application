@@ -53,15 +53,7 @@ export function PhoneVerificationDialog({
         phone: cleanNumber,
       });
 
-      if (error) {
-        // If phone auth isn't enabled in Supabase provider dashboard, provide helpful fallback
-        if (error.message.toLowerCase().includes("unsupported") || error.message.toLowerCase().includes("not configured") || error.message.toLowerCase().includes("disabled")) {
-          toast.info("SMS Provider in Test Mode. You can test verification with code 123456.");
-          setStep("enter-otp");
-          return;
-        }
-        throw error;
-      }
+      if (error) throw error;
 
       toast.success("Verification code sent via SMS!");
       setStep("enter-otp");
@@ -84,14 +76,6 @@ export function PhoneVerificationDialog({
     setLoading(true);
     try {
       const supabase = createClient();
-      // Test code fallback
-      if (token === "123456") {
-        setStep("success");
-        toast.success("Phone number verified successfully!");
-        onVerified?.(phoneNumber);
-        return;
-      }
-
       const { error } = await supabase.auth.verifyOtp({
         phone: phoneNumber,
         token,

@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { getConversationPeers, getInitials } from "@/lib/utils";
+import { formatConversationTime, getConversationPeers, getInitials } from "@/lib/utils";
 import type { ConversationSummary, Profile } from "@/types/chat";
 
 interface StatusViewProps {
@@ -27,7 +27,7 @@ export function StatusView({ profile, conversations }: StatusViewProps) {
   const [statusInput, setStatusInput] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const sampleContacts = Array.from(
+  const recentPeers = Array.from(
     new Map(
       conversations
         .filter((c) => c.type === "direct")
@@ -100,14 +100,14 @@ export function StatusView({ profile, conversations }: StatusViewProps) {
           <div className="space-y-2">
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Recent Updates</p>
 
-            {sampleContacts.length === 0 ? (
+            {recentPeers.length === 0 ? (
               <div className="p-6 text-center text-xs text-muted-foreground rounded-2xl border border-dashed">
                 <CircleDot className="mx-auto size-6 text-muted-foreground/40 mb-1.5" />
                 <p className="font-semibold text-foreground">No recent updates</p>
                 <p className="text-[10px] mt-0.5">When contacts post status stories, they appear here.</p>
               </div>
             ) : (
-              sampleContacts.map((contact, idx) => (
+              recentPeers.map((contact) => (
                 <div
                   key={contact.id}
                   className="flex items-center gap-3 rounded-xl p-2.5 transition hover:bg-muted/40 border border-transparent hover:border-border/40"
@@ -120,8 +120,10 @@ export function StatusView({ profile, conversations }: StatusViewProps) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-semibold text-foreground truncate">{contact.display_name}</p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {idx % 2 === 0 ? "Today, 10:45 AM" : "Yesterday, 8:12 PM"}
+                    <p className="text-[10px] text-muted-foreground truncate">
+                      {contact.last_seen_at
+                        ? formatConversationTime(contact.last_seen_at)
+                        : contact.bio || "Active recently"}
                     </p>
                   </div>
                 </div>

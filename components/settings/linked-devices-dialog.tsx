@@ -1,18 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
-  Check,
-  ChevronRight,
   Laptop,
   Loader2,
   LogOut,
   Monitor,
-  Phone,
-  Shield,
+  ShieldCheck,
   Smartphone,
-  Trash2,
 } from "lucide-react";
+import { Capacitor } from "@capacitor/core";
 import { toast } from "@/lib/toast";
 import {
   Dialog,
@@ -21,6 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { createClient } from "@/lib/supabase/client";
 import { ConfirmActionDialog } from "@/components/chat/confirm-action-dialog";
 
 export interface LinkedDevicesDialogProps {
@@ -28,66 +26,123 @@ export interface LinkedDevicesDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-interface ActiveSession {
+interface CurrentClientSession {
   id: string;
   name: string;
   platform: string;
-  location: string;
   lastActive: string;
-  isCurrent: boolean;
   type: "desktop" | "mobile";
+  email?: string;
+}
+
+function detectClientEnvironment(): { name: string; platform: string; type: "desktop" | "mobile" } {
+  if (typeof window === "undefined") {
+    return { name: "Web Client", platform: "Browser", type: "desktop" };
+  }
+
+  if (Capacitor.isNativePlatform()) {
+    return {
+      name: "AetherChat Android App",
+      platform: "Android OS · Native Mobile Client",
+      type: "mobile",
+    };
+  }
+
+  const ua = navigator.userAgent;
+  let browser = "Web Browser";
+  let os = "Desktop";
+  let type: "desktop" | "mobile" = "desktop";
+
+  // Operating System
+  if (/Windows/i.test(ua)) os = "Windows";
+  else if (/Macintosh|Mac OS X/i.test(ua)) os = "macOS";
+  else if (/Linux/i.test(ua)) os = "Linux";
+  else if (/Android/i.test(ua)) { os = "Android"; type = "mobile"; }
+  else if (/iPhone|iPad|iPod/i.test(ua)) { os = "iOS"; type = "mobile"; }
+
+  // Browser Engine
+  if (/Edg/i.test(ua)) browser = "Microsoft Edge";
+  else if (/Chrome/i.test(ua)) browser = "Google Chrome";
+  else if (/Safari/i.test(ua)) browser = "Safari";
+  else if (/Firefox/i.test(ua)) browser = "Mozilla Firefox";
+
+  if (window.innerWidth < 768) {
+    type = "mobile";
+  }
+
+  return {
+    name: `${browser} on ${os}`,
+    platform: `${os} · ${type === "mobile" ? "Mobile Client" : "Desktop Web"}`,
+    type,
+  };
 }
 
 export function LinkedDevicesDialog({
   open,
   onOpenChange,
 }: LinkedDevicesDialogProps) {
-  const [sessions, setSessions] = useState<ActiveSession[]>([
-    {
-      id: "s-current",
-      name: "Chrome on Windows",
-      platform: "Windows 11 · Desktop Web",
-      location: "Active session",
-      lastActive: "Active now",
-      isCurrent: true,
-      type: "desktop",
-    },
-    {
-      id: "s-mac",
-      name: "Safari on macOS",
-      platform: "macOS Sonoma · Desktop Web",
-      location: "San Francisco, US",
-      lastActive: "Yesterday at 8:15 PM",
-      isCurrent: false,
-      type: "desktop",
-    },
-    {
-      id: "s-phone",
-      name: "Aether Mobile App",
-      platform: "iOS 17.5 · iPhone 15 Pro",
-      location: "Local Network",
-      lastActive: "3 hours ago",
-      isCurrent: false,
-      type: "mobile",
-    },
-  ]);
+  const [currentSession, setCurrentSession] = useState<CurrentClientSession | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [confirmLogoutOpen, setConfirmLogoutOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
-  const [confirmLogoutAllOpen, setConfirmLogoutAllOpen] = useState(false);
-  const [loggingOutId, setLoggingOutId] = useState<string | null>(null);
+  const loadSession = useCallback(async () => {
+    setLoading(true);
+    try {
+      const supabase = createClient();
+      const { data } = await supabase.auth.getSession();
+      const user = data.session?.user;
+      const env = detectClientEnvironment();
 
-  function handleSignOutSession(id: string) {
-    setLoggingOutId(id);
-    setTimeout(() => {
-      setSessions((prev) => prev.filter((s) => s.id !== id));
-      setLoggingOutId(null);
-      toast.success("Device signed out remotely");
-    }, 300);
-  }
+      const lastSignIn = user?.last_sign_in_at
+        ? new Date(user.last_sign_in_at).toLocaleDateString(undefined, {
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          })
+        : "Active now";
 
-  function handleLogoutAll() {
-    setSessions((prev) => prev.filter((s) => s.isCurrent));
-    setConfirmLogoutAllOpen(false);
-    toast.success("Logged out from all other devices");
+      setCurrentSession({
+        id: user?.id || "current-session",
+        name: env.name,
+        platform: env.platform,
+        lastActive: `Active now · Signed in ${lastSignIn}`,
+        type: env.type,
+        email: user?.email || undefined,
+      });
+    } catch {
+      const env = detectClientEnvironment();
+      setCurrentSession({
+        id: "current-session",
+        name: env.name,
+        platform: env.platform,
+        lastActive: "Active now",
+        type: env.type,
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (open) {
+      void loadSession();
+    }
+  }, [open, loadSession]);
+
+  async function handleSignOutCurrent() {
+    setSigningOut(true);
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      toast.success("Signed out successfully");
+      window.location.href = "/login";
+    } catch {
+      window.location.href = "/login";
+    } finally {
+      setSigningOut(false);
+    }
   }
 
   return (
@@ -105,7 +160,7 @@ export function LinkedDevicesDialog({
                   Linked Devices
                 </DialogTitle>
                 <p className="text-[11px] text-muted-foreground mt-0.5">
-                  Manage active sessions & remote sign-out
+                  Manage active sessions & client authentication
                 </p>
               </div>
             </div>
@@ -115,18 +170,20 @@ export function LinkedDevicesDialog({
           <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-4 space-y-4">
             <div className="space-y-1.5">
               <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-0.5">
-                Active Sessions
+                Current Session
               </p>
 
               <div className="rounded-xl border border-border/70 bg-card/60 divide-y divide-border/60 overflow-hidden shadow-xs">
-                {sessions.map((session) => (
-                  <div
-                    key={session.id}
-                    className="p-3.5 flex items-center justify-between gap-3"
-                  >
+                {loading ? (
+                  <div className="p-6 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                    <Loader2 className="size-4 animate-spin text-primary" />
+                    <span>Detecting session info...</span>
+                  </div>
+                ) : currentSession ? (
+                  <div className="p-3.5 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="grid size-9 place-items-center rounded-xl bg-muted border border-border/60 text-muted-foreground shrink-0">
-                        {session.type === "desktop" ? (
+                      <div className="grid size-9 place-items-center rounded-xl bg-primary/10 border border-primary/20 text-primary shrink-0">
+                        {currentSession.type === "desktop" ? (
                           <Laptop className="size-4" />
                         ) : (
                           <Smartphone className="size-4" />
@@ -135,68 +192,66 @@ export function LinkedDevicesDialog({
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
                           <p className="text-xs font-semibold text-foreground truncate">
-                            {session.name}
+                            {currentSession.name}
                           </p>
-                          {session.isCurrent && (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-[9px] font-semibold">
-                              <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                              This device
-                            </span>
-                          )}
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-[9px] font-semibold">
+                            <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            This device
+                          </span>
                         </div>
                         <p className="text-[11px] text-muted-foreground truncate mt-0.5">
-                          {session.platform}
+                          {currentSession.platform}
                         </p>
                         <p className="text-[10px] text-muted-foreground/80 mt-0.5">
-                          {session.location} · {session.lastActive}
+                          {currentSession.lastActive}
                         </p>
                       </div>
                     </div>
-
-                    {!session.isCurrent && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        disabled={loggingOutId === session.id}
-                        onClick={() => handleSignOutSession(session.id)}
-                        className="h-7 px-2.5 text-xs rounded-lg text-destructive hover:bg-destructive/10 hover:text-destructive shrink-0"
-                      >
-                        {loggingOutId === session.id ? (
-                          <Loader2 className="size-3 animate-spin" />
-                        ) : (
-                          <span>Sign out</span>
-                        )}
-                      </Button>
-                    )}
                   </div>
-                ))}
+                ) : null}
               </div>
             </div>
 
-            {sessions.length > 1 && (
-              <div className="pt-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setConfirmLogoutAllOpen(true)}
-                  className="w-full h-9 rounded-xl border-destructive/30 bg-destructive/10 hover:bg-destructive/20 text-destructive text-xs font-semibold gap-2"
-                >
-                  <LogOut className="size-3.5" />
-                  <span>Log out from all other devices</span>
-                </Button>
+            {/* Other Devices Section - Honest empty state instead of fabricated devices */}
+            <div className="space-y-1.5">
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-0.5">
+                Other Devices
+              </p>
+              <div className="p-4 rounded-xl border border-dashed border-border/80 bg-muted/20 text-center space-y-1.5">
+                <ShieldCheck className="size-5 text-emerald-500 mx-auto" />
+                <p className="text-xs font-medium text-foreground">
+                  No other active sessions
+                </p>
+                <p className="text-[11px] text-muted-foreground max-w-xs mx-auto leading-relaxed">
+                  You are only signed in on this client device. When you log in from additional devices, they will appear here.
+                </p>
               </div>
-            )}
+            </div>
+
+            {/* Sign Out Action */}
+            <div className="pt-2">
+              <Button
+                variant="outline"
+                disabled={signingOut}
+                onClick={() => setConfirmLogoutOpen(true)}
+                className="w-full h-9 rounded-xl border-destructive/30 bg-destructive/10 hover:bg-destructive/20 text-destructive text-xs font-semibold gap-2"
+              >
+                {signingOut ? <Loader2 className="size-3.5 animate-spin" /> : <LogOut className="size-3.5" />}
+                <span>Log out from this device</span>
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
 
       <ConfirmActionDialog
-        open={confirmLogoutAllOpen}
-        onOpenChange={setConfirmLogoutAllOpen}
-        title="Log Out From Other Devices"
-        description="Are you sure you want to sign out from all other active sessions? Only this browser session will remain signed in."
-        confirmLabel="Log Out Others"
+        open={confirmLogoutOpen}
+        onOpenChange={setConfirmLogoutOpen}
+        title="Log Out From AetherChat"
+        description="Are you sure you want to sign out from this device? You will need to log back in to access your chats."
+        confirmLabel="Log Out"
         variant="destructive"
-        onConfirm={handleLogoutAll}
+        onConfirm={handleSignOutCurrent}
       />
     </>
   );

@@ -53,14 +53,8 @@ export function TwoFactorDialog({
       });
 
       if (error) {
-        // Fallback for projects where MFA isn't toggled in Supabase dashboard
-        const mockSecret = "JBSWY3DPEHPK3PXP";
-        setFactorId("mock-factor-id");
-        setSecret(mockSecret);
-        setQrCodeUri(
-          `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=otpauth://totp/AetherChat?secret=${mockSecret}&issuer=AetherChat`
-        );
-        setStep("enroll");
+        toast.error(error.message || "Failed to start 2FA enrollment. Please ensure MFA is enabled in your Supabase Auth dashboard.");
+        setStep("status");
         return;
       }
 
@@ -70,14 +64,9 @@ export function TwoFactorDialog({
         setQrCodeUri(data.totp.qr_code);
         setStep("enroll");
       }
-    } catch {
-      const mockSecret = "JBSWY3DPEHPK3PXP";
-      setFactorId("mock-factor-id");
-      setSecret(mockSecret);
-      setQrCodeUri(
-        `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=otpauth://totp/AetherChat?secret=${mockSecret}&issuer=AetherChat`
-      );
-      setStep("enroll");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to start 2FA enrollment.");
+      setStep("status");
     } finally {
       setLoading(false);
     }
@@ -93,16 +82,14 @@ export function TwoFactorDialog({
 
     setLoading(true);
     try {
-      if (factorId === "mock-factor-id" || code === "123456") {
-        onStatusChange(true);
-        setStep("success");
-        toast.success("Two-Factor Authentication enabled!");
+      if (!factorId) {
+        toast.error("No active enrollment found. Please try again.");
         return;
       }
 
       const supabase = createClient();
       const { error } = await supabase.auth.mfa.challengeAndVerify({
-        factorId: factorId!,
+        factorId,
         code,
       });
 

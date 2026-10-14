@@ -551,3 +551,5 @@ export function WhatsAppMediaLightbox({
     </div>
   );
 }
+
+export const MediaLightbox = WhatsAppMediaLightbox;
