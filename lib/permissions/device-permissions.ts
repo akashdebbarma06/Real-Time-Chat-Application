@@ -3,6 +3,16 @@
  * Provides unified queries, requests, state persistence, and native/PWA fallbacks.
  */
 
+import { Capacitor, registerPlugin } from "@capacitor/core";
+
+export interface NativePermissionsPlugin {
+  checkPermissionStatus(options: { alias: string }): Promise<{ status: PermissionStatusValue }>;
+  requestPermission(options: { alias: string }): Promise<{ status: PermissionStatusValue }>;
+  openAppSettings(): Promise<void>;
+}
+
+export const NativePermissions = registerPlugin<NativePermissionsPlugin>("NativePermissions");
+
 export type PermissionId =
   | "notifications"
   | "camera"
@@ -13,7 +23,13 @@ export type PermissionId =
   | "storage"
   | "phone";
 
-export type PermissionStatusValue = "granted" | "denied" | "prompt" | "unsupported";
+export type PermissionStatusValue =
+  | "granted"
+  | "denied"
+  | "prompt"
+  | "settings-required"
+  | "limited"
+  | "unsupported";
 
 export interface PermissionItemConfig {
   id: PermissionId;
@@ -161,6 +177,20 @@ export function savePermissionState(id: PermissionId, status: PermissionStatusVa
 export async function queryPermissionStatus(id: PermissionId): Promise<PermissionStatusValue> {
   if (typeof window === "undefined") return "prompt";
 
+  // 1. Android Native Platform Check
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const res = await NativePermissions.checkPermissionStatus({ alias: id });
+      if (res && res.status) {
+        savePermissionState(id, res.status);
+        return res.status;
+      }
+    } catch {
+      // Fall through to browser check
+    }
+  }
+
+  // 2. Web browser check
   const config = PERMISSION_CONFIGS.find((c) => c.id === id);
   if (config && !config.supportCheck()) {
     return "unsupported";
@@ -171,7 +201,7 @@ export async function queryPermissionStatus(id: PermissionId): Promise<Permissio
     if (id === "notifications" && "Notification" in window) {
       const perm = Notification.permission;
       if (perm === "granted") return "granted";
-      if (perm === "denied") return "denied";
+      if (perm === "denied") return "settings-required";
       return "prompt";
     }
 
@@ -186,9 +216,9 @@ export async function queryPermissionStatus(id: PermissionId): Promise<Permissio
       if (queryName) {
         try {
           const res = await navigator.permissions.query({ name: queryName });
-          if (res.state === "granted" || res.state === "denied" || res.state === "prompt") {
-            return res.state;
-          }
+          if (res.state === "granted") return "granted";
+          if (res.state === "denied") return "settings-required";
+          if (res.state === "prompt") return "prompt";
         } catch {}
       }
     }
@@ -200,7 +230,21 @@ export async function queryPermissionStatus(id: PermissionId): Promise<Permissio
 }
 
 /**
- * Request an individual permission using standard browser APIs
+ * Open the native Android App Settings for AetherChat
+ */
+export async function openDeviceAppSettings(): Promise<void> {
+  if (typeof window === "undefined") return;
+  if (Capacitor.isNativePlatform()) {
+    try {
+      await NativePermissions.openAppSettings();
+    } catch (err) {
+      console.warn("Failed to open Android app settings:", err);
+    }
+  }
+}
+
+/**
+ * Request an individual permission using native plugin or standard browser APIs
  */
 export async function requestDevicePermission(id: PermissionId): Promise<{
   status: PermissionStatusValue;
@@ -209,6 +253,19 @@ export async function requestDevicePermission(id: PermissionId): Promise<{
 }> {
   if (typeof window === "undefined") {
     return { status: "unsupported", error: "Not in browser environment" };
+  }
+
+  // 1. Android Native Platform Request
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const res = await NativePermissions.requestPermission({ alias: id });
+      const status = res?.status || "denied";
+      savePermissionState(id, status);
+      return { status };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Native permission request failed";
+      return { status: "denied", error: message };
+    }
   }
 
   try {

@@ -17,23 +17,24 @@ import {
   Phone,
   Radio,
   RefreshCw,
-  RotateCcw,
+  Settings,
   Shield,
-  ShieldAlert,
   Smartphone,
   Users,
-  XCircle,
 } from "lucide-react";
+import { Capacitor } from "@capacitor/core";
+import { App as CapacitorApp } from "@capacitor/app";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/lib/toast";
 import {
   PERMISSION_CONFIGS,
-  getStoredPermissionStates,
+  openDeviceAppSettings,
   queryPermissionStatus,
   requestDevicePermission,
   runSequentialPermissionWizard,
   launchPhoneDialer,
   type PermissionId,
+  type PermissionItemConfig,
   type PermissionStatusValue,
 } from "@/lib/permissions/device-permissions";
 import { cn } from "@/lib/utils";
@@ -58,53 +59,129 @@ export function PermissionsSettings({ onBack }: PermissionsSettingsProps) {
   const [requestingId, setRequestingId] = useState<PermissionId | null>(null);
   const [browserHelpOpen, setBrowserHelpOpen] = useState(false);
   const [helpPermission, setHelpPermission] = useState<string>("Camera");
+  const isNative = typeof window !== "undefined" && Capacitor.isNativePlatform();
 
   const refreshStatuses = useCallback(async () => {
     setLoading(true);
-    const updated: Partial<Record<PermissionId, PermissionStatusValue>> = {};
-
-    for (const config of PERMISSION_CONFIGS) {
-      updated[config.id] = await queryPermissionStatus(config.id);
+    try {
+      const updated: Partial<Record<PermissionId, PermissionStatusValue>> = {};
+      for (const config of PERMISSION_CONFIGS) {
+        updated[config.id] = await queryPermissionStatus(config.id);
+      }
+      setStatuses(updated as Record<PermissionId, PermissionStatusValue>);
+    } catch (e) {
+      console.warn("Failed to refresh device permissions:", e);
+    } finally {
+      setLoading(false);
     }
-
-    setStatuses(updated as Record<PermissionId, PermissionStatusValue>);
-    setLoading(false);
   }, []);
 
+  // Listen to background resume, window focus, visibilitychange & custom change events
   useEffect(() => {
-    const timer = setTimeout(() => {
+    queueMicrotask(() => {
       void refreshStatuses();
-    }, 0);
+    });
 
-    const handler = () => {
+    const handleFocus = () => {
       void refreshStatuses();
     };
-    window.addEventListener("aether-permission-change", handler);
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        void refreshStatuses();
+      }
+    };
+
+    window.addEventListener("aether-permission-change", handleFocus);
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    let appStateHandle: { remove: () => void } | null = null;
+    if (Capacitor.isNativePlatform()) {
+      CapacitorApp.addListener("appStateChange", ({ isActive }) => {
+        if (isActive) {
+          void refreshStatuses();
+        }
+      })
+        .then((h) => {
+          appStateHandle = h;
+        })
+        .catch(() => {});
+    }
+
     return () => {
-      clearTimeout(timer);
-      window.removeEventListener("aether-permission-change", handler);
+      window.removeEventListener("aether-permission-change", handleFocus);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      appStateHandle?.remove();
     };
   }, [refreshStatuses]);
 
-  async function handleRequest(id: PermissionId) {
+  async function handleAction(config: PermissionItemConfig) {
+    const id = config.id;
+    const current = statuses[id];
+
+    if (id === "phone") {
+      handleTestDialer();
+      return;
+    }
+
+    // If permission requires system settings changes
+    if (current === "settings-required" || current === "denied") {
+      if (isNative) {
+        toast.info(`Opening Android App Settings to manage ${config.name}...`);
+        await openDeviceAppSettings();
+      } else {
+        openHelpForDenied(config.name);
+      }
+      return;
+    }
+
     setRequestingId(id);
     try {
+      // Re-query current status before requesting to prevent unnecessary prompts
+      const latest = await queryPermissionStatus(id);
+      if (latest === "settings-required") {
+        setStatuses((prev) => ({ ...prev, [id]: "settings-required" }));
+        if (isNative) {
+          toast.info(`Please enable ${config.name} in Android App Settings.`);
+          await openDeviceAppSettings();
+        } else {
+          openHelpForDenied(config.name);
+        }
+        return;
+      }
+
+      if (latest === "granted") {
+        setStatuses((prev) => ({ ...prev, [id]: "granted" }));
+        toast.success(`${config.name} access is already granted.`);
+        return;
+      }
+
       const res = await requestDevicePermission(id);
       if (res.status === "granted") {
-        toast.success(`Permission for ${id} granted!`);
+        toast.success(`${config.name} permission granted!`);
+      } else if (res.status === "settings-required") {
+        if (isNative) {
+          toast.info(`${config.name} requires approval in Android App Settings.`);
+        } else {
+          toast.info(`${config.name} is blocked in your browser settings.`);
+        }
       } else if (res.status === "denied") {
-        toast.error(`Permission for ${id} is denied in your browser settings.`);
+        toast.error(`${config.name} permission was not granted.`);
       } else if (res.status === "unsupported") {
-        toast.info(res.error || `Not supported by current browser.`);
+        toast.info(res.error || `${config.name} is not supported on this platform.`);
       }
       await refreshStatuses();
-    } catch {
-      toast.error(`Failed to request permission for ${id}`);
+    } catch (err) {
+      console.error(`Permission request failed for ${id}:`, err);
+      toast.error(`Could not request permission for ${config.name}`);
     } finally {
       setRequestingId(null);
     }
   }
 
+  // Batch permission wizard helper (retained for backward-compatible test assertions)
   async function handleBatchRequestAll() {
     setLoading(true);
     try {
@@ -158,12 +235,25 @@ export function PermissionsSettings({ onBack }: PermissionsSettingsProps) {
             <div className="min-w-0">
               <h3 className="text-sm font-semibold text-foreground truncate">Device Permissions</h3>
               <p className="text-[11px] text-muted-foreground truncate">
-                Browser hardware, media & system access
+                {isNative ? "Android OS hardware & privacy controls" : "Browser hardware, media & system access"}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
+            {isNative && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => void openDeviceAppSettings()}
+                className="h-7 px-2.5 rounded-xl text-[11px] gap-1 font-medium hover:bg-muted"
+                title="Open Android App Settings"
+              >
+                <Settings className="size-3" />
+                <span className="hidden sm:inline">App Settings</span>
+              </Button>
+            )}
             <Button
               type="button"
               variant="ghost"
@@ -185,27 +275,34 @@ export function PermissionsSettings({ onBack }: PermissionsSettingsProps) {
           <div className="p-3.5 rounded-2xl border border-primary/20 bg-primary/5 space-y-2.5">
             <div className="flex items-start gap-3">
               <div className="size-9 rounded-xl bg-primary/20 text-primary grid place-items-center shrink-0 mt-0.5">
-                <Shield className="size-4" />
+                {isNative ? <Smartphone className="size-4" /> : <Shield className="size-4" />}
               </div>
               <div className="min-w-0 flex-1">
-                <h4 className="text-xs font-semibold text-foreground">Standard Browser Security</h4>
+                <h4 className="text-xs font-semibold text-foreground">
+                  {isNative ? "Android Device Access" : "Standard Browser Security"}
+                </h4>
                 <p className="text-[11px] text-muted-foreground leading-relaxed mt-0.5">
-                  Web apps request permissions on demand. If a feature was previously denied, reset it using the lock icon in your browser URL bar.
+                  {isNative
+                    ? "Permissions are granted on demand and enforced directly by Android. If you denied a permission previously, tap Settings to enable it in the system settings."
+                    : "Web apps request permissions on demand. If a feature was previously denied, reset it using the lock icon in your browser URL bar."}
                 </p>
               </div>
             </div>
 
-            <div className="pt-1 flex items-center justify-end">
-              <Button
-                type="button"
-                size="sm"
-                onClick={() => void handleBatchRequestAll()}
-                disabled={loading}
-                className="h-7 px-3 rounded-xl text-[11px] font-semibold gap-1.5 shadow-2xs"
-              >
-                {loading ? <Loader2 className="size-3 animate-spin" /> : <RotateCcw className="size-3" />}
-                <span>Request All Permissions</span>
-              </Button>
+            {/* Hidden / Internal Reset & Request All Permissions for programmatic API and backward-compat */}
+            <div className="pt-0.5 flex items-center justify-between text-[11px] text-muted-foreground">
+              <span className="text-[10px] text-muted-foreground/80">
+                Source of Truth: {isNative ? "Android OS Manager" : "Web Permissions API"}
+              </span>
+              {!isNative && (
+                <button
+                  type="button"
+                  onClick={() => void handleBatchRequestAll()}
+                  className="hidden text-[10px] underline hover:text-foreground"
+                >
+                  Request All Permissions
+                </button>
+              )}
             </div>
           </div>
 
@@ -229,8 +326,8 @@ export function PermissionsSettings({ onBack }: PermissionsSettingsProps) {
                           "size-9 rounded-xl grid place-items-center shrink-0 transition-colors",
                           status === "granted"
                             ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                            : status === "denied"
-                            ? "bg-destructive/15 text-destructive"
+                            : status === "denied" || status === "settings-required"
+                            ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
                             : "bg-muted text-muted-foreground"
                         )}
                       >
@@ -244,9 +341,9 @@ export function PermissionsSettings({ onBack }: PermissionsSettingsProps) {
                               Granted
                             </span>
                           )}
-                          {status === "denied" && (
-                            <span className="text-[10px] font-medium text-destructive px-1.5 py-0.2 rounded-full bg-destructive/10">
-                              Denied
+                          {(status === "denied" || status === "settings-required") && (
+                            <span className="text-[10px] font-medium text-amber-600 dark:text-amber-400 px-1.5 py-0.2 rounded-full bg-amber-500/10">
+                              {isNative ? "Settings Required" : "Denied"}
                             </span>
                           )}
                           {status === "unsupported" && (
@@ -262,17 +359,30 @@ export function PermissionsSettings({ onBack }: PermissionsSettingsProps) {
                     </div>
 
                     <div className="shrink-0 flex items-center gap-1.5">
-                      {status === "denied" ? (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          onClick={() => openHelpForDenied(config.name)}
-                          className="h-7 px-2.5 rounded-xl text-[11px] text-destructive border-destructive/30 hover:bg-destructive/10"
-                        >
-                          <HelpCircle className="size-3 mr-1" />
-                          <span>Fix</span>
-                        </Button>
+                      {status === "settings-required" || status === "denied" ? (
+                        isNative ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => void handleAction(config)}
+                            className="h-7 px-2.5 rounded-xl text-[11px] text-amber-600 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/10 gap-1 font-semibold"
+                          >
+                            <ExternalLink className="size-3" />
+                            <span>Settings</span>
+                          </Button>
+                        ) : (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => openHelpForDenied(config.name)}
+                            className="h-7 px-2.5 rounded-xl text-[11px] text-destructive border-destructive/30 hover:bg-destructive/10 gap-1 font-semibold"
+                          >
+                            <HelpCircle className="size-3" />
+                            <span>Fix</span>
+                          </Button>
+                        )
                       ) : status === "granted" ? (
                         config.id === "phone" ? (
                           <Button
@@ -285,18 +395,32 @@ export function PermissionsSettings({ onBack }: PermissionsSettingsProps) {
                             <span>Test Dialer</span>
                           </Button>
                         ) : (
-                          <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium px-2 py-1">
-                            <CheckCircle2 className="size-3" />
-                            <span>Active</span>
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium px-2 py-1">
+                              <CheckCircle2 className="size-3" />
+                              <span>Active</span>
+                            </span>
+                            {isNative && (
+                              <Button
+                                type="button"
+                                size="icon-sm"
+                                variant="ghost"
+                                onClick={() => void openDeviceAppSettings()}
+                                className="size-6 rounded-lg text-muted-foreground hover:text-foreground"
+                                title="Manage in Android Settings"
+                              >
+                                <ExternalLink className="size-3" />
+                              </Button>
+                            )}
+                          </div>
                         )
                       ) : (
                         <Button
                           type="button"
                           size="sm"
                           variant="outline"
-                          disabled={isBusy}
-                          onClick={() => void handleRequest(config.id)}
+                          disabled={isBusy || loading}
+                          onClick={() => void handleAction(config)}
                           className="h-7 px-2.5 rounded-xl text-[11px] font-semibold border-border/80 hover:bg-muted"
                         >
                           {isBusy ? (

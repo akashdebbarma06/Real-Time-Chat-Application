@@ -568,13 +568,6 @@ export function SettingsView({
       action: () => setKeyboardShortcutsOpen(true),
     },
     {
-      id: "permissions",
-      title: "Device Permissions",
-      subtitle: "Camera, mic, notifications & hardware access",
-      icon: ShieldAlert,
-      action: () => setSelectedSection("permissions"),
-    },
-    {
       id: "language",
       title: "Language",
       subtitle: selectedLanguage,
@@ -1334,9 +1327,10 @@ export function SettingsView({
             <ChevronRight className="size-4 text-muted-foreground" />
           </button>
 
-          {/* Device & Hardware Permissions */}
+          {/* Device & Hardware Permissions ({ id: "permissions" } scoped strictly under Privacy & Security) */}
           <button
             type="button"
+            id="permissions"
             onClick={() => setSelectedSection("permissions")}
             className="flex w-full items-center justify-between rounded-2xl border bg-card/60 p-3 hover:bg-muted transition text-left cursor-pointer"
           >
@@ -1371,7 +1365,7 @@ export function SettingsView({
 
   // 5b. Device Permissions Sub-panel
   if (selectedSection === "permissions") {
-    return <PermissionsSettings onBack={() => setSelectedSection(null)} />;
+    return <PermissionsSettings onBack={() => setSelectedSection("privacy")} />;
   }
 
   // 6. Notifications Sub-panel (Modern Nested UI)

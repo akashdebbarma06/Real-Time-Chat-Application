@@ -79,15 +79,6 @@ export function ChatWorkspace({ profile, selectedConversationId }: ChatWorkspace
     },
   });
 
-  // Auto-prompt initial permissions modal once on first visit
-  useEffect(() => {
-    if (!hasPromptedInitialPermissions()) {
-      const timer = setTimeout(() => {
-        setPermissionModalOpen(true);
-      }, 750);
-      return () => clearTimeout(timer);
-    }
-  }, []);
 
   const handleTabChange = useCallback((tab: RailTab) => {
     setRailTab(tab);
