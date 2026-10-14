@@ -15,28 +15,29 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const messageId = body.messageId;
+    const messageIds = Array.isArray(body.messageIds) ? (body.messageIds as string[]) : messageId ? [messageId] : [];
 
-    if (!messageId || typeof messageId !== "string") {
-      return NextResponse.json({ error: "Missing messageId parameter" }, { status: 400 });
+    if (messageIds.length === 0) {
+      return NextResponse.json({ error: "Missing messageId or messageIds parameter" }, { status: 400 });
     }
 
     const supabase = await createClient();
 
-    // Delete message from ephemeral relay database
+    // Delete message(s) from ephemeral relay database
     const { error: deleteError } = await supabase
       .from("messages")
       .delete()
-      .eq("id", messageId);
+      .in("id", messageIds);
 
     if (deleteError) {
-      console.warn("[Ephemeral Queue] Delete row warning:", deleteError.message);
+      console.warn("[Ephemeral Queue] Delete rows warning:", deleteError.message);
     }
 
     return NextResponse.json({
       success: true,
       purged: true,
-      messageId,
-      message: "Message purged from backend delivery queue. Stored solely on user device.",
+      purgedCount: messageIds.length,
+      message: "Messages purged from backend delivery queue. Stored solely on user device.",
     });
   } catch (err: unknown) {
     const errorMessage = err instanceof Error ? err.message : "Unknown error";

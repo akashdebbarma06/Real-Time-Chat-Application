@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Check,
   CheckCheck,
@@ -14,6 +14,8 @@ import { MessageContextMenu } from "@/components/chat/message-context-menu";
 import { GifMediaCard } from "@/components/chat/media/gif-media-card";
 import { StickerBubble } from "@/components/chat/media/sticker-bubble";
 import { PollCard, parsePollContent } from "@/components/chat/media/poll-card";
+import { LinkPreviewCard } from "@/components/chat/media/link-preview-card";
+import { LocationCard, parseLocationMessage } from "@/components/chat/media/location-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -310,8 +312,21 @@ export function MessageBubble({
   const parsedPoll = parsePollContent(message.content || "");
   const isPoll = Boolean(parsedPoll);
 
-  const isCustomRichCard = Boolean(isGif || isSticker || isPoll);
+  // Check for Location: JSON payload or legacy text
+  const parsedLocation = parseLocationMessage(message.content);
+  const isLocation = Boolean(parsedLocation);
+
+  const isCustomRichCard = Boolean(isGif || isSticker || isPoll || isLocation);
   const isMedia = Boolean(isVideoNote || isVideo || isPhoto || isCustomRichCard);
+
+  const rawUrls = useMemo(() => {
+    if (!message.content || isCustomRichCard) return [];
+    const urlRegex = /(https?:\/\/[^\s<]+[^<.,:;"')\]\s])/g;
+    const matches = message.content.match(urlRegex) || [];
+    return Array.from(new Set(matches));
+  }, [message.content, isCustomRichCard]);
+
+  const previewUrl = rawUrls[0] || null;
 
   const isVoiceNote = Boolean(
     !isVideo &&
@@ -492,20 +507,32 @@ export function MessageBubble({
                 own={own}
               />
             </div>
+          ) : isLocation && parsedLocation ? (
+            <LocationCard
+              latitude={parsedLocation.latitude}
+              longitude={parsedLocation.longitude}
+              address={parsedLocation.address}
+              own={own}
+            />
           ) : (
             <>
               {showTextContent && (
-                <p
-                  style={{
-                    fontSize: "14px",
-                    lineHeight: 1.45,
-                    wordBreak: "break-word",
-                    overflowWrap: "break-word",
-                  }}
-                  className="whitespace-pre-wrap break-words [word-break:break-word] [overflow-wrap:break-word] text-[14px] leading-[1.45]"
-                >
-                  {message.content}
-                </p>
+                <>
+                  <p
+                    style={{
+                      fontSize: "14px",
+                      lineHeight: 1.45,
+                      wordBreak: "break-word",
+                      overflowWrap: "break-word",
+                    }}
+                    className="whitespace-pre-wrap break-words [word-break:break-word] [overflow-wrap:break-word] text-[14px] leading-[1.45]"
+                  >
+                    {renderFormattedMessageContent(message.content)}
+                  </p>
+                  {previewUrl && (
+                    <LinkPreviewCard url={previewUrl} own={own} />
+                  )}
+                </>
               )}
               {message.attachment_path && (
                 <AttachmentPreview
@@ -627,3 +654,27 @@ export function MessageBubble({
     </div>
   );
 }
+
+function renderFormattedMessageContent(text?: string | null) {
+  if (!text) return null;
+  const urlRegex = /(https?:\/\/[^\s<]+[^<.,:;"')\]\s])/g;
+  const parts = text.split(urlRegex);
+  return parts.map((part, index) => {
+    if (part.match(urlRegex)) {
+      return (
+        <a
+          key={index}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="underline hover:opacity-80 break-all text-inherit font-medium cursor-pointer"
+        >
+          {part}
+        </a>
+      );
+    }
+    return part;
+  });
+}
+

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { Download, FileText, Loader2 } from "lucide-react";
+import { AlertCircle, Download, FileText, Loader2, RefreshCw } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { formatFileSize, formatMessageTime } from "@/lib/utils";
 import type { ChatMessage } from "@/types/chat";
@@ -26,35 +26,58 @@ export function AttachmentPreview({
   onMediaClick,
 }: AttachmentPreviewProps) {
   const [url, setUrl] = useState<string | null>(null);
+  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     if (!message.attachment_path) return;
     let active = true;
+    setStatus("loading");
+    setErrorMsg(null);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+    }, 12000);
 
     async function resolveMedia() {
       const mediaId = message.attachment_path!;
 
       // 1. Client-Side Persistent Storage: Check local IndexedDB first (0 network latency)
-      const local = await getLocalMediaBlob(mediaId);
-      if (local && active) {
-        setUrl(local.url);
-        return;
+      try {
+        const local = await getLocalMediaBlob(mediaId);
+        if (local && active) {
+          clearTimeout(timeoutId);
+          setUrl(local.url);
+          setStatus("ready");
+          return;
+        }
+      } catch (e) {
+        console.warn("[AttachmentPreview] IndexedDB check failed, falling back to network:", e);
       }
 
-      // 2. Fetch binary from ephemeral backend queue if not yet cached on user's device
+      // 2. Fetch binary from backend queue if not yet cached on user's device
       try {
         const supabase = createClient();
-        const { data: signData } = await supabase.storage
+        const { data: signData, error: signError } = await supabase.storage
           .from("chat-files")
           .createSignedUrl(mediaId, 3600);
 
-        const downloadUrl = signData?.signedUrl;
-        if (!downloadUrl) return;
+        if (signError || !signData?.signedUrl) {
+          throw new Error(signError?.message || "Could not generate download link");
+        }
 
-        // Fetch file blob directly
-        const res = await fetch(downloadUrl);
+        const downloadUrl = signData.signedUrl;
+
+        // Fetch file blob with timeout
+        const res = await fetch(downloadUrl, { signal: controller.signal });
         if (!res.ok) {
-          if (active) setUrl(downloadUrl);
+          if (active) {
+            clearTimeout(timeoutId);
+            setUrl(downloadUrl);
+            setStatus("ready");
+          }
           return;
         }
         const blob = await res.blob();
@@ -73,7 +96,9 @@ export function AttachmentPreview({
         );
 
         if (active) {
+          clearTimeout(timeoutId);
           setUrl(localBlobUrl);
+          setStatus("ready");
         }
 
         // Ephemeral Auto-Purge Flow: Send download ACK to purge binary from backend object storage
@@ -84,8 +109,13 @@ export function AttachmentPreview({
         }).catch((ackErr) => {
           console.warn("[Media ACK] Ephemeral purge warning:", ackErr);
         });
-      } catch (err) {
-        console.error("[AttachmentPreview] Failed to cache ephemeral media:", err);
+      } catch (err: unknown) {
+        if (!active) return;
+        clearTimeout(timeoutId);
+        console.error("[AttachmentPreview] Failed to resolve media:", err);
+        const isTimeout = err instanceof Error && err.name === "AbortError";
+        setErrorMsg(isTimeout ? "Network timeout while preparing attachment" : "Could not load attachment");
+        setStatus("error");
       }
     }
 
@@ -93,10 +123,33 @@ export function AttachmentPreview({
 
     return () => {
       active = false;
+      clearTimeout(timeoutId);
+      controller.abort();
     };
-  }, [message.attachment_path, message.attachment_name, message.attachment_size, message.conversation_id, message.message_type]);
+  }, [message.attachment_path, message.attachment_name, message.attachment_size, message.conversation_id, message.message_type, retryCount]);
 
-  if (!url) {
+  if (status === "loading" || !url) {
+    if (status === "error") {
+      return (
+        <div className="flex flex-col gap-1.5 py-2 px-3 rounded-xl border border-destructive/20 bg-destructive/5 text-xs max-w-xs">
+          <div className="flex items-center gap-2 text-destructive font-medium">
+            <AlertCircle className="size-4 shrink-0" />
+            <span className="truncate">{errorMsg || "Failed to load attachment"}</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setRetryCount((c) => c + 1)}
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline cursor-pointer"
+            >
+              <RefreshCw className="size-3" />
+              Retry
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="flex items-center gap-2 py-2 text-xs text-muted-foreground">
         <Loader2 className="size-4 animate-spin" />

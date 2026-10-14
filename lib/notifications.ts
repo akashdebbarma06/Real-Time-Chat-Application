@@ -34,10 +34,34 @@ export function playNotificationSound() {
 }
 
 /**
- * Request browser push notification permissions.
+ * Request notification permissions (native Android POST_NOTIFICATIONS or browser Push).
  */
 export async function requestNotificationPermission(): Promise<boolean> {
-  if (typeof window === "undefined" || !("Notification" in window)) {
+  if (typeof window === "undefined") return false;
+
+  const cap = (
+    window as unknown as {
+      Capacitor?: {
+        Plugins?: {
+          NativeNotifications?: {
+            requestPermission: () => Promise<{ granted: boolean }>;
+            checkPermission: () => Promise<{ granted: boolean }>;
+          };
+        };
+      };
+    }
+  )?.Capacitor;
+
+  if (cap?.Plugins?.NativeNotifications) {
+    try {
+      const res = await cap.Plugins.NativeNotifications.requestPermission();
+      return Boolean(res?.granted);
+    } catch {
+      return false;
+    }
+  }
+
+  if (!("Notification" in window)) {
     return false;
   }
 
@@ -53,27 +77,62 @@ export async function requestNotificationPermission(): Promise<boolean> {
   return false;
 }
 
+export interface IncomingNotificationOptions {
+  senderName: string;
+  content: string;
+  conversationId?: string;
+  avatarUrl?: string;
+  muted?: boolean;
+}
+
 /**
- * Show a browser push notification for incoming messages.
+ * Show a native or browser notification for incoming messages.
  * In-app toast notifications for chat messages are disabled per user request.
  */
 export function notifyIncomingMessage({
   senderName,
   content,
+  conversationId,
   avatarUrl,
   muted = false,
-}: {
-  senderName: string;
-  content: string;
-  avatarUrl?: string;
-  muted?: boolean;
-}) {
+}: IncomingNotificationOptions) {
   if (muted) return;
 
   // 1. Play sound chime
   playNotificationSound();
 
-  // 2. Browser Desktop / Mobile Push Notification
+  // 2. Native Android Push / Local Notification via Capacitor Plugin
+  if (typeof window !== "undefined") {
+    const cap = (
+      window as unknown as {
+        Capacitor?: {
+          Plugins?: {
+            NativeNotifications?: {
+              showNotification: (opts: {
+                title: string;
+                body: string;
+                conversationId?: string;
+                id?: number;
+              }) => Promise<void>;
+            };
+          };
+        };
+      }
+    )?.Capacitor;
+
+    if (cap?.Plugins?.NativeNotifications) {
+      void cap.Plugins.NativeNotifications.showNotification({
+        title: senderName,
+        body: content || "Sent an attachment",
+        conversationId,
+      }).catch((err) => {
+        console.warn("Failed to dispatch native Android notification:", err);
+      });
+      return;
+    }
+  }
+
+  // 3. Browser Desktop / Mobile Push Notification
   if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
     try {
       new Notification(`Message from ${senderName}`, {
@@ -87,3 +146,4 @@ export function notifyIncomingMessage({
     }
   }
 }
+

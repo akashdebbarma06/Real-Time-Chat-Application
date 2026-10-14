@@ -127,15 +127,38 @@ export function MessageComposer({
     };
   }, [activeMenu]);
 
-  // Adjust textarea height dynamically (1 to 5 lines max)
+  // Dynamic Keyboard and Layout Inset Tracking
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+  const [isMultiline, setIsMultiline] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const updateKeyboardState = () => {
+      if (window.visualViewport) {
+        // When keyboard opens on Android, visualViewport.height is significantly reduced
+        const diff = window.innerHeight - window.visualViewport.height;
+        setIsKeyboardOpen(diff > 100);
+      }
+    };
+
+    window.visualViewport?.addEventListener("resize", updateKeyboardState);
+    return () => {
+      window.visualViewport?.removeEventListener("resize", updateKeyboardState);
+    };
+  }, []);
+
+  // Adjust textarea height dynamically (grow up to ~140px, then internal scroll)
   function handleTextChange(val: string) {
     setContent(val);
     onTyping(Boolean(val.trim()));
 
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
-      const nextHeight = Math.min(textareaRef.current.scrollHeight, 128);
+      const scrollH = textareaRef.current.scrollHeight;
+      const nextHeight = Math.min(Math.max(scrollH, 24), 140);
       textareaRef.current.style.height = `${nextHeight}px`;
+      setIsMultiline(scrollH > 38 || val.includes("\n"));
     }
   }
 
@@ -143,7 +166,14 @@ export function MessageComposer({
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
     }
+    setIsMultiline(false);
   }
+
+  useEffect(() => {
+    if (!content) {
+      resetTextareaHeight();
+    }
+  }, [content]);
 
   // 1. Submit message
   async function submit() {
@@ -249,7 +279,12 @@ export function MessageComposer({
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude, longitude } = pos.coords;
-        const locationMessage = `📍 **Location Shared**\nLatitude: ${latitude.toFixed(5)}, Longitude: ${longitude.toFixed(5)}\nhttps://www.google.com/maps?q=${latitude},${longitude}`;
+        const locationMessage = JSON.stringify({
+          type: "location",
+          latitude: Number(latitude.toFixed(5)),
+          longitude: Number(longitude.toFixed(5)),
+          address: "Shared Location",
+        });
         void onSendText(locationMessage);
         toast.success("Location sent successfully!");
       },
@@ -331,7 +366,10 @@ export function MessageComposer({
   return (
     <div
       ref={composerRef}
-      className="relative bg-transparent px-3 sm:px-6 pt-1 pb-[max(0.75rem,var(--safe-area-bottom))] sm:pb-4 space-y-2 select-none z-20"
+      className={cn(
+        "relative bg-transparent px-3 sm:px-6 pt-1 space-y-2 select-none z-20 transition-[padding] duration-150",
+        isKeyboardOpen ? "pb-1.5 sm:pb-2" : "pb-[max(0.75rem,var(--safe-area-bottom))] sm:pb-4"
+      )}
     >
       {/* ── 1. Reply Banner Preview (Floating Glass) ── */}
       {replyToMessage && (
@@ -470,7 +508,7 @@ export function MessageComposer({
         )}
 
         {/* Floating Input Row */}
-        <div className="flex items-center gap-2 sm:gap-2.5">
+        <div className="flex items-end gap-1.5 sm:gap-2">
           {/* Active Voice Recorder Mode */}
           {isRecordingVoice ? (
             <VoiceRecorder
@@ -490,7 +528,7 @@ export function MessageComposer({
                 aria-label="Add media, emojis, gifs or stickers"
                 title="Add emojis, GIFs, or stickers"
                 className={cn(
-                  "grid size-10 sm:size-11 place-items-center rounded-full shrink-0 cursor-pointer transition-all duration-200",
+                  "grid size-10 sm:size-11 place-items-center rounded-full shrink-0 cursor-pointer transition-all duration-200 mb-0.5",
                   "backdrop-blur-2xl shadow-lg",
                   activeMenu === "add" || activeMenu === "media-drawer"
                     ? "bg-primary text-primary-foreground border border-primary shadow-primary/25 scale-105"
@@ -506,7 +544,12 @@ export function MessageComposer({
               </button>
 
               {/* 3b. Text Input Field Capsule */}
-              <div className="flex-1 min-w-0 flex items-center rounded-full bg-background/80 dark:bg-card/80 backdrop-blur-2xl border border-white/20 dark:border-white/10 shadow-lg shadow-black/5 dark:shadow-black/25 px-3 py-1 sm:py-1.5 focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+              <div
+                className={cn(
+                  "flex-1 min-w-0 flex items-end bg-background/80 dark:bg-card/80 backdrop-blur-2xl border border-white/20 dark:border-white/10 shadow-lg shadow-black/5 dark:shadow-black/25 px-3 py-1.5 sm:py-2 focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20 transition-all",
+                  isMultiline ? "rounded-2xl" : "rounded-full"
+                )}
+              >
                 <textarea
                   ref={textareaRef}
                   value={content}
@@ -520,11 +563,11 @@ export function MessageComposer({
                       void submit();
                     }
                   }}
-                  className="max-h-32 min-h-6 flex-1 resize-none border-0 bg-transparent px-2 py-1 text-sm leading-relaxed shadow-none focus:outline-none placeholder:text-muted-foreground text-foreground"
+                  className="max-h-[140px] min-h-[24px] flex-1 resize-none border-0 bg-transparent px-1.5 py-1 text-sm leading-relaxed shadow-none focus:outline-none placeholder:text-muted-foreground text-foreground overflow-y-auto break-words whitespace-pre-wrap"
                 />
 
                 {/* Grouped In-Capsule Icons: Attachment (📎) & Camera (📷) */}
-                <div className="flex items-center gap-0.5 sm:gap-1 shrink-0 self-center pr-0.5">
+                <div className="flex items-center gap-0.5 sm:gap-1 shrink-0 pb-0.5 pr-0.5">
                   <button
                     type="button"
                     disabled={disabled || sending}
@@ -574,7 +617,7 @@ export function MessageComposer({
                   onClick={() => void submit()}
                   aria-label="Send message"
                   title="Send message"
-                  className="size-10 sm:size-11 shrink-0 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-lg shadow-primary/30 transition-all animate-in zoom-in-75 duration-150 cursor-pointer"
+                  className="size-10 sm:size-11 shrink-0 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-lg shadow-primary/30 transition-all animate-in zoom-in-75 duration-150 cursor-pointer mb-0.5"
                 >
                   {sending ? (
                     <Loader2 className="size-5 animate-spin" />
@@ -589,7 +632,7 @@ export function MessageComposer({
                   onClick={() => setIsRecordingVoice(true)}
                   aria-label="Record voice note"
                   title="Click to record voice note"
-                  className="grid size-10 sm:size-11 place-items-center rounded-full bg-background/80 dark:bg-card/80 backdrop-blur-2xl text-muted-foreground hover:text-primary hover:bg-background dark:hover:bg-card border border-white/20 dark:border-white/10 hover:border-primary/40 shadow-lg shadow-black/5 dark:shadow-black/25 transition-all shrink-0 cursor-pointer active:scale-95 animate-in zoom-in-75 duration-150"
+                  className="grid size-10 sm:size-11 place-items-center rounded-full bg-background/80 dark:bg-card/80 backdrop-blur-2xl text-muted-foreground hover:text-primary hover:bg-background dark:hover:bg-card border border-white/20 dark:border-white/10 hover:border-primary/40 shadow-lg shadow-black/5 dark:shadow-black/25 transition-all shrink-0 cursor-pointer active:scale-95 animate-in zoom-in-75 duration-150 mb-0.5"
                 >
                   <Mic className="size-5" />
                 </button>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Archive,
@@ -33,7 +33,6 @@ import { NewDirectChatDialog } from "@/components/chat/new-direct-chat-dialog";
 import { NewGroupDialog } from "@/components/chat/new-group-dialog";
 import { StarredMessagesDialog } from "@/components/chat/starred-messages-dialog";
 import { ConfirmActionDialog } from "@/components/chat/confirm-action-dialog";
-import { PermissionBanner } from "@/components/permissions/permission-banner";
 import { SettingsView } from "@/components/chat/settings-view";
 import { StatusView } from "@/components/chat/status-view";
 import { InPanelDirectChat } from "@/components/chat/in-panel-direct-chat";
@@ -53,6 +52,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Capacitor } from "@capacitor/core";
 import { createClient } from "@/lib/supabase/client";
 import { cn, formatConversationTime, getConversationPeers, getConversationTitle } from "@/lib/utils";
 import type { ConversationSummary, Profile } from "@/types/chat";
@@ -67,6 +67,7 @@ interface ConversationSidebarProps {
   onConversationCreated: () => void;
   activeTab?: RailTab;
   onTabChange?: (tab: RailTab) => void;
+  onOpenConversationInfo?: (conversation: ConversationSummary) => void;
 }
 
 export function ConversationSidebar({
@@ -79,6 +80,7 @@ export function ConversationSidebar({
   onConversationCreated,
   activeTab: activeTabProp,
   onTabChange: onTabChangeProp,
+  onOpenConversationInfo,
 }: ConversationSidebarProps) {
   const router = useRouter();
 
@@ -142,8 +144,78 @@ export function ConversationSidebar({
     id: "sidebar-selection-mode",
     priority: 45,
     enabled: isSelectionMode,
-    onBack: () => setIsSelectionMode(false),
+    onBack: () => {
+      setIsSelectionMode(false);
+      setSelectedChatIds(new Set());
+    },
   });
+
+  // Android APK Touch Long-Press Selection Logic
+  const isAndroidApp = useMemo(() => {
+    return typeof window !== "undefined" && Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android";
+  }, []);
+
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const touchStartPosRef = useRef<{ x: number; y: number; id: string } | null>(null);
+  const longPressFiredIdRef = useRef<string | null>(null);
+
+  const clearLongPressTimer = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }, []);
+
+  const handleTouchStart = useCallback(
+    (convId: string, e: React.TouchEvent) => {
+      if (!isAndroidApp || isSelectionMode) return;
+      const touch = e.touches[0];
+      if (!touch) return;
+
+      touchStartPosRef.current = { x: touch.clientX, y: touch.clientY, id: convId };
+      clearLongPressTimer();
+
+      longPressTimerRef.current = setTimeout(() => {
+        longPressFiredIdRef.current = convId;
+        if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+          try {
+            navigator.vibrate(50);
+          } catch {}
+        }
+        setIsSelectionMode(true);
+        setSelectedChatIds(new Set([convId]));
+      }, 450);
+    },
+    [clearLongPressTimer, isAndroidApp, isSelectionMode]
+  );
+
+  const handleTouchMove = useCallback(
+    (e: React.TouchEvent) => {
+      if (!touchStartPosRef.current) return;
+      const touch = e.touches[0];
+      if (!touch) return;
+
+      const dx = Math.abs(touch.clientX - touchStartPosRef.current.x);
+      const dy = Math.abs(touch.clientY - touchStartPosRef.current.y);
+
+      // Prevent accidental selection during scrolling (>10px scroll threshold)
+      if (dx > 10 || dy > 10) {
+        clearLongPressTimer();
+        touchStartPosRef.current = null;
+      }
+    },
+    [clearLongPressTimer]
+  );
+
+  const handleTouchEnd = useCallback(() => {
+    clearLongPressTimer();
+    touchStartPosRef.current = null;
+  }, [clearLongPressTimer]);
+
+  const handleTouchCancel = useCallback(() => {
+    clearLongPressTimer();
+    touchStartPosRef.current = null;
+  }, [clearLongPressTimer]);
 
   // Priority 2c: Non-Chat Rail Tabs on Mobile Viewports
   useBackHandler({
@@ -199,11 +271,6 @@ export function ConversationSidebar({
     conversation: ConversationSummary;
     position: { x: number; y: number };
   } | null>(null);
-
-  // Mobile Touch Long-Press (500ms) Refs
-  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const touchStartPosRef = useRef({ x: 0, y: 0 });
-  const longPressFiredRef = useRef(false);
 
   // Coming Soon Dialog state
   const [comingSoonOpen, setComingSoonOpen] = useState(false);
@@ -544,32 +611,36 @@ export function ConversationSidebar({
             {currentTab === "chats" && (
               <>
                 {/* 1. New Conversation Button */}
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
+                <button
+                  type="button"
                   aria-label="New conversation"
                   title="New conversation"
                   onClick={() => setSidebarView("new-direct")}
-                  className="rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors"
+                  className="grid size-10 place-items-center rounded-full border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 hover:border-primary/50 active:scale-95 transition-all shadow-xs shrink-0 cursor-pointer"
                 >
-                  <MessageSquarePlus className="size-4" />
-                </Button>
+                  <MessageSquarePlus className="size-5" />
+                </button>
 
                 {/* 2. Three-Dots Menu */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
+                    <button
+                      type="button"
                       aria-label="More options"
                       title="More options"
-                      className="rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors"
+                      className="grid size-10 place-items-center rounded-full border border-border/60 bg-muted/40 text-foreground hover:bg-muted/80 active:scale-95 transition-all shrink-0 cursor-pointer"
                     >
-                      <MoreVertical className="size-4" />
-                    </Button>
+                      <MoreVertical className="size-5" />
+                    </button>
                   </DropdownMenuTrigger>
 
-                  <DropdownMenuContent align="end" side="bottom" className="w-56 p-1.5 rounded-2xl shadow-xl">
+                  <DropdownMenuContent
+                    align="end"
+                    side="bottom"
+                    sideOffset={8}
+                    collisionPadding={16}
+                    className="w-56 p-1.5 rounded-2xl shadow-xl z-50 border border-border/80 bg-popover/95 backdrop-blur-md"
+                  >
                     <DropdownMenuItem
                       onSelect={() => setSidebarView("new-group")}
                       className="flex items-center gap-2.5 text-xs rounded-xl cursor-pointer p-2 hover:bg-muted font-medium"
@@ -619,7 +690,6 @@ export function ConversationSidebar({
         {/* 1. CHATS TAB */}
         {currentTab === "chats" && (
           <div className="flex h-full flex-col">
-            <PermissionBanner onManagePermissions={() => handleTabChange("settings")} />
             {/* Filter Pill Tabs: All Chats | Unread | Groups */}
             <div className="px-5 pt-4 pb-3">
               <div className="flex items-center gap-2">
@@ -803,60 +873,35 @@ export function ConversationSidebar({
                           ? "bg-muted shadow-xs"
                           : "hover:bg-muted/60 text-foreground"
                       )}
+                      onTouchStart={(e) => handleTouchStart(conversation.id, e)}
+                      onTouchMove={handleTouchMove}
+                      onTouchEnd={handleTouchEnd}
+                      onTouchCancel={handleTouchCancel}
                       onClick={(e) => {
+                        // Prevent long press from triggering normal tap navigation after release
+                        if (longPressFiredIdRef.current === conversation.id) {
+                          longPressFiredIdRef.current = null;
+                          e.preventDefault();
+                          e.stopPropagation();
+                          return;
+                        }
+
                         e.preventDefault();
                         // Left-Click (Desktop & Mobile Tap): Opens the active chat window
                         setContextMenu(null);
                         router.push(`/chat/${conversation.id}`);
                       }}
                       onContextMenu={(e) => {
-                        // Right-Click (contextmenu on Desktop): Prevents native context menu, opens custom options popup menu, and opens the conversation pane
+                        // Desktop right-click: Only on fine pointer devices, open context menu without hijacking navigation
+                        if (typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches) {
+                          return;
+                        }
                         e.preventDefault();
                         e.stopPropagation();
-                        router.push(`/chat/${conversation.id}`);
                         setContextMenu({
                           conversation,
                           position: { x: e.clientX, y: e.clientY },
                         });
-                      }}
-                      onTouchStart={(e) => {
-                        if (e.touches.length !== 1) return;
-                        const touch = e.touches[0];
-                        touchStartPosRef.current = { x: touch.clientX, y: touch.clientY };
-                        longPressFiredRef.current = false;
-                        if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
-                        longPressTimerRef.current = setTimeout(() => {
-                          longPressFiredRef.current = true;
-                          setContextMenu({
-                            conversation,
-                            position: { x: touchStartPosRef.current.x, y: touchStartPosRef.current.y },
-                          });
-                        }, 500);
-                      }}
-                      onTouchMove={(e) => {
-                        if (!longPressTimerRef.current) return;
-                        const touch = e.touches[0];
-                        const dx = Math.abs(touch.clientX - touchStartPosRef.current.x);
-                        const dy = Math.abs(touch.clientY - touchStartPosRef.current.y);
-                        if (dx > 10 || dy > 10) {
-                          clearTimeout(longPressTimerRef.current);
-                          longPressTimerRef.current = null;
-                        }
-                      }}
-                      onTouchCancel={() => {
-                        if (longPressTimerRef.current) {
-                          clearTimeout(longPressTimerRef.current);
-                          longPressTimerRef.current = null;
-                        }
-                      }}
-                      onTouchEnd={(e) => {
-                        if (longPressTimerRef.current) {
-                          clearTimeout(longPressTimerRef.current);
-                          longPressTimerRef.current = null;
-                        }
-                        if (longPressFiredRef.current) {
-                          e.preventDefault();
-                        }
                       }}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") {
@@ -872,8 +917,30 @@ export function ConversationSidebar({
                         }
                       }}
                     >
-                      {/* 1. Avatar (Fixed size, never shrinks) */}
-                      <div className="relative shrink-0 flex-shrink-0">
+                      {/* 1. Avatar (Fixed size, never shrinks - tap opens info panel) */}
+                      <div
+                        className="relative shrink-0 flex-shrink-0 cursor-pointer active:scale-95 transition-transform"
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`View ${title} details`}
+                        title={`View ${title} details`}
+                        onClick={(e) => {
+                          if (onOpenConversationInfo) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            onOpenConversationInfo(conversation);
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            if (onOpenConversationInfo) {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              onOpenConversationInfo(conversation);
+                            }
+                          }
+                        }}
+                      >
                         <ConversationAvatar
                           conversation={conversation}
                           userId={profile.id}

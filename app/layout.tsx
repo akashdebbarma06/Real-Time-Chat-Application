@@ -50,7 +50,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <head>
         <link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml" />
       </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased min-h-svh bg-background text-foreground`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased min-h-svh h-full bg-background text-foreground`}>
         <AppProviders>{children}</AppProviders>
       </body>
     </html>

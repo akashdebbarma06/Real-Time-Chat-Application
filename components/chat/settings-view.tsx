@@ -54,7 +54,6 @@ import { AppearancePanel } from "@/components/settings/appearance-panel";
 import { NotificationSettings } from "@/components/settings/notification-settings";
 import { ChatsSettings } from "@/components/settings/chats-settings";
 import { StorageSettings } from "@/components/settings/storage-settings";
-import { PermissionsSettings } from "@/components/settings/permissions-settings";
 import { KeyboardShortcutsDialog } from "@/components/settings/keyboard-shortcuts-dialog";
 import { LinkedDevicesDialog } from "@/components/settings/linked-devices-dialog";
 import { NoteStatusDialog } from "@/components/settings/note-status-dialog";
@@ -1327,25 +1326,6 @@ export function SettingsView({
             </div>
             <ChevronRight className="size-4 text-muted-foreground" />
           </button>
-
-          {/* Device & Hardware Permissions ({ id: "permissions" } scoped strictly under Privacy & Security) */}
-          <button
-            type="button"
-            id="permissions"
-            onClick={() => setSelectedSection("permissions")}
-            className="flex w-full items-center justify-between rounded-2xl border bg-card/60 p-3 hover:bg-muted transition text-left cursor-pointer"
-          >
-            <div className="flex items-center gap-3">
-              <div className="grid size-9 place-items-center rounded-xl bg-primary/10 text-primary shrink-0">
-                <ShieldAlert className="size-4" />
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-foreground">Device Permissions</p>
-                <p className="text-[11px] text-muted-foreground">Camera, microphone, notifications & storage</p>
-              </div>
-            </div>
-            <ChevronRight className="size-4 text-muted-foreground" />
-          </button>
         </div>
 
         <BlockedContactsDialog open={blockedContactsOpen} onOpenChange={setBlockedContactsOpen} currentUserId={profile.id} />
@@ -1362,11 +1342,6 @@ export function SettingsView({
   // 5. Storage & Data Sub-panel
   if (selectedSection === "storage") {
     return <StorageSettings onBack={() => setSelectedSection(null)} />;
-  }
-
-  // 5b. Device Permissions Sub-panel
-  if (selectedSection === "permissions") {
-    return <PermissionsSettings onBack={() => setSelectedSection("privacy")} />;
   }
 
   // 6. Notifications Sub-panel (Modern Nested UI)

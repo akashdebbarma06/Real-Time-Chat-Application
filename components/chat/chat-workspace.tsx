@@ -13,11 +13,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { usePresence } from "@/hooks/use-presence";
 import { useBackHandler } from "@/hooks/use-back-handler";
 import { createClient } from "@/lib/supabase/client";
-import { getConversationTitle } from "@/lib/utils";
+import { getConversationPeers, getConversationTitle } from "@/lib/utils";
 import { InPanelUserProfile } from "@/components/chat/in-panel-user-profile";
 import { InPanelGroupInfo } from "@/components/chat/in-panel-group-info";
 import { PermissionModal } from "@/components/permissions/permission-modal";
 import { hasPromptedInitialPermissions } from "@/lib/permissions/device-permissions";
+import { notifyIncomingMessage } from "@/lib/notifications";
 import type { ConversationSummary, Profile } from "@/types/chat";
 
 interface ChatWorkspaceProps {
@@ -34,7 +35,7 @@ export function ChatWorkspace({ profile, selectedConversationId }: ChatWorkspace
   const [railTab, setRailTab] = useState<RailTab>("chats");
   const [permissionModalOpen, setPermissionModalOpen] = useState(false);
   const [sideDetailView, setSideDetailView] = useState<
-    | { type: "user-profile"; profile: Profile; isOnline?: boolean; returnToGroup?: boolean }
+    | { type: "user-profile"; profile: Profile; isOnline?: boolean; returnToGroup?: boolean; conversationId?: string }
     | { type: "group-info"; conversation: ConversationSummary }
     | null
   >(null);
@@ -85,6 +86,29 @@ export function ChatWorkspace({ profile, selectedConversationId }: ChatWorkspace
     setSideDetailView(null);
   }, []);
 
+  const handleOpenConversationInfo = useCallback(
+    (conv: ConversationSummary) => {
+      if (conv.type === "group") {
+        setSideDetailView({
+          type: "group-info",
+          conversation: conv,
+        });
+      } else {
+        const peers = getConversationPeers(conv, profile.id);
+        const peer = peers[0];
+        if (peer) {
+          setSideDetailView({
+            type: "user-profile",
+            profile: peer,
+            conversationId: conv.id,
+            isOnline: onlineUserIds.has(peer.id),
+          });
+        }
+      }
+    },
+    [profile.id, onlineUserIds]
+  );
+
   const loadConversations = useCallback(async (showLoading = false) => {
     if (showLoading) setLoading(true);
     const { data, error } = await createClient().rpc("get_conversation_summaries", {});
@@ -116,7 +140,17 @@ export function ChatWorkspace({ profile, selectedConversationId }: ChatWorkspace
           schema: "public",
           table: "messages",
         },
-        () => void loadConversations()
+        (payload) => {
+          void loadConversations();
+          const newMsg = payload.new as { sender_id?: string; conversation_id?: string; content?: string } | undefined;
+          if (newMsg && newMsg.sender_id !== profile.id && newMsg.conversation_id !== selectedConversationId) {
+            notifyIncomingMessage({
+              senderName: "New Message",
+              content: newMsg.content || "Sent an attachment",
+              conversationId: newMsg.conversation_id,
+            });
+          }
+        }
       );
 
     void supabase.auth.getSession().then(async ({ data }) => {
@@ -206,7 +240,7 @@ export function ChatWorkspace({ profile, selectedConversationId }: ChatWorkspace
   }
 
   return (
-    <main className="flex h-svh min-h-0 overflow-hidden bg-background text-foreground safe-area-pt">
+    <main className="flex h-full h-svh h-[100dvh] max-h-[100dvh] min-h-0 overflow-hidden bg-background text-foreground safe-area-pt">
       {/* 1. Desktop Fixed Left Navigation Rail: 80px */}
       <NavigationRail
         profile={profile}
@@ -229,7 +263,7 @@ export function ChatWorkspace({ profile, selectedConversationId }: ChatWorkspace
           <InPanelUserProfile
             peerProfile={sideDetailView.profile}
             currentUserId={profile.id}
-            conversationId={selectedConversationId}
+            conversationId={sideDetailView.conversationId || selectedConversationId}
             isOnline={sideDetailView.isOnline ?? onlineUserIds.has(sideDetailView.profile.id)}
             onBack={() => {
               if (sideDetailView.returnToGroup && selectedConversation) {
@@ -269,6 +303,7 @@ export function ChatWorkspace({ profile, selectedConversationId }: ChatWorkspace
             onConversationCreated={() => void loadConversations()}
             activeTab={railTab}
             onTabChange={handleTabChange}
+            onOpenConversationInfo={handleOpenConversationInfo}
           />
         )}
       </div>

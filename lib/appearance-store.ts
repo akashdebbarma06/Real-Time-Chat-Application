@@ -182,8 +182,6 @@ export function applyAppearanceToDOM(prefs: AppearancePreferences) {
     dotColor: appIcon.dotColor,
   });
 
-  // Synchronize native mobile app launcher icon if running in Capacitor
-  syncNativeAppIcon(prefs.appIcon);
 }
 
 export function syncNativeAppIcon(iconId: AppIconChoice) {
@@ -218,6 +216,9 @@ export function saveAppearancePreferences(prefs: AppearancePreferences) {
 export function updateAppearancePreferences(partial: Partial<AppearancePreferences>): AppearancePreferences {
   const current = getStoredAppearance();
   const next: AppearancePreferences = { ...current, ...partial };
+  if (partial.appIcon && partial.appIcon !== current.appIcon) {
+    syncNativeAppIcon(partial.appIcon);
+  }
   saveAppearancePreferences(next);
   return next;
 }

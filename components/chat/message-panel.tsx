@@ -218,17 +218,19 @@ export function MessagePanel({
       await saveLocalMessages(formatted);
 
       // Ephemeral Auto-Purge Flow:
-      // Once recipient confirms receipt, trigger ACK to purge the message row from the backend queue
-      for (const msg of formatted) {
-        if (msg.sender_id !== profile.id) {
-          void fetch("/api/messages/ack-delivery", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ messageId: msg.id, conversationId }),
-          }).catch((err) => {
-            console.warn("[Ephemeral Delivery ACK] Purge warning:", err);
-          });
-        }
+      // Once recipient confirms receipt, trigger batch ACK to purge message rows from the backend queue
+      const unreceivedIds = formatted
+        .filter((msg) => msg.sender_id !== profile.id)
+        .map((msg) => msg.id);
+
+      if (unreceivedIds.length > 0) {
+        void fetch("/api/messages/ack-delivery", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messageIds: unreceivedIds, conversationId }),
+        }).catch((err) => {
+          console.warn("[Ephemeral Delivery ACK] Purge warning:", err);
+        });
       }
 
       // Reload updated local store
@@ -288,6 +290,7 @@ export function MessagePanel({
           notifyIncomingMessage({
             senderName: raw?.sender_name || "Contact",
             content: raw?.content || "Sent a message",
+            conversationId,
             muted: isMuted,
           });
         })
@@ -339,6 +342,7 @@ export function MessagePanel({
               notifyIncomingMessage({
                 senderName: "New Message",
                 content: newRow?.content || "Sent an attachment",
+                conversationId,
                 muted: isMuted,
               });
             }
@@ -367,6 +371,28 @@ export function MessagePanel({
       .rpc("mark_conversation_read", { p_conversation_id: conversationId, p_message_id: latest.id })
       .then(() => onConversationActivity());
   }, [conversationId, loading, messages, onConversationActivity, profile.id]);
+
+  // Keep latest messages visible above message composer when soft keyboard opens
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.visualViewport) return;
+
+    let prevHeight = window.visualViewport.height;
+
+    const handleViewportResize = () => {
+      const currentHeight = window.visualViewport?.height || 0;
+      if (prevHeight - currentHeight > 100) {
+        setTimeout(() => {
+          bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+        }, 80);
+      }
+      prevHeight = currentHeight;
+    };
+
+    window.visualViewport.addEventListener("resize", handleViewportResize);
+    return () => {
+      window.visualViewport?.removeEventListener("resize", handleViewportResize);
+    };
+  }, []);
 
   const title = conversation ? getConversationTitle(conversation, profile.id) : "Conversation";
   const peers = conversation ? getConversationPeers(conversation, profile.id) : [];

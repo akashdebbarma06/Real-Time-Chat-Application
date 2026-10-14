@@ -135,21 +135,11 @@ describe("Device & Browser Permissions System", () => {
       expect(bannerContent).toContain("snoozeBanner");
     });
 
-    it("verifies PermissionsSettings sub-panel is integrated into Settings", () => {
-      const settingsPath = path.resolve(__dirname, "../components/settings/permissions-settings.tsx");
-      expect(fs.existsSync(settingsPath)).toBe(true);
-      const settingsContent = fs.readFileSync(settingsPath, "utf-8");
-
-      expect(settingsContent).toContain("Device Permissions");
-      expect(settingsContent).toContain("PERMISSION_CONFIGS");
-      expect(settingsContent).toContain("Reset");
-      expect(settingsContent).toContain("Request All Permissions");
-
+    it("verifies Device Permissions management UI is removed from Settings navigation per mobile UX stabilization", () => {
       const settingsViewPath = path.resolve(__dirname, "../components/chat/settings-view.tsx");
       const settingsViewContent = fs.readFileSync(settingsViewPath, "utf-8");
-      expect(settingsViewContent).toContain('id: "permissions"');
-      expect(settingsViewContent).toContain("Device Permissions");
-      expect(settingsViewContent).toContain("PermissionsSettings");
+      expect(settingsViewContent).not.toContain('id="permissions"');
+      expect(settingsViewContent).not.toContain("PermissionsSettings");
     });
   });
 });

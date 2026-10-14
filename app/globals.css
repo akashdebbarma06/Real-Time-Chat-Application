@@ -43,6 +43,15 @@
   --safe-area-bottom: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
   --safe-area-left: max(env(safe-area-inset-left, 0px), var(--safe-area-inset-left, 0px));
   --safe-area-right: max(env(safe-area-inset-right, 0px), var(--safe-area-inset-right, 0px));
+}
+
+html,
+body {
+  height: 100%;
+  overscroll-behavior-y: none;
+}
+
+:root {
 
   --radius: 0.9rem;
   --background: oklch(0.985 0.003 286);
