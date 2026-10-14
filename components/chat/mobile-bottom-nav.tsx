@@ -30,7 +30,7 @@ export function MobileBottomNav({
 
   return (
     <nav
-      className="md:hidden fixed bottom-4 inset-x-0 max-w-sm mx-auto w-[calc(100%-2rem)] rounded-full bg-[#182229]/80 backdrop-blur-xl border border-white/10 shadow-lg z-40 select-none flex items-center justify-around px-3 py-2"
+      className="md:hidden fixed bottom-[calc(1rem+var(--safe-area-bottom))] inset-x-0 max-w-sm mx-auto w-[calc(100%-2rem)] rounded-full bg-[#182229]/80 backdrop-blur-xl border border-white/10 shadow-lg z-40 select-none flex items-center justify-around px-3 py-2"
       aria-label="Mobile navigation"
     >
       {items.map((item) => {

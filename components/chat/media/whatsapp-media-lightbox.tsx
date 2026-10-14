@@ -231,7 +231,7 @@ export function WhatsAppMediaLightbox({
       role="dialog"
       aria-modal="true"
       aria-label="Media Lightbox"
-      className="fixed inset-0 z-[10000] flex flex-col bg-background/95 text-foreground backdrop-blur-2xl animate-in fade-in duration-200 select-none overflow-hidden"
+      className="fixed inset-0 z-[10000] flex flex-col bg-background/95 text-foreground backdrop-blur-2xl animate-in fade-in duration-200 select-none overflow-hidden safe-area-pt safe-area-pb"
     >
       {/* ── 1. Top Header ── */}
       <header className="relative z-20 flex h-16 shrink-0 items-center justify-between border-b border-border bg-card/95 px-4 sm:px-6">

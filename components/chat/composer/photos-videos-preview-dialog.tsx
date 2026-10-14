@@ -446,7 +446,7 @@ export function PhotosVideosPreviewDialog({
       role="dialog"
       aria-modal="true"
       aria-label="Photos & Videos Preview"
-      className="fixed inset-0 z-50 md:absolute md:inset-0 md:z-30 flex flex-col bg-background/95 text-foreground backdrop-blur-md animate-in fade-in duration-200 select-none overflow-hidden"
+      className="fixed inset-0 z-50 md:absolute md:inset-0 md:z-30 flex flex-col bg-background/95 text-foreground backdrop-blur-md animate-in fade-in duration-200 select-none overflow-hidden safe-area-pt safe-area-pb"
     >
       {/* ── 1. Top Toolbar ── */}
       <header className="relative z-30 flex h-14 shrink-0 items-center justify-between border-b border-border bg-card/90 px-4">

@@ -33,7 +33,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <p className="text-sm text-white/45 dark:text-muted-foreground">Built with Next.js and Supabase.</p>
       </section>
 
-      <section className="flex min-h-svh flex-col items-center justify-between p-6 sm:p-10">
+      <section className="flex min-h-svh flex-col items-center justify-between p-6 sm:p-10 safe-area-pt safe-area-pb">
         <div className="w-full flex justify-center my-auto">{children}</div>
 
         <footer className="mt-8 flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-muted-foreground">

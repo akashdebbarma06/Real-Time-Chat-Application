@@ -38,6 +38,12 @@
 }
 
 :root {
+  /* Safe-area insets with fallback to Capacitor-injected CSS properties, env(), and 0px default */
+  --safe-area-top: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
+  --safe-area-bottom: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
+  --safe-area-left: max(env(safe-area-inset-left, 0px), var(--safe-area-inset-left, 0px));
+  --safe-area-right: max(env(safe-area-inset-right, 0px), var(--safe-area-inset-right, 0px));
+
   --radius: 0.9rem;
   --background: oklch(0.985 0.003 286);
   --foreground: oklch(0.19 0.02 286);
@@ -381,5 +387,13 @@ html.dark[data-accent="cyan"] {
 
   .chat-time {
     flex-shrink: 0;
+  }
+
+  .safe-area-pt {
+    padding-top: var(--safe-area-top);
+  }
+
+  .safe-area-pb {
+    padding-bottom: var(--safe-area-bottom);
   }
 }

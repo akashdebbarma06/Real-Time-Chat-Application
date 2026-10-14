@@ -183,7 +183,7 @@ export function ChatWorkspace({ profile, selectedConversationId }: ChatWorkspace
 
   if (loading) {
     return (
-      <div className="flex h-svh w-full bg-background">
+      <div className="flex h-svh w-full bg-background safe-area-pt">
         <div className="hidden md:flex w-20 shrink-0 border-r p-3 flex-col items-center gap-3">
           <Skeleton className="size-11 rounded-2xl" />
           <Skeleton className="size-12 rounded-xl mt-4" />
@@ -206,7 +206,7 @@ export function ChatWorkspace({ profile, selectedConversationId }: ChatWorkspace
   }
 
   return (
-    <main className="flex h-svh min-h-0 overflow-hidden bg-background text-foreground">
+    <main className="flex h-svh min-h-0 overflow-hidden bg-background text-foreground safe-area-pt">
       {/* 1. Desktop Fixed Left Navigation Rail: 80px */}
       <NavigationRail
         profile={profile}

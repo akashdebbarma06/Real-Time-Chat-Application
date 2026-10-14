@@ -310,7 +310,7 @@ export function MessageComposer({
   return (
     <div
       ref={composerRef}
-      className="relative bg-transparent px-3 sm:px-6 pt-1 pb-3 sm:pb-4 space-y-2 select-none z-20"
+      className="relative bg-transparent px-3 sm:px-6 pt-1 pb-[max(0.75rem,var(--safe-area-bottom))] sm:pb-4 space-y-2 select-none z-20"
     >
       {/* ── 1. Reply Banner Preview (Floating Glass) ── */}
       {replyToMessage && (

@@ -44,7 +44,7 @@ export function DocumentPreviewDialog({
       role="dialog"
       aria-modal="true"
       aria-label="Document Preview"
-      className="fixed inset-0 z-50 md:absolute md:inset-0 md:z-30 flex flex-col bg-background/95 text-foreground backdrop-blur-md animate-in fade-in duration-200 select-none overflow-hidden"
+      className="fixed inset-0 z-50 md:absolute md:inset-0 md:z-30 flex flex-col bg-background/95 text-foreground backdrop-blur-md animate-in fade-in duration-200 select-none overflow-hidden safe-area-pt safe-area-pb"
     >
       {/* ── 1. Top Header: Close Button and File Name ── */}
       <header className="relative z-10 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-card/90 px-4">
