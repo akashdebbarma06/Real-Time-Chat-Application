@@ -4,7 +4,8 @@
 
 # Next.js build output
 /.next/
-/out/
+/out/*
+!/out/index.html
 /dist/
 /build/
 
