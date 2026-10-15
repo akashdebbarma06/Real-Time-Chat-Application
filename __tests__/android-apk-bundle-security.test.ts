@@ -21,14 +21,23 @@ describe("Production APK Security & Bundled Web Assets Specification", () => {
       process.cwd(),
       "android/app/src/main/assets/capacitor.config.json"
     );
-    expect(fs.existsSync(jsonPath)).toBe(true);
-
-    const json = JSON.parse(fs.readFileSync(jsonPath, "utf-8"));
-    expect(json.server).toBeDefined();
-    expect(json.server.url).toBeUndefined();
-    expect(json.server.cleartext).toBe(false);
-    expect(json.server.androidScheme).toBe("https");
-    expect(json.webDir).toBe("out");
+    if (fs.existsSync(jsonPath)) {
+      const json = JSON.parse(fs.readFileSync(jsonPath, "utf-8"));
+      expect(json.server).toBeDefined();
+      expect(json.server.url).toBeUndefined();
+      expect(json.server.cleartext).toBe(false);
+      expect(json.server.androidScheme).toBe("https");
+      expect(json.webDir).toBe("out");
+    } else {
+      // In clean CI test runners prior to `cap sync`, verify the source of truth capacitor.config.ts
+      const tsPath = path.resolve(process.cwd(), "capacitor.config.ts");
+      expect(fs.existsSync(tsPath)).toBe(true);
+      const content = fs.readFileSync(tsPath, "utf-8");
+      expect(content).not.toMatch(/url:\s*['"]https:\/\/chatsphere-tan\.vercel\.app['"]/);
+      expect(content).toContain("androidScheme: 'https'");
+      expect(content).toContain("webDir: 'out'");
+      expect(content).toContain("cleartext: isDev && devServerUrl ? devServerUrl.startsWith('http://') : false");
+    }
   });
 
   it("verifies AndroidManifest.xml disables allowBackup and usesCleartextTraffic", () => {
