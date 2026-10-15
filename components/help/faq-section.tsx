@@ -74,7 +74,7 @@ const FAQ_ITEMS: FAQItem[] = [
     category: "messages",
     question: "Are messages delivered instantly in real time?",
     answer:
-      "Yes! Aether Chat uses Supabase Realtime channels with Row Level Security (RLS). Messages, read receipts, and online status update instantaneously across all connected devices.",
+      "Yes! Aether Chat provides instant live synchronization with strict participant-only access safeguards. Messages, read receipts, and online status update instantaneously across all connected devices.",
     badge: "Realtime",
   },
   {

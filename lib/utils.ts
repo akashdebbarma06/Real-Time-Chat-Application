@@ -82,3 +82,20 @@ export function sanitizeFilename(filename: string) {
   return `${base || "file"}${extension}`;
 }
 
+/**
+ * Normalizes user handles across chat lists, search results, and profiles.
+ * Strips auto-generated suffix hashes (e.g. cleans @username_fad721 -> @username,
+ * preserves valid custom handles like @akash_cse) and guarantees a leading '@'.
+ */
+export function formatHandle(username?: string | null): string {
+  if (!username) return "";
+  let clean = username.trim().replace(/^@+/, "");
+  // Strip auto-generated suffix hashes: e.g. _fad721, -a1b2c3d4, or trailing hex UID slices
+  const stripped = clean.replace(/[_-][0-9a-fA-F]{6,}$/, "");
+  if (stripped.length >= 2) {
+    clean = stripped;
+  }
+  return `@${clean}`;
+}
+
+

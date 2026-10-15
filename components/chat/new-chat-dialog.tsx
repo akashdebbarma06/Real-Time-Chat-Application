@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { createClient } from "@/lib/supabase/client";
-import { cn, getInitials } from "@/lib/utils";
+import { cn, formatHandle, getInitials } from "@/lib/utils";
 import type { Profile } from "@/types/chat";
 
 interface NewChatDialogProps {
@@ -130,7 +130,7 @@ export function NewChatDialog({
               const isSelected = selected.has(profile.id);
               return <button key={profile.id} disabled={loading} onClick={() => mode === "direct" ? void createDirect(profile.id) : setSelected((current) => { const next = new Set(current); if (next.has(profile.id)) next.delete(profile.id); else next.add(profile.id); return next; })} className={cn("flex w-full items-center gap-3 rounded-xl p-3 text-left transition hover:bg-accent", isSelected && "bg-accent")}>
                 <Avatar><AvatarImage src={profile.avatar_url || undefined} alt={profile.display_name} /><AvatarFallback>{getInitials(profile.display_name)}</AvatarFallback></Avatar>
-                <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">{profile.display_name}</span><span className="block truncate text-xs text-muted-foreground">@{profile.username}</span></span>
+                <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">{profile.display_name}</span><span className="block truncate text-xs text-muted-foreground">{formatHandle(profile.username)}</span></span>
                 {isSelected && <Check className="size-4 text-primary" />}
               </button>;
             })}

@@ -15,7 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { createClient } from "@/lib/supabase/client";
-import { cn, getInitials } from "@/lib/utils";
+import { cn, formatHandle, getInitials } from "@/lib/utils";
 import type { Profile } from "@/types/chat";
 
 interface NewDirectChatDialogProps {
@@ -169,7 +169,7 @@ export function NewDirectChatDialog({
                         {user.display_name}
                       </p>
                       <p className="truncate text-xs text-muted-foreground">
-                        @{user.username}
+                        {formatHandle(user.username)}
                       </p>
                     </div>
 

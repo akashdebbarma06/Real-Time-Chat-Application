@@ -17,12 +17,9 @@ describe("AetherChat Android UI Bug Fixes Specification Suite", () => {
       expect(navElement).not.toBeNull();
       const navClass = navElement?.className || "";
 
-      // Must support light card mode and dark surface mode
-      expect(navClass).toContain("bg-card/90");
-      expect(navClass).toContain("dark:bg-[#182229]/90");
-      expect(navClass).toContain("border-border/80");
-      expect(navClass).toContain("dark:border-white/10");
-      expect(navClass).toContain("rounded-full");
+      // Must anchor to bottom edge with slate blur and top border
+      expect(navClass).toContain("bg-[#0F1115]/90");
+      expect(navClass).toContain("border-t");
       expect(navClass).toContain("md:hidden");
 
       // Inactive items must use semantic muted-foreground rather than hardcoded zinc-400

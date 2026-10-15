@@ -33,6 +33,7 @@ interface MessageBubbleProps {
   currentUserProfile?: Profile;
   members?: ConversationMember[];
   showSenderName: boolean;
+  showSenderAvatar?: boolean;
   showReceipt: boolean;
   reactions?: { [emoji: string]: string[] };
   onToggleReaction?: (emoji: string) => void;
@@ -42,6 +43,7 @@ interface MessageBubbleProps {
   onDelete?: (messageId: string) => void;
   onForward?: (message: ChatMessage) => void;
   onMediaClick?: (message: ChatMessage, url?: string) => void;
+  onRetry?: (message: ChatMessage) => void;
   isMenuOpen?: boolean;
   onOpenMenu?: () => void;
   onCloseMenu?: () => void;
@@ -53,6 +55,7 @@ export function MessageBubble({
   currentUserProfile,
   members,
   showSenderName,
+  showSenderAvatar = true,
   showReceipt,
   reactions: externalReactions,
   onToggleReaction,
@@ -62,6 +65,7 @@ export function MessageBubble({
   onDelete,
   onForward,
   onMediaClick,
+  onRetry,
   isMenuOpen: isMenuOpenProp,
   onOpenMenu,
   onCloseMenu,
@@ -377,19 +381,39 @@ export function MessageBubble({
       )}
     >
       {!own && (
+        showSenderAvatar ? (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onProfileClick?.(message.sender);
+            }}
+            className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-full cursor-pointer hover:opacity-80 transition shrink-0"
+            aria-label={`View ${message.sender.display_name}'s profile`}
+          >
+            <Avatar className="size-8 shrink-0 border border-border shadow-sm">
+              <AvatarImage src={message.sender.avatar_url || undefined} alt={message.sender.display_name} />
+              <AvatarFallback className="text-xs">{getInitials(message.sender.display_name)}</AvatarFallback>
+            </Avatar>
+          </button>
+        ) : (
+          <div className="size-8 shrink-0" aria-hidden="true" />
+        )
+      )}
+
+      {/* Inline Failed Delivery / Retry Indicator */}
+      {own && message.delivery_status === "failed" && (
         <button
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            onProfileClick?.(message.sender);
+            onRetry?.(message);
           }}
-          className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-full cursor-pointer hover:opacity-80 transition"
-          aria-label={`View ${message.sender.display_name}'s profile`}
+          title="Message failed to send. Tap to retry."
+          className="flex size-5 items-center justify-center rounded-full bg-destructive text-white text-[11px] font-bold shadow-xs hover:scale-110 active:scale-95 transition-transform cursor-pointer shrink-0 select-none mb-1.5"
+          aria-label="Retry sending message"
         >
-          <Avatar className="size-8 shrink-0 border border-border shadow-sm">
-            <AvatarImage src={message.sender.avatar_url || undefined} alt={message.sender.display_name} />
-            <AvatarFallback className="text-xs">{getInitials(message.sender.display_name)}</AvatarFallback>
-          </Avatar>
+          !
         </button>
       )}
 

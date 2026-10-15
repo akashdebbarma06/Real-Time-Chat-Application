@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   cn,
   formatFileSize,
+  formatHandle,
   getConversationPeers,
   getConversationTitle,
   getInitials,
@@ -23,6 +24,17 @@ describe("Utility Functions", () => {
       expect(getInitials("Alice")).toBe("A");
       expect(getInitials(" John   Doe  ")).toBe("JD");
       expect(getInitials("")).toBe("CS");
+    });
+  });
+
+  describe("formatHandle", () => {
+    it("formats handles cleanly and strips auto-generated hash suffixes", () => {
+      expect(formatHandle("username_fad721")).toBe("@username");
+      expect(formatHandle("akash_cse")).toBe("@akash_cse");
+      expect(formatHandle("@john_doe")).toBe("@john_doe");
+      expect(formatHandle("alice-a1b2c3d4")).toBe("@alice");
+      expect(formatHandle("")).toBe("");
+      expect(formatHandle(null)).toBe("");
     });
   });
 

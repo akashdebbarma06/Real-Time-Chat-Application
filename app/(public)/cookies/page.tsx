@@ -68,34 +68,34 @@ export default function CookiesPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-800/70 text-slate-300">
                   <tr>
-                    <td className="p-3 font-mono text-cyan-400">Cookie</td>
-                    <td className="p-3 font-mono text-slate-200">sb-*-auth-token</td>
-                    <td className="p-3">Supabase JWT session token maintaining authenticated user state.</td>
+                    <td className="p-3 font-semibold text-indigo-400">Secure Cookie</td>
+                    <td className="p-3 font-medium text-slate-200">Secure Auth Token</td>
+                    <td className="p-3">Encrypted login session token maintaining your authenticated account state safely.</td>
                     <td className="p-3 text-emerald-400 font-semibold">Strictly Essential</td>
                   </tr>
                   <tr>
-                    <td className="p-3 font-mono text-cyan-400">Cookie</td>
-                    <td className="p-3 font-mono text-slate-200">aether_session</td>
-                    <td className="p-3">Short-lived Next.js middleware routing cookie (30 min).</td>
+                    <td className="p-3 font-semibold text-indigo-400">Secure Cookie</td>
+                    <td className="p-3 font-medium text-slate-200">Session Guard</td>
+                    <td className="p-3">Temporary navigation token ensuring secure routing between chats and settings.</td>
                     <td className="p-3 text-emerald-400 font-semibold">Strictly Essential</td>
                   </tr>
                   <tr>
-                    <td className="p-3 font-mono text-cyan-400">LocalStorage</td>
-                    <td className="p-3 font-mono text-slate-200">theme / accent</td>
-                    <td className="p-3">Stores visual theme (light, dark, system) and color accent.</td>
+                    <td className="p-3 font-semibold text-indigo-400">Local Device Storage</td>
+                    <td className="p-3 font-medium text-slate-200">Theme Preferences</td>
+                    <td className="p-3">Remembers your preferred color palette and theme mode (dark, light, system).</td>
                     <td className="p-3 text-blue-400 font-semibold">Preference / Functional</td>
                   </tr>
                   <tr>
-                    <td className="p-3 font-mono text-cyan-400">LocalStorage</td>
-                    <td className="p-3 font-mono text-slate-200">aether-chat-settings</td>
-                    <td className="p-3">Saves bubble styling, doodle background opacity, and sound choices.</td>
+                    <td className="p-3 font-semibold text-indigo-400">Local Device Storage</td>
+                    <td className="p-3 font-medium text-slate-200">Interface Customization</td>
+                    <td className="p-3">Saves message bubble styling, doodle background preferences, and notification sound choices.</td>
                     <td className="p-3 text-blue-400 font-semibold">Preference / Functional</td>
                   </tr>
                   <tr>
-                    <td className="p-3 font-mono text-cyan-400">IndexedDB</td>
-                    <td className="p-3 font-mono text-slate-200">aether_chat_db</td>
-                    <td className="p-3">Local cache of messages, conversation summaries, and downloaded vault media.</td>
-                    <td className="p-3 text-purple-400 font-semibold">Performance / Local Vault</td>
+                    <td className="p-3 font-semibold text-indigo-400">Local Vault Storage</td>
+                    <td className="p-3 font-medium text-slate-200">Local Message Vault</td>
+                    <td className="p-3">Encrypted on-device database storing message history and cached media for instant offline access.</td>
+                    <td className="p-3 text-purple-400 font-semibold">Privacy / Local Vault</td>
                   </tr>
                 </tbody>
               </table>

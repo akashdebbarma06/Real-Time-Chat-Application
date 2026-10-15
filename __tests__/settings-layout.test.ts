@@ -19,7 +19,7 @@ describe("Settings Panel Layout & Styling", () => {
     expect(settingsContent).toContain("noteStatus");
     expect(settingsContent).toContain("size-24");
     expect(settingsContent).toContain("Camera");
-    expect(settingsContent).toContain("@{profile.username");
+    expect(settingsContent).toContain("formatHandle(profile.username");
     expect(settingsContent).toContain("›");
   });
 
@@ -90,10 +90,11 @@ describe("Settings Panel Layout & Styling", () => {
     expect(settingsContent).toContain("privacy_disappearing_timer");
   });
 
-  it("verifies Appearance enhancements (App icon swatches, Desktop Chat View)", () => {
+  it("verifies Appearance enhancements (Accent colors, Chat View)", () => {
     const appearancePath = path.resolve(__dirname, "../components/settings/appearance-panel.tsx");
     const appearanceContent = fs.readFileSync(appearancePath, "utf-8");
-    expect(appearanceContent).toContain("App Icon");
+    expect(appearanceContent).toContain("Accent Color");
+    expect(appearanceContent).toContain("Bubble Style");
     expect(appearanceContent).toContain("Chat View");
     expect(appearanceContent).toContain("Single chat");
     expect(appearanceContent).toContain("Multi chat");

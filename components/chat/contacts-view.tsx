@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { createClient } from "@/lib/supabase/client";
-import { getInitials } from "@/lib/utils";
+import { formatHandle, getInitials } from "@/lib/utils";
 import type { Profile } from "@/types/chat";
 
 interface ContactsViewProps {
@@ -195,7 +195,7 @@ export function ContactsView({ currentUserId, onlineUserIds, onConversationCreat
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-foreground group-hover:text-primary transition-colors">{user.display_name}</p>
-                    <p className="truncate text-xs text-muted-foreground">@{user.username}</p>
+                    <p className="truncate text-xs text-muted-foreground">{formatHandle(user.username)}</p>
                   </div>
                 </div>
 

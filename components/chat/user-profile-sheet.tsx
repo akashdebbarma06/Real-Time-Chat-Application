@@ -27,7 +27,7 @@ import {
 import { ConfirmActionDialog } from "@/components/chat/confirm-action-dialog";
 import { SharedVaultView } from "@/components/chat/shared-vault-view";
 import { createClient } from "@/lib/supabase/client";
-import { formatConversationTime, getInitials } from "@/lib/utils";
+import { formatConversationTime, formatHandle, getInitials } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import type { Profile } from "@/types/chat";
 
@@ -228,7 +228,7 @@ export function UserProfileSheet({
               <DialogHeader className="p-3.5 border-b border-border/80 flex flex-row items-center justify-between shrink-0">
                 <div>
                   <DialogTitle className="text-sm font-semibold text-foreground">Contact Info</DialogTitle>
-                  <p className="text-[11px] text-muted-foreground truncate mt-0.5">@{peerProfile.username}</p>
+                  <p className="text-[11px] text-muted-foreground truncate mt-0.5">{formatHandle(peerProfile.username)}</p>
                 </div>
               </DialogHeader>
 
@@ -256,7 +256,7 @@ export function UserProfileSheet({
                       {peerProfile.display_name}
                     </h2>
                     <p className="text-xs text-muted-foreground truncate mt-0.5">
-                      @{peerProfile.username}
+                      {formatHandle(peerProfile.username)}
                     </p>
                     <div className="flex items-center gap-1.5 mt-1">
                       <span

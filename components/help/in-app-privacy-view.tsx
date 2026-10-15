@@ -44,10 +44,10 @@ export function InAppPrivacyView({ profile, userEmail, compact = false }: InAppP
           registeredEmail: userEmail || `${profile.username}@aetherchat.app`,
         },
         securityProtocols: {
-          databaseProtection: "PostgreSQL Row Level Security (RLS)",
-          realtimePresenceIsolation: "presence:room:{roomId}",
-          fileValidationPolicy: "image-only (max 6 MB)",
-          sessionManagement: "HttpOnly 30-min cookie rotation",
+          databaseProtection: "Cryptographic Participant Isolation",
+          realtimePresenceIsolation: "Private Encrypted Session Channels",
+          fileValidationPolicy: "Verified Media Safeguards (max 6 MB)",
+          sessionManagement: "Secure Rotating Session Storage",
         },
       };
 
@@ -174,11 +174,11 @@ export function InAppPrivacyView({ profile, userEmail, compact = false }: InAppP
         <div className="rounded-2xl border bg-card p-4 space-y-2 shadow-xs">
           <div className="flex items-center gap-2 text-primary font-semibold text-xs">
             <Database className="size-4" />
-            <span>Row-Level Security</span>
+            <span>Access Control</span>
           </div>
-          <p className="text-sm font-bold text-foreground">Strictly Enforced</p>
+          <p className="text-sm font-bold text-foreground">Participant Isolation</p>
           <p className="text-xs text-muted-foreground">
-            PostgreSQL policies ensure only conversation members can query messages or presence.
+            Strict security isolation ensures only verified conversation members can view or receive messages and presence status.
           </p>
         </div>
 

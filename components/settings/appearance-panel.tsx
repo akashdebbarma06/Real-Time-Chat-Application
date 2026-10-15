@@ -16,15 +16,11 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import {
   ACCENT_COLORS,
-  APP_ICONS,
   BUBBLE_STYLES,
   useAppearance,
   type AccentColor,
-  type AppIconChoice,
   type BubbleStyle,
-  type ChatViewMode,
 } from "@/lib/appearance-store";
-import { AppLogo } from "@/components/ui/app-logo";
 import { cn } from "@/lib/utils";
 
 interface AppearancePanelProps {
@@ -36,7 +32,6 @@ export function AppearancePanel({ onBack }: AppearancePanelProps) {
   const {
     preferences,
     setAccentColor,
-    setAppIcon,
     setChatBackground,
     setBubbleStyle,
     setChatViewMode,
@@ -278,55 +273,6 @@ export function AppearancePanel({ onBack }: AppearancePanelProps) {
           </div>
         </div>
 
-        {/* 4. Grouped List Card: App Icon */}
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between px-0.5">
-            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-              App Icon
-            </span>
-            <span className="text-[11px] text-primary font-semibold">
-              {APP_ICONS.find((i) => i.id === preferences.appIcon)?.label || "Classic Aether"}
-            </span>
-          </div>
-          <div className="rounded-xl border border-border/70 bg-card/60 p-3 shadow-xs">
-            <div className="grid grid-cols-5 gap-2">
-              {APP_ICONS.map((icon) => {
-                const isSelected = preferences.appIcon === icon.id;
-                return (
-                  <button
-                    key={icon.id}
-                    type="button"
-                    onClick={() => {
-                      setAppIcon(icon.id);
-                      toast.success(`App icon set to ${icon.label}`);
-                    }}
-                    className="flex flex-col items-center gap-1.5 group cursor-pointer"
-                    title={icon.label}
-                  >
-                    <div className="relative">
-                      <AppLogo
-                        size={40}
-                        iconChoice={icon.id}
-                        className={cn(
-                          "rounded-2xl transition-all group-hover:scale-105 active:scale-95 shadow-sm",
-                          isSelected && "ring-2 ring-primary ring-offset-2 ring-offset-card"
-                        )}
-                      />
-                      {isSelected && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/35 rounded-2xl">
-                          <Check className="size-4 text-white stroke-[3]" />
-                        </div>
-                      )}
-                    </div>
-                    <span className="text-[10px] text-muted-foreground group-hover:text-foreground text-center truncate max-w-full">
-                      {icon.label.split(" ")[0]}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
 
         {/* 5. Grouped List Card: Chat View (Desktop Only) */}
         <div className="space-y-1.5 hidden md:block">

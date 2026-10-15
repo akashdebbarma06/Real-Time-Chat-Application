@@ -79,25 +79,30 @@ export function LocationCard({
         own ? "border-primary/40 ring-1 ring-primary/20" : "border-border/80"
       )}
     >
-      {/* Map Graphic Preview Header */}
+      {/* Map Thumbnail Graphic Header */}
       <div className="relative h-32 w-full overflow-hidden bg-slate-900 dark:bg-slate-950 flex items-center justify-center">
-        {/* Subtle grid pattern background */}
-        <div
-          className="absolute inset-0 opacity-20"
-          style={{
-            backgroundImage:
-              "linear-gradient(#00a884 1px, transparent 1px), linear-gradient(90deg, #00a884 1px, transparent 1px)",
-            backgroundSize: "20px 20px",
+        {/* Rendered static map image thumbnail */}
+        <img
+          src={`https://staticmap.openstreetmap.de/staticmap.php?center=${latitude},${longitude}&zoom=15&size=400x200&maptype=mapnik`}
+          alt={address || `Location at ${latitude}, ${longitude}`}
+          className="absolute inset-0 h-full w-full object-cover transition-opacity duration-300"
+          loading="lazy"
+          onError={(e) => {
+            (e.currentTarget as HTMLElement).style.opacity = "0";
           }}
         />
-        {/* Centered Pulsing Marker */}
+        {/* Soft vignette to ensure pin and pill readability */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-black/30 pointer-events-none" />
+
+        {/* Centered Overlay Pin */}
         <div className="relative z-10 flex flex-col items-center">
-          <div className="grid size-11 place-items-center rounded-full bg-emerald-500/20 text-emerald-400 ring-4 ring-emerald-500/30 animate-pulse">
-            <MapPin className="size-6 text-emerald-400 fill-emerald-400/30" />
+          <div className="grid size-10 place-items-center rounded-full bg-red-500/20 text-red-500 ring-4 ring-red-500/30 shadow-md">
+            <MapPin className="size-5 text-red-500 fill-red-500" />
           </div>
         </div>
+
         {/* High-contrast Coordinates Pill */}
-        <div className="absolute bottom-2 right-2 rounded-md bg-black/80 px-2 py-0.5 text-[10px] font-mono text-white shadow-xs backdrop-blur-xs">
+        <div className="absolute bottom-2 right-2 rounded-md bg-black/80 px-2 py-0.5 text-[10px] font-mono text-white shadow-xs backdrop-blur-xs z-10">
           {latitude.toFixed(4)}, {longitude.toFixed(4)}
         </div>
       </div>

@@ -22,17 +22,13 @@ describe("Sidebar Vault Navigation & Dedicated Vault View", () => {
     expect(navRailContent).toContain("Vault,");
   });
 
-  it("keeps Vault desktop-only and restricts mobile bottom nav to exactly 4 items in a floating pill", () => {
+  it("keeps Vault desktop-only and restricts mobile bottom nav to focused core items", () => {
     expect(mobileNavContent).not.toContain('id: "vault"');
     expect(mobileNavContent).not.toContain('label: "Vault"');
     expect(mobileNavContent).toContain('id: "chats"');
-    expect(mobileNavContent).toContain('id: "calls"');
-    expect(mobileNavContent).toContain('id: "status"');
     expect(mobileNavContent).toContain('id: "settings"');
-    expect(mobileNavContent).toContain("rounded-full");
-    expect(mobileNavContent).toMatch(/bg-(?:card\/90|\[#182229\])/);
-    expect(mobileNavContent).toContain("backdrop-blur-xl");
-    expect(mobileNavContent).toMatch(/border-(?:border|white)/);
+    expect(mobileNavContent).toMatch(/bg-\[#0F1115\]/);
+    expect(mobileNavContent).toContain("backdrop-blur-md");
   });
 
   it("renders VaultView inside conversation sidebar when vault tab is active", () => {

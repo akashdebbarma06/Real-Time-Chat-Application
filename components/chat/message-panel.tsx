@@ -454,13 +454,19 @@ export function MessagePanel({
   }, [typingUsers]);
 
   const displayMessages = useMemo(() => {
-    if (!inChatQuery.trim()) return messages;
-    const q = inChatQuery.toLowerCase();
-    return messages.filter(
-      (m) =>
-        m.content?.toLowerCase().includes(q) ||
-        m.attachment_name?.toLowerCase().includes(q) ||
-        m.sender.display_name.toLowerCase().includes(q)
+    let list = messages;
+    if (inChatQuery.trim()) {
+      const q = inChatQuery.toLowerCase();
+      list = messages.filter(
+        (m) =>
+          m.content?.toLowerCase().includes(q) ||
+          m.attachment_name?.toLowerCase().includes(q) ||
+          m.sender.display_name.toLowerCase().includes(q)
+      );
+    }
+    // Monotonic timestamp ordering on the client to prevent out-of-sequence jumps
+    return [...list].sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
     );
   }, [inChatQuery, messages]);
 
@@ -1034,6 +1040,17 @@ export function MessagePanel({
                   const prevDateLabel = prevMessage ? formatMessageDateSeparator(prevMessage.created_at) : null;
                   const showDateSeparator = currentDateLabel !== prevDateLabel;
 
+                  // Consolidate consecutive messages sent within 2 minutes by the same sender
+                  const isConsecutiveWithinTwoMinutes = Boolean(
+                    prevMessage &&
+                    prevMessage.sender_id === message.sender_id &&
+                    !showDateSeparator &&
+                    Math.abs(new Date(message.created_at).getTime() - new Date(prevMessage.created_at).getTime()) <= 120_000
+                  );
+
+                  const showSenderName = isGroup && !isConsecutiveWithinTwoMinutes;
+                  const showSenderAvatar = !isConsecutiveWithinTwoMinutes;
+
                   return (
                     <div
                       key={message.id}
@@ -1056,7 +1073,8 @@ export function MessagePanel({
                         currentUserId={profile.id}
                         currentUserProfile={profile}
                         members={conversation?.members}
-                        showSenderName={isGroup}
+                        showSenderName={showSenderName}
+                        showSenderAvatar={showSenderAvatar}
                         showReceipt={message.id === lastOwnMessageId}
                         reactions={reactionsByMessage[message.id] || {}}
                         onToggleReaction={(emoji) => handleToggleReaction(message.id, emoji)}
@@ -1066,6 +1084,7 @@ export function MessagePanel({
                         onDelete={handleDeleteMessage}
                         onForward={(msg) => setReplyingToMessage(msg)}
                         onMediaClick={handleOpenMediaLightbox}
+                        onRetry={(msg) => msg.content && void sendText(msg.content)}
                         isMenuOpen={activeMenuMessageId === message.id}
                         onOpenMenu={() => setActiveMenuMessageId(message.id)}
                         onCloseMenu={() => setActiveMenuMessageId(null)}

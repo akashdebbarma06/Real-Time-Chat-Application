@@ -69,7 +69,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { createClient } from "@/lib/supabase/client";
-import { cn, getInitials, sanitizeFilename } from "@/lib/utils";
+import { cn, formatHandle, getInitials, sanitizeFilename } from "@/lib/utils";
 import { useBackHandler } from "@/hooks/use-back-handler";
 import type { Profile } from "@/types/chat";
 
@@ -787,7 +787,7 @@ export function SettingsView({
             ) : (
               <div className="flex items-center justify-between pt-0.5">
                 <span className="text-sm font-mono font-medium text-foreground truncate pr-2">
-                  @{currentUsername}
+                  {formatHandle(currentUsername)}
                 </span>
                 <button
                   type="button"
@@ -1712,7 +1712,7 @@ export function SettingsView({
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5 font-mono">
-                  @{profile.username || "username"}
+                  {formatHandle(profile.username || "username")}
                 </p>
               </div>
             </button>

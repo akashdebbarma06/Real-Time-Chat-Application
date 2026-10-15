@@ -136,22 +136,17 @@ export function AttachmentPreview({
   if (status === "loading" || !url) {
     if (status === "error") {
       return (
-        <div className="flex flex-col gap-1.5 py-2 px-3 rounded-xl border border-destructive/20 bg-destructive/5 text-xs max-w-xs">
-          <div className="flex items-center gap-2 text-destructive font-medium">
-            <AlertCircle className="size-4 shrink-0" />
-            <span className="truncate">{errorMsg || "Failed to load attachment"}</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setRetryCount((c) => c + 1)}
-              className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline cursor-pointer"
-            >
-              <RefreshCw className="size-3" />
-              Retry
-            </button>
-          </div>
-        </div>
+        <button
+          type="button"
+          onClick={() => setRetryCount((c) => c + 1)}
+          title="Could not load attachment. Tap to retry."
+          className="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-lg bg-destructive/10 text-destructive text-xs hover:bg-destructive/20 active:scale-95 transition-all cursor-pointer select-none"
+        >
+          <span className="flex size-4 items-center justify-center rounded-full bg-destructive text-white text-[10px] font-bold">
+            !
+          </span>
+          <span className="text-[11px] font-medium">Tap to retry</span>
+        </button>
       );
     }
 

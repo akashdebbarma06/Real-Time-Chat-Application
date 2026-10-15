@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
-import { cn, getInitials } from "@/lib/utils";
+import { cn, formatHandle, getInitials } from "@/lib/utils";
 import type { Profile } from "@/types/chat";
 
 interface InPanelDirectChatProps {
@@ -158,7 +158,7 @@ export function InPanelDirectChat({
                     {user.display_name}
                   </p>
                   <p className="truncate text-[11px] text-muted-foreground">
-                    @{user.username}
+                    {formatHandle(user.username)}
                   </p>
                 </div>
 

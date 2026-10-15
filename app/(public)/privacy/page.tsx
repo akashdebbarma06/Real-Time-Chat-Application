@@ -52,35 +52,35 @@ export default function PrivacyPage() {
           </div>
         </section>
 
-        {/* Section 2: Categories of Data Collected */}
+        {/* Section 2: Categories of Information Collected */}
         <section className="space-y-3">
           <h2 className="text-lg font-bold text-slate-100">
-            <span className="text-cyan-400 font-mono">2.</span> Categories of Information Collected
+            <span className="text-indigo-400 font-mono">2.</span> Information We Collect
           </h2>
           <p>
-            We process only the categories of data strictly required to deliver chat and collaboration functionality:
+            We collect only the bare essentials needed to deliver reliable real-time messaging:
           </p>
           <ul className="list-disc pl-6 space-y-2 text-xs sm:text-sm text-slate-300">
             <li>
-              <strong>Account & Authentication Identifiers:</strong> Email address, unique user UUID (managed by Supabase Auth), secure hashed credentials, and OAuth provider tokens when authenticating via third-party providers.
+              <strong>Account & Security Credentials:</strong> Your registered email address, securely salted password hashes, and third-party authentication tokens when signing in with OAuth.
             </li>
             <li>
-              <strong>Profile Information:</strong> Public username (case-insensitive <code className="text-cyan-300">citext</code>), display name, avatar URL, bio text, and transient note status (which expires automatically after 24 hours).
+              <strong>Public Profile:</strong> Your unique username handle, display name, avatar photo, bio text, and optional 24-hour status note.
             </li>
             <li>
-              <strong>Conversational Content:</strong> Plaintext message body, message type indicator (text, image, video, audio, file, poll), attachments (file name, size, MIME type, storage path), interactive poll structures, emoji reaction records, pinned message records, and starred message records.
+              <strong>Messages & Attachments:</strong> Message text, shared photos, videos, voice notes, polls, emoji reactions, and starred message bookmarks.
             </li>
             <li>
-              <strong>Conversation Metadata:</strong> Conversation identifiers, deterministic 1:1 pair keys, group membership lists, and group administrator privileges.
+              <strong>Conversations & Group Info:</strong> Conversation lists, group participant names, and administrator privileges.
             </li>
             <li>
-              <strong>Presence & Online Status:</strong> Online/offline state broadcast over WebSockets, typing event signals, read receipt timestamps (<code className="text-cyan-300">message_reads</code>), and throttled last-seen timestamps updated at most once every 10 minutes.
+              <strong>Presence & Delivery Signals:</strong> Real-time online presence, typing indicators, delivery checkmarks, and optional last-seen timestamps.
             </li>
             <li>
-              <strong>Client-Side Local Storage:</strong> Cached messages, local draft buffers, theme preferences, and media vault files stored directly in your browser&apos;s <strong>IndexedDB</strong> (<code className="text-cyan-300">idb</code>).
+              <strong>Local On-Device Storage:</strong> Encrypted on-device message caching and appearance settings saved locally to your device for instant launch and offline reading.
             </li>
             <li>
-              <strong>Operational & Diagnostic Telemetry:</strong> Anonymized server request logs, HTTP user-agent headers, and client IP addresses processed transiently for rate limiting and SSRF protection.
+              <strong>Security & Protection Logs:</strong> Transient server connection logs and IP addresses processed temporarily to prevent spam, abuse, and automated attacks.
             </li>
           </ul>
         </section>
@@ -88,87 +88,87 @@ export default function PrivacyPage() {
         {/* Section 3: Purposes of Processing */}
         <section className="space-y-3">
           <h2 className="text-lg font-bold text-slate-100">
-            <span className="text-cyan-400 font-mono">3.</span> Purposes of Data Processing
+            <span className="text-indigo-400 font-mono">3.</span> How We Use Your Information
           </h2>
-          <p>Collected data is used strictly for the following operational purposes:</p>
+          <p>We process your information strictly to operate and protect your messaging experience:</p>
           <ul className="list-disc pl-6 space-y-1.5 text-xs sm:text-sm text-slate-300">
-            <li>Creating, authenticating, and maintaining user accounts and active sessions.</li>
-            <li>Transmitting and routing messages, voice notes, polls, and media between conversation members.</li>
-            <li>Displaying accurate presence, delivery status checkmarks, and read receipts.</li>
-            <li>Enforcing user-directed privacy actions, including member block lists (<code className="text-cyan-300">blocked_users</code>) and group administration controls.</li>
-            <li>Preventing spam, abuse, unauthorized access, and denial-of-service via automated rate limiting.</li>
-            <li>Providing technical support when users submit support inquiries or GitHub issues.</li>
+            <li>Authenticating your account and keeping your sessions secure across devices.</li>
+            <li>Delivering messages, media, and notifications instantaneously to conversation recipients.</li>
+            <li>Displaying accurate delivery status checkmarks and read receipts.</li>
+            <li>Honoring your privacy choices, including your blocked contacts list and group permissions.</li>
+            <li>Shielding the platform from spam, denial-of-service, and malicious abuse.</li>
+            <li>Responding promptly when you reach out for technical help or report issues.</li>
           </ul>
           <p className="text-xs text-slate-400 italic">
-            We never sell, rent, monetize, or trade your personal data or message content to third-party data brokers or advertising networks.
+            We never sell, monetize, rent, or share your private conversations or personal data with advertising networks or third-party data brokers.
           </p>
         </section>
 
-        {/* Section 4: Third-Party Service Providers */}
+        {/* Section 4: Infrastructure & Security Partners */}
         <section className="space-y-3">
           <h2 className="text-lg font-bold text-slate-100">
-            <span className="text-cyan-400 font-mono">4.</span> Infrastructure & Service Providers
+            <span className="text-indigo-400 font-mono">4.</span> Cloud Infrastructure & Trust Partners
           </h2>
           <p>
-            To deliver high-performance real-time messaging, Aether Chat relies on vetted cloud infrastructure providers:
+            Aether Chat utilizes certified, enterprise-grade cloud providers to host encrypted real-time relays and data storage:
           </p>
           <div className="grid gap-4 sm:grid-cols-2 text-xs text-slate-300">
-            <div className="p-4 rounded-xl border border-slate-800 bg-slate-900/40 space-y-1">
-              <h3 className="font-semibold text-cyan-400">Supabase Inc.</h3>
-              <p>Provides managed PostgreSQL database, authentication, real-time WebSocket channels, and media object storage.</p>
+            <div className="p-4 rounded-xl border border-slate-800 bg-slate-900/40 space-y-1.5">
+              <h3 className="font-semibold text-indigo-400">Database & Realtime Relay</h3>
+              <p>Provides encrypted PostgreSQL databases, authentication services, WebSocket streaming, and secure media storage.</p>
             </div>
-            <div className="p-4 rounded-xl border border-slate-800 bg-slate-900/40 space-y-1">
-              <h3 className="font-semibold text-cyan-400">Vercel Inc.</h3>
-              <p>Hosts Next.js web application assets, App Router edge functions, and serverless API handlers.</p>
+            <div className="p-4 rounded-xl border border-slate-800 bg-slate-900/40 space-y-1.5">
+              <h3 className="font-semibold text-indigo-400">Application Edge Network</h3>
+              <p>Serves optimized web application bundles and secure serverless API endpoints over encrypted edge networks.</p>
             </div>
           </div>
         </section>
 
-        {/* Section 5: Security Architecture & Cryptographic Disclosure */}
-        <section className="space-y-3 rounded-2xl border border-cyan-500/30 bg-slate-900/60 p-6">
+        {/* Section 5: Security Architecture & Safeguards */}
+        <section className="space-y-3 rounded-2xl border border-indigo-500/30 bg-slate-900/60 p-6">
           <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">
-            <ShieldCheck className="size-5 text-cyan-400" />
-            <span className="text-cyan-400 font-mono">5.</span> Security Architecture & Encryption Disclosure
+            <ShieldCheck className="size-5 text-indigo-400" />
+            <span className="text-indigo-400 font-mono">5.</span> Security Safeguards & Privacy by Design
           </h2>
           <p>
-            We adhere to transparency and technical accuracy regarding our security controls:
+            We build privacy into every layer of our messaging architecture:
           </p>
           <ul className="list-disc pl-6 space-y-2 text-xs sm:text-sm text-slate-300">
             <li>
-              <strong>Encryption in Transit:</strong> All HTTP API traffic and WebSocket real-time streams are encrypted using <strong>TLS 1.3 / HTTPS / WSS</strong>.
+              <strong>Encrypted in Transit:</strong> Every message, media attachment, and real-time event is encrypted using strong industry-standard TLS 1.3 protocols.
             </li>
             <li>
-              <strong>Database Access Control (RLS):</strong> PostgreSQL Row Level Security enforces that users can only select and query messages from conversations where their membership is confirmed in <code className="text-cyan-300">conversation_members</code>. Blocked contacts cannot query blocker profiles.
+              <strong>Strict Conversation Isolation:</strong> Database access controls verify membership before any message can be viewed. Non-members and blocked users cannot access or read your chats.
             </li>
             <li>
-              <strong>Ephemeral Store-and-Forward Relay:</strong> Unread messages and media are held in server tables only until delivered. Upon recipient delivery acknowledgement (<code className="text-cyan-300">/api/messages/ack-delivery</code>) and download acknowledgement (<code className="text-cyan-300">/api/media/ack-download</code>), server records and media files are purged.
+              <strong>Ephemeral Server Relay:</strong> Media and unread messages are held on server relays only until delivered, then automatically purged from relay storage upon recipient download acknowledgement.
             </li>
             <li>
-              <strong>Local Client Vault:</strong> Messages and media persist on your personal device inside your browser&apos;s IndexedDB (<code className="text-cyan-300">idb</code>).
+              <strong>Local Vault Protection:</strong> Your complete chat history and downloaded vault media are stored on your personal device, giving you total control over your local data.
             </li>
             <li>
-              <strong>End-to-End Encryption (E2EE) Roadmap:</strong> While messages are encrypted in transit and isolated by database RLS, client-side zero-knowledge E2EE is not yet active on the relay. A formal Signal Protocol (X3DH + Double Ratchet) architecture proposal is published in our repository documentation (<code className="text-cyan-300">docs/e2ee-architecture-proposal.md</code>).
+              <strong>Transparent Security Roadmap:</strong> We maintain an open-source development model and actively design toward client-side zero-knowledge encryption protocols.
             </li>
           </ul>
         </section>
 
-        {/* Section 6: Data Retention & Deletion */}
+        {/* Section 6: Data Retention & User Control */}
         <section className="space-y-3">
           <h2 className="text-lg font-bold text-slate-100">
-            <span className="text-cyan-400 font-mono">6.</span> Data Retention & Deletion Policy
+            <span className="text-indigo-400 font-mono">6.</span> Data Retention & Your Control
           </h2>
           <ul className="list-disc pl-6 space-y-2 text-xs sm:text-sm text-slate-300">
             <li>
-              <strong>Ephemeral Messages & Media:</strong> Server-side message attachments are automatically deleted from Supabase Storage once the recipient acknowledges file download. Unread messages remain queued until delivery or account inactivity expiry.
+              <strong>Automatic Media Purging:</strong> Server-side attachments are deleted as soon as recipients confirm download. Unread messages are kept only until delivered.
             </li>
             <li>
-              <strong>Soft Deletions:</strong> When a user chooses &quot;Delete for everyone&quot;, the message record is marked with <code className="text-cyan-300">deleted_at = now()</code> and its content is cleared from the database.
+              <strong>Delete for Everyone:</strong> When you delete a message for everyone, its contents are wiped from database servers and removed across conversation members.
             </li>
             <li>
-              <strong>Device Storage Management:</strong> Users can inspect exact local storage quotas and wipe their local IndexedDB cache at any time using the in-app Storage Settings.
+              <strong>Device Storage Management:</strong> Inspect cache size and clear local device storage anytime from in-app Storage Settings.
             </li>
             <li>
-              <strong>Account Deletion:</strong> Users may request complete account termination and profile purge by contacting the maintainer via our Contact page or GitHub Issues.
+              <strong>Account Deletion:</strong> You have the permanent right to delete your account, wipe all associated profile data, and remove yourself from all conversations.
             </li>
           </ul>
         </section>

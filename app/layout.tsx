@@ -9,7 +9,7 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
 export const viewport: Viewport = {
-  themeColor: "#06B6D4",
+  themeColor: "#0F1115",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -50,7 +50,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <head>
         <link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml" />
       </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased min-h-svh h-full bg-background text-foreground`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased min-h-[100dvh] h-[100dvh] bg-background text-foreground`}>
         <AppProviders>{children}</AppProviders>
       </body>
     </html>
