@@ -66,13 +66,34 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: 🏷️ Copy and Rename APK Artifact
+      - name: 🔐 Configure & Build Signed Release APK (if release secrets present)
+        if: env.HAS_KEYSTORE == 'true'
+        working-directory: android
+        env:
+          HAS_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > app/release.keystore
+          export ANDROID_KEYSTORE_PATH="app/release.keystore"
+          ./gradlew assembleRelease
+          rm -f app/release.keystore
+
+      - name: 🏷️ Collect APK Artifacts
         run: |
           mkdir -p build-artifacts
-          cp android/app/build/outputs/apk/debug/app-debug.apk build-artifacts/app-debug.apk
-          cp android/app/build/outputs/apk/debug/app-debug.apk build-artifacts/AetherChat-v1.0.${{ github.run_number }}.apk
+          if [ -f android/app/build/outputs/apk/debug/app-debug.apk ]; then
+            cp android/app/build/outputs/apk/debug/app-debug.apk build-artifacts/app-debug.apk
+            cp android/app/build/outputs/apk/debug/app-debug.apk build-artifacts/AetherChat-debug-v1.0.${{ github.run_number }}.apk
+          fi
+          if [ -f android/app/build/outputs/apk/release/app-release.apk ]; then
+            cp android/app/build/outputs/apk/release/app-release.apk build-artifacts/app-release.apk
+            cp android/app/build/outputs/apk/release/app-release.apk build-artifacts/AetherChat-release-v1.0.${{ github.run_number }}.apk
+          fi
 
-      - name: 📤 Upload APK Artifact
+      - name: 📤 Upload APK Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: aether-chat-apk-v1.0.${{ github.run_number }}
@@ -80,15 +101,13 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: 🚀 Publish GitHub Release
-        if: (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main') && github.event_name != 'pull_request'
+      - name: 🚀 Publish GitHub Release (Tagged Releases Only)
+        if: startsWith(github.ref, 'refs/tags/v') && github.event_name != 'pull_request'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('v1.0.{0}', github.run_number) }}
-          name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('Aether Chat v1.0.{0}', github.run_number) }}
-          files: |
-            build-artifacts/app-debug.apk
-            build-artifacts/AetherChat-v1.0.${{ github.run_number }}.apk
+          tag_name: ${{ github.ref_name }}
+          name: ${{ format('Aether Chat {0}', github.ref_name) }}
+          files: build-artifacts/*.apk
           draft: false
           prerelease: false
           generate_release_notes: true

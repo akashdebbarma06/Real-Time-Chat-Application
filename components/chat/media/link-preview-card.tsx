@@ -21,8 +21,6 @@ export function LinkPreviewCard({ url, own }: { url: string; own?: boolean }) {
 
   useEffect(() => {
     if (clientPreviewCache.has(url)) {
-      setData(clientPreviewCache.get(url)!);
-      setLoading(false);
       return;
     }
 

@@ -18,6 +18,7 @@ import {
   Bell,
   BellOff,
   Download,
+  Loader2,
   Lock,
   MessageCircleMore,
   MoreVertical,
@@ -41,6 +42,7 @@ import { MediaLightbox } from "@/components/chat/media/MediaLightbox.shared";
 import { CHAT_BACKGROUNDS, useAppearance } from "@/lib/appearance-store";
 import {
   getLocalMessages,
+  getLocalMessagesPaginated,
   saveLocalMessage,
   saveLocalMessages,
   deleteLocalMessage,
@@ -164,11 +166,16 @@ export function MessagePanel({
   const sentMessageIds = useRef<Set<string>>(new Set());
   const notifiedMessageKeys = useRef<Set<string>>(new Set());
 
+  // Cursor-based pagination states
+  const [hasMoreOlder, setHasMoreOlder] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+
   const loadMessages = useCallback(async () => {
-    // 1. Local-First Architecture: Load immediately from Client IndexedDB (0 network latency)
-    const localMsgs = await getLocalMessages(conversationId);
-    if (localMsgs.length > 0) {
-      setMessages(localMsgs);
+    // 1. Local-First Architecture: Load initial recent 50 messages from Client IndexedDB (0 network latency)
+    const initialPage = await getLocalMessagesPaginated(conversationId, { limit: 50 });
+    if (initialPage.messages.length > 0) {
+      setMessages(initialPage.messages);
+      setHasMoreOlder(initialPage.hasMore);
       setLoading(false);
     }
 
@@ -182,7 +189,7 @@ export function MessagePanel({
       .limit(100);
 
     if (error) {
-      if (localMsgs.length === 0) toast.error(error.message);
+      if (initialPage.messages.length === 0) toast.error(error.message);
     } else if (data && data.length > 0) {
       const rawMessages = (data || []) as unknown as ChatMessage[];
       const formatted = rawMessages.map((msg) => {
@@ -233,12 +240,41 @@ export function MessagePanel({
         });
       }
 
-      // Reload updated local store
-      const updatedLocal = await getLocalMessages(conversationId);
-      setMessages(updatedLocal);
+      // Reload updated recent page
+      const updatedPage = await getLocalMessagesPaginated(conversationId, { limit: 50 });
+      setMessages(updatedPage.messages);
+      setHasMoreOlder(updatedPage.hasMore);
     }
     setLoading(false);
   }, [conversationId, profile.id]);
+
+  const loadOlderMessages = useCallback(async () => {
+    if (loadingOlder || !hasMoreOlder || messages.length === 0) return;
+    setLoadingOlder(true);
+    try {
+      const oldestDate = messages[0].created_at;
+      const olderPage = await getLocalMessagesPaginated(conversationId, {
+        limit: 50,
+        beforeCreatedAt: oldestDate,
+      });
+
+      if (olderPage.messages.length > 0) {
+        setMessages((prev) => {
+          const map = new Map<string, ChatMessage>();
+          olderPage.messages.forEach((m) => map.set(m.id, m));
+          prev.forEach((m) => map.set(m.id, m));
+          return Array.from(map.values()).sort(
+            (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+          );
+        });
+        setHasMoreOlder(olderPage.hasMore);
+      } else {
+        setHasMoreOlder(false);
+      }
+    } finally {
+      setLoadingOlder(false);
+    }
+  }, [conversationId, hasMoreOlder, loadingOlder, messages]);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -963,13 +999,34 @@ export function MessagePanel({
               </div>
             ) : displayMessages.length ? (
               <div className="space-y-5 sm:space-y-6">
-                {/* System Banner: End-to-End Encryption Pill */}
+                {/* System Banner: Security & Transit Protection Pill */}
                 <div className="my-2 flex items-center justify-center px-4">
                   <div className="flex items-center gap-1.5 rounded-xl border border-amber-500/25 bg-amber-500/10 px-3.5 py-1.5 text-center text-[11px] font-medium text-amber-800 dark:text-amber-200 shadow-xs max-w-md backdrop-blur-sm">
                     <Lock className="size-3 shrink-0 text-amber-600 dark:text-amber-400" />
-                    <span>Messages and calls are end-to-end encrypted. No one outside of this chat can read them.</span>
+                    <span>Messages are protected with database access controls and encrypted in transit.</span>
                   </div>
                 </div>
+
+                {/* Cursor pagination: Load earlier messages on demand */}
+                {hasMoreOlder && (
+                  <div className="flex justify-center my-2">
+                    <button
+                      type="button"
+                      onClick={loadOlderMessages}
+                      disabled={loadingOlder}
+                      className="text-xs text-muted-foreground hover:text-foreground bg-muted/60 hover:bg-muted px-4 py-1.5 rounded-full transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer disabled:opacity-50"
+                    >
+                      {loadingOlder ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>Loading earlier messages...</span>
+                        </>
+                      ) : (
+                        <span>Load earlier messages</span>
+                      )}
+                    </button>
+                  </div>
+                )}
 
                 {displayMessages.map((message, index) => {
                   const currentDateLabel = formatMessageDateSeparator(message.created_at);

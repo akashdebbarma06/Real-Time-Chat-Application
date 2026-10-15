@@ -3,7 +3,6 @@ import { NextRequest } from "next/server";
 import {
   isPrivateOrReservedIPv4,
   isPrivateOrReservedIPv6,
-  isPrivateOrReservedIP,
   isSyntacticallySafeUrl,
   resolveAndValidateHost,
   checkRateLimit,
@@ -14,6 +13,7 @@ import {
   GET,
 } from "@/app/api/link-preview/route";
 import dns from "node:dns/promises";
+import type { LookupAddress } from "node:dns";
 
 describe("Link-Preview Route SSRF Protection & Hardening Suite", () => {
   beforeEach(() => {
@@ -132,7 +132,7 @@ describe("Link-Preview Route SSRF Protection & Hardening Suite", () => {
     it("rejects hostnames resolving to private IP addresses", async () => {
       vi.spyOn(dns, "lookup").mockResolvedValueOnce([
         { address: "127.0.0.1", family: 4 },
-      ] as any);
+      ] as unknown as LookupAddress);
       const result = await resolveAndValidateHost("local-test.me");
       expect(result).toBe(false);
     });
@@ -141,7 +141,7 @@ describe("Link-Preview Route SSRF Protection & Hardening Suite", () => {
       vi.spyOn(dns, "lookup").mockResolvedValueOnce([
         { address: "93.184.216.34", family: 4 },
         { address: "::1", family: 6 },
-      ] as any);
+      ] as unknown as LookupAddress);
       const result = await resolveAndValidateHost("dual-stack-rebinding.com");
       expect(result).toBe(false);
     });
@@ -150,7 +150,7 @@ describe("Link-Preview Route SSRF Protection & Hardening Suite", () => {
       vi.spyOn(dns, "lookup").mockResolvedValueOnce([
         { address: "93.184.216.34", family: 4 },
         { address: "2606:2800:220:1:248:1893:25c8:1946", family: 6 },
-      ] as any);
+      ] as unknown as LookupAddress);
       const result = await resolveAndValidateHost("example.com");
       expect(result).toBe(true);
     });
@@ -223,7 +223,7 @@ describe("Link-Preview Route SSRF Protection & Hardening Suite", () => {
     it("returns 403 when domain resolves to a loopback address", async () => {
       vi.spyOn(dns, "lookup").mockResolvedValueOnce([
         { address: "127.0.0.1", family: 4 },
-      ] as any);
+      ] as unknown as LookupAddress);
       const req = new NextRequest(
         "http://localhost:3000/api/link-preview?url=http://attacker-controlled-subdomain.com"
       );
@@ -237,7 +237,7 @@ describe("Link-Preview Route SSRF Protection & Hardening Suite", () => {
       // Step 1: Initial host resolves to public IP
       vi.spyOn(dns, "lookup").mockResolvedValueOnce([
         { address: "93.184.216.34", family: 4 },
-      ] as any);
+      ] as unknown as LookupAddress);
 
       // Mock fetch: first call returns 302 redirecting to http://169.254.169.254
       const mockFetch = vi.fn().mockResolvedValueOnce(

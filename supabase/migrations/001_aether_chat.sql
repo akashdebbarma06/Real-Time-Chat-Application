@@ -141,7 +141,17 @@ as $$
     select 1
     from public.conversation_members cm
     where cm.conversation_id = p_conversation_id
-      and cm.user_id = p_user_id
+      and cm.user_id = coalesce(p_user_id, auth.uid())
+      and (
+        -- Caller can always check their own membership
+        coalesce(p_user_id, auth.uid()) = auth.uid()
+        -- Outsiders cannot probe other users; caller must be a member of this conversation
+        or exists (
+          select 1 from public.conversation_members self_cm
+          where self_cm.conversation_id = p_conversation_id
+            and self_cm.user_id = auth.uid()
+        )
+      )
   );
 $$;
 
@@ -156,8 +166,18 @@ as $$
     select 1
     from public.conversation_members cm
     where cm.conversation_id = p_conversation_id
-      and cm.user_id = p_user_id
+      and cm.user_id = coalesce(p_user_id, auth.uid())
       and cm.role in ('owner', 'admin')
+      and (
+        -- Caller can always check their own administrative role
+        coalesce(p_user_id, auth.uid()) = auth.uid()
+        -- Outsiders cannot probe administrative roles; caller must be a member of this conversation
+        or exists (
+          select 1 from public.conversation_members self_cm
+          where self_cm.conversation_id = p_conversation_id
+            and self_cm.user_id = auth.uid()
+        )
+      )
   );
 $$;
 
@@ -304,33 +324,34 @@ as $$
       join public.profiles p on p.id = cm2.user_id
       where cm2.conversation_id = c.id
     ), '[]'::jsonb) as members,
-    (
-      select jsonb_build_object(
-        'id', m.id,
-        'content', m.content,
-        'message_type', m.message_type,
-        'sender_id', m.sender_id,
-        'created_at', m.created_at
-      )
-      from public.messages m
-      where m.conversation_id = c.id and m.deleted_at is null
-      order by m.created_at desc
-      limit 1
-    ) as last_message,
-    (
-      select count(*)
-      from public.messages m
-      where m.conversation_id = c.id
-        and m.sender_id <> auth.uid()
-        and m.deleted_at is null
-        and m.created_at > coalesce(cm.last_read_at, cm.joined_at)
-    ) as unread_count
+    lm.msg as last_message,
+    coalesce(uc.cnt, 0) as unread_count
   from public.conversation_members cm
   join public.conversations c on c.id = cm.conversation_id
+  left join lateral (
+    select jsonb_build_object(
+      'id', m.id,
+      'content', m.content,
+      'message_type', m.message_type,
+      'sender_id', m.sender_id,
+      'created_at', m.created_at
+    ) as msg,
+    m.created_at as last_created_at
+    from public.messages m
+    where m.conversation_id = c.id and m.deleted_at is null
+    order by m.created_at desc
+    limit 1
+  ) lm on true
+  left join lateral (
+    select count(*) as cnt
+    from public.messages m
+    where m.conversation_id = c.id
+      and m.sender_id <> auth.uid()
+      and m.deleted_at is null
+      and m.created_at > coalesce(cm.last_read_at, cm.joined_at)
+  ) uc on true
   where cm.user_id = auth.uid()
-  order by coalesce((
-    select max(m2.created_at) from public.messages m2 where m2.conversation_id = c.id
-  ), c.updated_at) desc;
+  order by coalesce(lm.last_created_at, c.updated_at) desc;
 $$;
 
 create or replace function public.realtime_conversation_id(topic text)
@@ -446,15 +467,38 @@ on public.message_reads for update to authenticated
 using (user_id = (select auth.uid()))
 with check (user_id = (select auth.uid()));
 
+create or replace function public.realtime_room_conversation_id(topic text)
+returns uuid
+language plpgsql
+immutable
+set search_path = public
+as $$
+begin
+  if topic ~ '^presence:room:[0-9a-fA-F-]{36}$' then
+    return split_part(topic, ':', 3)::uuid;
+  elsif topic ~ '^conversation:[0-9a-fA-F-]{36}$' then
+    return split_part(topic, ':', 2)::uuid;
+  end if;
+  return null;
+exception when others then
+  return null;
+end;
+$$;
+
 -- Private Realtime channels: conversation:<uuid>, presence:room:<roomId>, and online-users.
 create policy "Authenticated users can receive presence"
 on realtime.messages for select to authenticated
 using (
   extension = 'presence'
   and (
-    (select realtime.topic()) = 'online-users'
-    or (select realtime.topic()) like 'presence:room:%'
-    or public.is_conversation_member(public.realtime_conversation_id((select realtime.topic())), (select auth.uid()))
+    (select realtime.topic()) in ('online-users', 'presence:room:global')
+    or (
+      public.realtime_room_conversation_id((select realtime.topic())) is not null
+      and public.is_conversation_member(
+        public.realtime_room_conversation_id((select realtime.topic())),
+        (select auth.uid())
+      )
+    )
   )
 );
 
@@ -463,9 +507,14 @@ on realtime.messages for insert to authenticated
 with check (
   extension = 'presence'
   and (
-    (select realtime.topic()) = 'online-users'
-    or (select realtime.topic()) like 'presence:room:%'
-    or public.is_conversation_member(public.realtime_conversation_id((select realtime.topic())), (select auth.uid()))
+    (select realtime.topic()) in ('online-users', 'presence:room:global')
+    or (
+      public.realtime_room_conversation_id((select realtime.topic())) is not null
+      and public.is_conversation_member(
+        public.realtime_room_conversation_id((select realtime.topic())),
+        (select auth.uid())
+      )
+    )
   )
 );
 
@@ -770,11 +819,17 @@ revoke execute on function public.broadcast_conversation_list_update(uuid) from 
 revoke execute on function public.broadcast_message_change() from public, anon;
 revoke execute on function public.broadcast_read_receipt_change() from public, anon;
 revoke execute on function public.broadcast_membership_change() from public, anon;
+revoke execute on function public.realtime_room_conversation_id(text) from public, anon;
+revoke execute on function public.acknowledge_and_purge_messages(uuid[]) from public, anon;
+revoke execute on function public.acknowledge_and_purge_media(text) from public, anon;
 
- grant execute on function public.create_direct_conversation(uuid) to authenticated;
- grant execute on function public.create_group_conversation(text, uuid[]) to authenticated;
- grant execute on function public.mark_conversation_read(uuid, uuid) to authenticated;
- grant execute on function public.get_conversation_summaries() to authenticated;
- grant execute on function public.is_conversation_member(uuid, uuid) to authenticated;
- grant execute on function public.is_conversation_admin(uuid, uuid) to authenticated;
- grant execute on function public.realtime_conversation_id(text) to authenticated;
+grant execute on function public.create_direct_conversation(uuid) to authenticated;
+grant execute on function public.create_group_conversation(text, uuid[]) to authenticated;
+grant execute on function public.mark_conversation_read(uuid, uuid) to authenticated;
+grant execute on function public.get_conversation_summaries() to authenticated;
+grant execute on function public.is_conversation_member(uuid, uuid) to authenticated;
+grant execute on function public.is_conversation_admin(uuid, uuid) to authenticated;
+grant execute on function public.realtime_conversation_id(text) to authenticated;
+grant execute on function public.realtime_room_conversation_id(text) to authenticated;
+grant execute on function public.acknowledge_and_purge_messages(uuid[]) to authenticated;
+grant execute on function public.acknowledge_and_purge_media(text) to authenticated;

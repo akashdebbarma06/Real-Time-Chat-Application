@@ -9,7 +9,7 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
 export const viewport: Viewport = {
-  themeColor: "#00A884",
+  themeColor: "#06B6D4",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -18,9 +18,9 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: { default: "Aether Chat - Next-Gen Real-Time Messaging", template: "%s · Aether Chat" },
-  description: "A fast, secure, premium real-time messaging and team collaboration platform built with cyan-blue aesthetics.",
-  keywords: ["aether chat", "realtime messaging", "group chat", "direct messaging", "collaboration", "encrypted chat"],
+  title: { default: "Aether Chat — Next-Gen Real-Time Messaging", template: "%s · Aether Chat" },
+  description: "A fast, local-first real-time messaging and collaboration engine built with modern cyan-blue aesthetics.",
+  keywords: ["aether chat", "realtime messaging", "group chat", "direct messaging", "collaboration", "local vault messaging", "secure communication"],
   authors: [{ name: "Aether Team" }],
   metadataBase: new URL(baseUrl),
   openGraph: {

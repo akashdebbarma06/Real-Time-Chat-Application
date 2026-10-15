@@ -11,11 +11,146 @@ interface BridgePayload {
   code?: string | null;
 }
 
+function escapeHtmlAttr(str: string): string {
+  return str.replace(/[&<>"']/g, (c) => {
+    switch (c) {
+      case "&":
+        return "&amp;";
+      case "<":
+        return "&lt;";
+      case ">":
+        return "&gt;";
+      case '"':
+        return "&quot;";
+      case "'":
+        return "&#39;";
+      default:
+        return c;
+    }
+  });
+}
+
+/**
+ * Validates the `next` destination parameter strictly against the application origin.
+ * Rejects protocol-relative URLs (//), external destinations, backslash bypasses (/\ or \),
+ * encoded bypasses (%5c, %2f), control characters, and unexpected URL schemes.
+ */
+export function validateNextUrl(requestedNext: string | null | undefined, baseUrl: string): string {
+  const fallback = "/chat";
+  if (!requestedNext || typeof requestedNext !== "string") {
+    return fallback;
+  }
+
+  // Reject raw or decoded backslashes which can trick browser navigation into external domains
+  if (requestedNext.includes("\\") || requestedNext.startsWith("//")) {
+    return fallback;
+  }
+
+  // Reject encoded backslash (%5c, %5C) or double slashes
+  let decoded = requestedNext;
+  try {
+    decoded = decodeURIComponent(requestedNext);
+    if (decoded.includes("\\") || decoded.startsWith("//") || /[\x00-\x1F\x7F]/.test(decoded)) {
+      return fallback;
+    }
+  } catch {
+    return fallback;
+  }
+
+  try {
+    const parsedBase = new URL(baseUrl);
+    // Parse using baseUrl as base
+    const parsed = new URL(requestedNext, baseUrl);
+
+    // Reject if origin does not match trusted application origin
+    if (parsed.origin !== parsedBase.origin) {
+      return fallback;
+    }
+
+    // Must be standard HTTP/HTTPS
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return fallback;
+    }
+
+    // Path must start with exactly one '/' and not '//'
+    if (!parsed.pathname.startsWith("/") || parsed.pathname.startsWith("//")) {
+      return fallback;
+    }
+
+    // Return the safe same-origin pathname, search, and hash
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  } catch {
+    return fallback;
+  }
+}
+
+/**
+ * Resolves the canonical, trusted base URL of the application.
+ * Never blindly trusts arbitrary external x-forwarded-host headers.
+ */
+export function getTrustedBaseUrl(request: Request): string {
+  // 1. Configured canonical origin from environment is the primary authority
+  const envUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  if (envUrl) {
+    try {
+      const parsed = new URL(envUrl);
+      if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+        return parsed.origin;
+      }
+    } catch {
+      // Fall through if misconfigured
+    }
+  }
+
+  // 2. Vercel deployment URL
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+
+  // 3. Fallback derived safely from request.url
+  try {
+    const reqUrl = new URL(request.url);
+    const host = reqUrl.host.toLowerCase();
+
+    // Verify host against safe known hosts
+    const isLocal =
+      host === "localhost" ||
+      host.startsWith("localhost:") ||
+      host === "127.0.0.1" ||
+      host.startsWith("127.0.0.1:");
+    const isVercel = host.endsWith(".vercel.app");
+
+    if (isLocal || isVercel) {
+      return reqUrl.origin;
+    }
+
+    // Check forwarded host only if it matches safe local or vercel domains
+    const fHost = request.headers.get("x-forwarded-host")?.toLowerCase();
+    const fProto = request.headers.get("x-forwarded-proto") || "https";
+    if (
+      fHost &&
+      (fHost === "localhost" ||
+        fHost.startsWith("localhost:") ||
+        fHost === "127.0.0.1" ||
+        fHost.startsWith("127.0.0.1:") ||
+        fHost.endsWith(".vercel.app"))
+    ) {
+      return `${fProto}://${fHost}`;
+    }
+
+    return reqUrl.origin;
+  } catch {
+    return "http://localhost:3000";
+  }
+}
+
 function renderMobileBridge(
   payload: BridgePayload | null,
   errorMsg: string | null,
   next: string = "/chat"
 ) {
+  const safeNext = escapeHtmlAttr(next);
+
   if (errorMsg || (!payload?.session && !payload?.code)) {
     const errorParam = encodeURIComponent(errorMsg || "Authentication failed");
     const appErrorScheme = `aetherchat://auth-callback?error=${errorParam}`;
@@ -46,8 +181,8 @@ function renderMobileBridge(
 <body>
   <div class="card">
     <h2>Sign-in Failed</h2>
-    <p>${errorMsg || "Unable to complete authentication."}</p>
-    <a href="${appErrorScheme}" class="btn">Return to Aether Chat</a>
+    <p>${escapeHtmlAttr(errorMsg || "Unable to complete authentication.")}</p>
+    <a href="${escapeHtmlAttr(appErrorScheme)}" class="btn">Return to Aether Chat</a>
   </div>
 </body>
 </html>`;
@@ -114,15 +249,15 @@ function renderMobileBridge(
     <div class="spinner"></div>
     <h2>Authentication Complete</h2>
     <p>Returning to your Aether Chat application...</p>
-    <a id="launch-btn" href="${chromeIntent}" class="btn">Open Aether Chat App</a>
+    <a id="launch-btn" href="${escapeHtmlAttr(chromeIntent)}" class="btn">Open Aether Chat App</a>
     <div>
-      <a href="${next}" class="secondary-link">Continue in browser instead</a>
+      <a href="${safeNext}" class="secondary-link">Continue in browser instead</a>
     </div>
   </div>
   <script>
-    const deepLink = "${appScheme}";
-    const chromeIntent = "${chromeIntent}";
-    const pkgLink = "${appPkgScheme}";
+    const deepLink = "${escapeHtmlAttr(appScheme)}";
+    const chromeIntent = "${escapeHtmlAttr(chromeIntent)}";
+    const pkgLink = "${escapeHtmlAttr(appPkgScheme)}";
 
     function launchApp() {
       try {
@@ -136,10 +271,8 @@ function renderMobileBridge(
       }
     }
 
-    // Attempt immediate launch
     launchApp();
 
-    // Fallback retries
     setTimeout(function() {
       window.location.href = deepLink;
     }, 500);
@@ -174,11 +307,9 @@ export async function GET(request: Request) {
   const code = url.searchParams.get("code");
   const requestedNext = url.searchParams.get("next");
   const source = url.searchParams.get("source");
-  const next = requestedNext?.startsWith("/") ? requestedNext : "/chat";
 
-  const host = request.headers.get("x-forwarded-host") || request.headers.get("host");
-  const proto = request.headers.get("x-forwarded-proto") || "https";
-  const baseUrl = host && !host.includes("localhost") ? `${proto}://${host}` : process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  const baseUrl = getTrustedBaseUrl(request);
+  const next = validateNextUrl(requestedNext, baseUrl);
 
   if (!code) {
     if (source === "app") {

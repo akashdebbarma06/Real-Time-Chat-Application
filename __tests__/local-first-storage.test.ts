@@ -1,13 +1,15 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, beforeEach } from "vitest";
 import {
   saveLocalMessage,
   saveLocalMessages,
   getLocalMessages,
+  getLocalMessagesPaginated,
   updateLocalMessageStatus,
   saveLocalMediaBlob,
   getLocalMediaBlob,
   hasLocalMedia,
   getAllLocalVaultMedia,
+  getLocalVaultMediaPaginated,
   clearAllLocalData,
 } from "@/lib/storage/local-db";
 import type { ChatMessage } from "@/types/chat";
@@ -81,6 +83,56 @@ describe("Local-First Storage Architecture Suite", () => {
     expect(messages[2].id).toBe("msg-3");
   });
 
+  it("supports cursor-based pagination with page boundaries and large histories", async () => {
+    const baseTime = Date.now() - 100_000;
+    const testMessages: ChatMessage[] = [];
+
+    // Generate 25 messages spaced 1 second apart
+    for (let i = 0; i < 25; i++) {
+      testMessages.push({
+        ...mockMessage,
+        id: `msg-batch-${i.toString().padStart(2, "0")}`,
+        content: `Message sequence #${i}`,
+        created_at: new Date(baseTime + i * 1000).toISOString(),
+      });
+    }
+
+    await saveLocalMessages(testMessages);
+
+    // 1. Initial page: limit 10 (should return the 10 most recent messages, ordered chronologically ascending)
+    const page1 = await getLocalMessagesPaginated("conv-101", { limit: 10 });
+    expect(page1.messages).toHaveLength(10);
+    expect(page1.hasMore).toBe(true);
+    expect(page1.messages[0].id).toBe("msg-batch-15"); // oldest in page
+    expect(page1.messages[9].id).toBe("msg-batch-24"); // newest in page
+    expect(page1.oldestCreatedAt).toBe(testMessages[15].created_at);
+
+    // 2. Second page: before oldest from page 1
+    const page2 = await getLocalMessagesPaginated("conv-101", {
+      limit: 10,
+      beforeCreatedAt: page1.oldestCreatedAt!,
+    });
+    expect(page2.messages).toHaveLength(10);
+    expect(page2.hasMore).toBe(true);
+    expect(page2.messages[0].id).toBe("msg-batch-05");
+    expect(page2.messages[9].id).toBe("msg-batch-14");
+
+    // 3. Third page: remaining 5 messages
+    const page3 = await getLocalMessagesPaginated("conv-101", {
+      limit: 10,
+      beforeCreatedAt: page2.oldestCreatedAt!,
+    });
+    expect(page3.messages).toHaveLength(5);
+    expect(page3.hasMore).toBe(false);
+    expect(page3.messages[0].id).toBe("msg-batch-00");
+    expect(page3.messages[4].id).toBe("msg-batch-04");
+
+    // 4. Verify total unique count and deduplication across pages
+    const combined = [...page3.messages, ...page2.messages, ...page1.messages];
+    const uniqueIds = new Set(combined.map((m) => m.id));
+    expect(uniqueIds.size).toBe(25);
+  });
+
   it("updates message delivery statuses (sent -> delivered -> read) locally", async () => {
     await saveLocalMessage(mockMessage);
 
@@ -120,18 +172,22 @@ describe("Local-First Storage Architecture Suite", () => {
     expect(exists).toBe(true);
   });
 
-  it("populates local Device Vault feeds from client-side stored media", async () => {
-    const imgBlob = new Blob(["image-binary-data"], { type: "image/jpeg" });
-    const docBlob = new Blob(["pdf-binary-data"], { type: "application/pdf" });
+  it("supports paginated queries for local Device Vault feeds without full-memory load", async () => {
+    const imgBlob1 = new Blob(["image-1"], { type: "image/jpeg" });
+    const imgBlob2 = new Blob(["image-2"], { type: "image/jpeg" });
+    const docBlob1 = new Blob(["doc-1"], { type: "application/pdf" });
 
-    await saveLocalMediaBlob("media-img-1", "conv-1", "snapshot.jpg", "image/jpeg", imgBlob);
-    await saveLocalMediaBlob("doc-pdf-1", "conv-1", "agreement.pdf", "application/pdf", docBlob);
+    await saveLocalMediaBlob("media-img-1", "conv-1", "snap1.jpg", "image/jpeg", imgBlob1);
+    await saveLocalMediaBlob("media-img-2", "conv-1", "snap2.jpg", "image/jpeg", imgBlob2);
+    await saveLocalMediaBlob("doc-pdf-1", "conv-1", "agree.pdf", "application/pdf", docBlob1);
 
-    const vault = await getAllLocalVaultMedia();
-    expect(vault.media).toHaveLength(1);
-    expect(vault.media[0].attachment_name).toBe("snapshot.jpg");
-    expect(vault.docs).toHaveLength(1);
-    expect(vault.docs[0].attachment_name).toBe("agreement.pdf");
+    const vaultAll = await getAllLocalVaultMedia();
+    expect(vaultAll.media).toHaveLength(2);
+    expect(vaultAll.docs).toHaveLength(1);
+
+    const paginated = await getLocalVaultMediaPaginated({ limit: 1, offset: 0, category: "media" });
+    expect(paginated.media).toHaveLength(1);
+    expect(paginated.hasMore).toBe(true);
   });
 });
 
@@ -146,3 +202,4 @@ describe("Ephemeral Backend Auto-Purge Delivery Queue Endpoints", () => {
     expect(POST).toBeTypeOf("function");
   });
 });
+

@@ -33,8 +33,13 @@ export function AttachmentPreview({
   useEffect(() => {
     if (!message.attachment_path) return;
     let active = true;
-    setStatus("loading");
-    setErrorMsg(null);
+
+    queueMicrotask(() => {
+      if (active) {
+        setStatus("loading");
+        setErrorMsg(null);
+      }
+    });
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {

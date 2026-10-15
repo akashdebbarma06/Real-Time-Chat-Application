@@ -127,7 +127,9 @@ export function LinkedDevicesDialog({
 
   useEffect(() => {
     if (open) {
-      void loadSession();
+      queueMicrotask(() => {
+        void loadSession();
+      });
     }
   }, [open, loadSession]);
 

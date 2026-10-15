@@ -171,7 +171,9 @@ export function MessageComposer({
 
   useEffect(() => {
     if (!content) {
-      resetTextareaHeight();
+      queueMicrotask(() => {
+        resetTextareaHeight();
+      });
     }
   }, [content]);
 

@@ -8,14 +8,14 @@
 [![React 19](https://img.shields.io/badge/React-19.0.0-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
 [![Tailwind CSS 4](https://img.shields.io/badge/Tailwind_CSS-4.0-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![Supabase](https://img.shields.io/badge/Supabase-Realtime_%26_Auth-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com/)
-[![Capacitor 7](https://img.shields.io/badge/Capacitor-7.0-119EFF?style=for-the-badge&logo=capacitor&logoColor=white)](https://capacitorjs.com/)
+[![Capacitor 8](https://img.shields.io/badge/Capacitor-8.5-119EFF?style=for-the-badge&logo=capacitor&logoColor=white)](https://capacitorjs.com/)
 [![Android 14](https://img.shields.io/badge/Android-API_22--34-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://developer.android.com/)
-[![Vitest](https://img.shields.io/badge/Vitest-24_Suites_Passed-FCC72B?style=for-the-badge&logo=vitest&logoColor=black)](https://vitest.dev/)
+[![Vitest](https://img.shields.io/badge/Vitest-36_Suites_Passed-FCC72B?style=for-the-badge&logo=vitest&logoColor=black)](https://vitest.dev/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
 
 <br/>
 
-**Aether Chat** is a production-grade, full-stack real-time communication platform engineered with Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS, Supabase PostgreSQL with strict Row Level Security (RLS), and Capacitor 7 for cross-platform Android mobile deployment.
+**Aether Chat** is a production-grade, full-stack real-time communication platform engineered with Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS, Supabase PostgreSQL with strict Row Level Security (RLS), and Capacitor 8 for cross-platform Android mobile deployment.
 
 [📱 Download Android APK](#-download-mobile-app) • [✨ Key Features](#-key-feature-breakdown) • [🏗️ Architecture](#%EF%B8%8F-system-architecture) • [🚀 Quick Start](#-local-development-setup) • [🤖 Android Build](#-android-apk-build-guide)
 
@@ -49,6 +49,8 @@ Install the native Android release build directly onto your device. Enjoy full h
 
 Aether Chat uses a hybrid **Local-First client storage** model combined with an **ephemeral backend store-and-forward relay**:
 
+> For in-depth specifications, review the [E2EE Architecture Proposal](docs/e2ee-architecture-proposal.md) and the [Capacity Model & Storage Retention Contract](docs/capacity-and-load-testing.md).
+
 ```mermaid
 sequenceDiagram
     autonumber
@@ -61,7 +63,7 @@ sequenceDiagram
     participant Peer as Recipient (React 19 / Android)
 
     User->>ClientDB: Store Message (Sent Status, Optimistic UI)
-    User->>DB: INSERT into messages (Encrypted Payload)
+    User->>DB: INSERT into messages (Payload, RLS enforced)
     DB->>RT: Database CDC Broadcast
     RT-->>Peer: Deliver Realtime Message
     Peer->>ClientDB: Persist in Recipient's IndexedDB
@@ -215,7 +217,7 @@ A dedicated 3-tab media repository per conversation with live search and filteri
 | **UI Library** | **React 19.0.0**, **TypeScript 5.x**, **Tailwind CSS 4.0** |
 | **Icons & Design** | **Lucide React**, Glassmorphic Design System, Tailwind Color Tokens |
 | **Backend & Database** | **Supabase** (PostgreSQL 15+, Auth, Realtime WebSockets, Storage) |
-| **Mobile Runtime** | **Capacitor 7.0** (`@capacitor/core`, `@capacitor/android`, `@capacitor/app`) |
+| **Mobile Runtime** | **Capacitor 8.5** (`@capacitor/core`, `@capacitor/android`, `@capacitor/app`) |
 | **Client Storage** | **IndexedDB** (`idb`), `localStorage`, HTML5 Storage Manager API |
 | **Testing** | **Vitest 3.2**, **React Testing Library**, **jsdom** |
 
@@ -273,7 +275,7 @@ Open [http://localhost:3000](http://localhost:3000) to view the application in y
 
 ## 🤖 Android APK Build Guide
 
-Aether Chat uses Capacitor 7 to bundle the web client into an optimized native Android application.
+Aether Chat uses Capacitor 8 to bundle the web client into an optimized native Android application.
 
 ### Prerequisites
 - **Android Studio** (Koala or newer) with Android SDK Platform 34 installed.
@@ -312,21 +314,28 @@ npx cap run android
 
 ## 🧪 Testing & Code Quality Pass
 
-Aether Chat maintains strict quality control with 24 test suites covering business logic, security policies, navigation hierarchies, and gesture interactions.
+Aether Chat maintains strict quality control with 36 test suites (347 tests) covering business logic, security policies, navigation hierarchies, and gesture interactions.
 
 ```bash
-# Run the complete test suite
+# Run the complete test suite (36 suites, 347 tests)
 npm test
 
 # Run ESLint validation (0 errors)
 npm run lint
+
+# Run TypeScript typecheck (0 errors)
+npm run typecheck
 
 # Run Next.js production build verification
 npm run build
 ```
 
 ### Test Coverage Highlights
-- `__tests__/local-first-storage.test.ts`: Client IndexedDB persistence, ephemeral queue ACK delivery, and media purge workflows.
+- `__tests__/oauth-deep-link.test.ts`: Strict OAuth redirect validation rejecting protocol-relative bypasses, backslashes, and untrusted origins.
+- `__tests__/database-security-policies.test.ts`: RLS isolation, profile visibility for blocked contacts, and Realtime presence authorization.
+- `__tests__/link-preview-ssrf.test.ts`: SSRF protection with dual-stack DNS pinning, loopback/private IP filtering, and redirect validation.
+- `__tests__/delivery-acknowledgement-purge.test.ts`: Server-side ephemeral purge verification on recipient delivery and media download ACKs.
+- `__tests__/local-first-storage.test.ts`: Client IndexedDB persistence, cursor-based pagination, and local media vault operations.
 - `__tests__/back-navigation.test.ts`: Hierarchical priority stack for hardware back-button dismissals.
 - `__tests__/device-permissions.test.ts`: Permission manager fallback queries, banner snooze, and progressive request flows.
 - `__tests__/conversation-context-menu.test.ts`: Right-click menu isolation and left-click Chevron separation.
@@ -337,10 +346,15 @@ npm run build
 
 ## 🔒 Security & Privacy Architecture
 
-- **Row Level Security (RLS)**: PostgreSQL enforces that users can only select and query messages from conversations where their membership is confirmed in `conversation_members`.
-- **Identity Protection Triggers**: Database triggers prevent modification of `sender_id`, `created_at`, or message ownership on update.
-- **Private Media Storage**: Supabase Storage enforces bucket-level path validation ensuring only conversation participants can generate signed download URLs.
-- **Client-Side Session Integrity**: Next.js middleware verifies JWT session claims on every protected route request.
+Aether Chat enforces defense-in-depth across the web application, backend database, and native Android container:
+
+- **Transport Security**: All client-to-server and WebSocket traffic is encrypted in transit using **TLS 1.3**.
+- **Row Level Security (RLS)**: PostgreSQL enforces that users can only select and query messages from conversations where their membership is confirmed in `conversation_members`. Profile access is masked between blocked users.
+- **Ephemeral Store-and-Forward Relay**: Unread messages and media attachments are delivered to recipients and purged from server storage upon delivery acknowledgment (`/api/messages/ack-delivery` and `/api/media/ack-download`). Local history and media remain encrypted/stored on the recipient's device in IndexedDB (`idb`).
+- **Realtime Channel Authorization**: Realtime presence subscriptions are locked to authorized conversation rooms and bounded public channels.
+- **SSRF Hardened Endpoints**: In-app link previews resolve DNS records against a strict filter rejecting private, loopback, link-local, and cloud metadata IP addresses before issuing outbound requests.
+- **End-to-End Encryption Roadmap**: For the planned cryptographic specification implementing Signal Protocol (X3DH + Double Ratchet), see the [E2EE Architecture Proposal](docs/e2ee-architecture-proposal.md).
+- **Capacity & Scaling Contract**: For infrastructure capacity limits, database index execution plans, and load testing instructions, see the [Capacity Model & Load Testing Plan](docs/capacity-and-load-testing.md).
 
 ---
 

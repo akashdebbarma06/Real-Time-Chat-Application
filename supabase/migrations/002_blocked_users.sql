@@ -30,6 +30,7 @@ create policy "Users can unblock others"
   using (auth.uid() = blocker_id);
 
 -- Helper function: check if a user is blocked by another
+-- Caller must be either the blocker or the blocked user to prevent third-party enumeration.
 create or replace function public.is_user_blocked(
   p_blocker_id uuid,
   p_blocked_id uuid
@@ -42,6 +43,11 @@ set search_path = public
 as $$
   select exists (
     select 1 from public.blocked_users
-    where blocker_id = p_blocker_id and blocked_id = p_blocked_id
+    where blocker_id = p_blocker_id
+      and blocked_id = p_blocked_id
+      and (auth.uid() = p_blocker_id or auth.uid() = p_blocked_id)
   );
 $$;
+
+revoke execute on function public.is_user_blocked(uuid, uuid) from public, anon;
+grant execute on function public.is_user_blocked(uuid, uuid) to authenticated;

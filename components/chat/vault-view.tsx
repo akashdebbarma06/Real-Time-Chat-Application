@@ -329,7 +329,7 @@ export function VaultView({ conversations, profile }: VaultViewProps) {
             </div>
           </div>
           <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold border border-primary/20">
-            Encrypted
+            Local Vault
           </span>
         </div>
 

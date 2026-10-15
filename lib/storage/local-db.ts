@@ -143,6 +143,63 @@ export async function saveLocalMessages(msgs: ChatMessage[]): Promise<void> {
   await tx.done;
 }
 
+export interface PaginatedMessagesResult {
+  messages: ChatMessage[];
+  hasMore: boolean;
+  oldestCreatedAt: string | null;
+  newestCreatedAt: string | null;
+}
+
+/**
+ * Cursor-based pagination for local chat history.
+ * Loads recent messages first (descending created_at) and returns them in natural chronological
+ * ascending order for smooth local-first UI rendering without loading unbounded histories into memory.
+ */
+export async function getLocalMessagesPaginated(
+  conversationId: string,
+  options?: {
+    limit?: number;
+    beforeCreatedAt?: string;
+  }
+): Promise<PaginatedMessagesResult> {
+  const db = await getLocalDB();
+  if (!db || !conversationId) {
+    return { messages: [], hasMore: false, oldestCreatedAt: null, newestCreatedAt: null };
+  }
+
+  const limit = options?.limit && options.limit > 0 ? options.limit : 50;
+  const beforeCreatedAt = options?.beforeCreatedAt;
+
+  // Retrieve messages for this conversation via the by-conversation index
+  const allForConv = await db.getAllFromIndex("messages", "by-conversation", conversationId);
+
+  // Filter beforeCreatedAt if specified (for scrolling upwards into older history)
+  const eligible = beforeCreatedAt
+    ? allForConv.filter(
+        (m) => new Date(m.created_at).getTime() < new Date(beforeCreatedAt).getTime()
+      )
+    : allForConv;
+
+  // Sort descending by created_at to grab the latest `limit` messages
+  eligible.sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
+
+  const sliced = eligible.slice(0, limit);
+  const hasMore = eligible.length > limit;
+
+  // Reverse back to chronological ascending order (oldest -> newest in page)
+  const chronological = sliced.reverse();
+
+  return {
+    messages: chronological,
+    hasMore,
+    oldestCreatedAt: chronological.length > 0 ? chronological[0].created_at : null,
+    newestCreatedAt:
+      chronological.length > 0 ? chronological[chronological.length - 1].created_at : null,
+  };
+}
+
 export async function getLocalMessages(conversationId: string): Promise<ChatMessage[]> {
   const db = await getLocalDB();
   if (!db) return [];
@@ -299,6 +356,136 @@ export async function hasLocalMedia(mediaId: string): Promise<boolean> {
   if (!db) return false;
   const record = await db.get("media", mediaId);
   return Boolean(record?.blob);
+}
+
+export interface PaginatedVaultResult {
+  media: VaultMediaItem[];
+  docs: VaultMediaItem[];
+  links: VaultLinkItem[];
+  hasMore: boolean;
+  totalCount: number;
+}
+
+/**
+ * Paginated query for local vault media and documents.
+ * Avoids dumping entire IndexedDB object stores into memory at once.
+ */
+export async function getLocalVaultMediaPaginated(options?: {
+  limit?: number;
+  offset?: number;
+  category?: "all" | "media" | "docs" | "links";
+  conversationId?: string;
+}): Promise<PaginatedVaultResult> {
+  const db = await getLocalDB();
+  if (!db) {
+    return { media: [], docs: [], links: [], hasMore: false, totalCount: 0 };
+  }
+
+  const limit = options?.limit && options.limit > 0 ? options.limit : 50;
+  const offset = options?.offset && options.offset > 0 ? options.offset : 0;
+  const category = options?.category || "all";
+  const conversationId = options?.conversationId;
+
+  let mediaRecords: StoredMediaRecord[] = [];
+  if (conversationId) {
+    mediaRecords = await db.getAllFromIndex("media", "by-conversation", conversationId);
+  } else {
+    mediaRecords = await db.getAllFromIndex("media", "by-created");
+  }
+
+  mediaRecords.sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+
+  const media: VaultMediaItem[] = [];
+  const docs: VaultMediaItem[] = [];
+
+  for (const r of mediaRecords) {
+    let url = blobUrlCache.get(r.mediaId);
+    if (!url && r.blob) {
+      url = safeCreateObjectURL(r.blob);
+      blobUrlCache.set(r.mediaId, url);
+    }
+
+    const isVideo =
+      r.type.startsWith("video/") ||
+      Boolean(r.name.match(/\.(mp4|webm|mov|mkv)$/i));
+
+    const isImg =
+      r.type.startsWith("image/") ||
+      Boolean(r.name.match(/\.(jpeg|jpg|gif|png|webp|svg)$/i));
+
+    const item: VaultMediaItem = {
+      id: r.id,
+      conversation_id: r.conversationId,
+      chat_title: "Device Vault",
+      sender_id: "local-user",
+      attachment_name: r.name,
+      attachment_path: r.mediaId,
+      attachment_size: r.size,
+      created_at: r.createdAt,
+      url: url || "",
+      isVideo,
+    };
+
+    if (isImg || isVideo) {
+      if (category === "all" || category === "media") {
+        media.push(item);
+      }
+    } else {
+      if (category === "all" || category === "docs") {
+        docs.push(item);
+      }
+    }
+  }
+
+  const links: VaultLinkItem[] = [];
+  if (category === "all" || category === "links") {
+    let messagesForLinks: ChatMessage[] = [];
+    if (conversationId) {
+      messagesForLinks = await db.getAllFromIndex("messages", "by-conversation", conversationId);
+    } else {
+      messagesForLinks = await db.getAllFromIndex("messages", "by-created");
+    }
+
+    const urlRegex = /(https?:\/\/[^\s<]+)/gi;
+    for (const msg of messagesForLinks) {
+      if (!msg.content || !msg.content.includes("http")) continue;
+      const matches = msg.content.match(urlRegex);
+      if (!matches) continue;
+
+      for (const rawUrl of matches) {
+        try {
+          const cleanUrl = rawUrl.replace(/[.,;!?)]+$/, "");
+          const parsed = new URL(cleanUrl);
+          links.push({
+            id: `${msg.id}-${cleanUrl}`,
+            conversation_id: msg.conversation_id,
+            chat_title: msg.sender?.display_name || "Device Vault",
+            url: cleanUrl,
+            domain: parsed.hostname.replace(/^www\./, ""),
+            created_at: msg.created_at,
+            context_text: msg.content.replace(rawUrl, "").trim(),
+          });
+        } catch {}
+      }
+    }
+  }
+
+  const paginatedMedia = media.slice(offset, offset + limit);
+  const paginatedDocs = docs.slice(offset, offset + limit);
+  const paginatedLinks = links.slice(offset, offset + limit);
+
+  const maxItems = Math.max(media.length, docs.length, links.length);
+  const hasMore = offset + limit < maxItems;
+
+  return {
+    media: paginatedMedia,
+    docs: paginatedDocs,
+    links: paginatedLinks,
+    hasMore,
+    totalCount: maxItems,
+  };
 }
 
 export async function getAllLocalVaultMedia(): Promise<{
